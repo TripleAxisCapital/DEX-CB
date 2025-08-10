@@ -3,48 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Exchange</title>
+  <title>DEX</title>
 
-  <!-- Tailwind Play CDN (for speed in a single file MVP) -->
+  <!-- Tailwind (CDN for single-file MVP) -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Icons -->
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
 
-  <!-- Chart.js for portfolio chart -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
-    /* Smooth cards / subtle glass */
-    .card {
-      @apply rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm;
-      backdrop-filter: saturate(120%) blur(2px);
-    }
-    .btn {
-      @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium border border-slate-200 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 transition;
-    }
-    .btn-primary {
-      @apply bg-slate-900 text-white border-slate-900 hover:bg-black;
-    }
-    .pill {
-      @apply rounded-full px-2.5 py-1 text-xs font-medium;
-    }
-    .green { @apply text-emerald-600; }
-    .red { @apply text-rose-600; }
-    .skeleton {
-      animation: pulse 1.5s ease-in-out infinite;
-      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
-      background-size: 400% 100%;
-    }
-    @keyframes pulse {0%{background-position:100% 0}100%{background-position:0 0}}
+    .card { @apply rounded-2xl border border-slate-200/80 bg-white/95 shadow-sm; backdrop-filter: saturate(120%) blur(2px); }
+    .btn { @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium border border-slate-200 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 transition; }
+    .btn-primary { @apply bg-slate-900 text-white border-slate-900 hover:bg-black; }
+    .green { @apply text-emerald-600; } .red { @apply text-rose-600; }
+    .pill { @apply rounded-full px-2.5 py-1 text-xs font-medium; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
 
-  <!-- LOGIN OVERLAY -->
+  <!-- LOGIN -->
   <div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
     <div class="w-full max-w-sm card p-6 bg-white">
-      <div class="flex items-center gap-2 mb-4">
+      <div class="flex items-center gap-3 mb-4">
         <div class="size-9 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400"></div>
         <h1 class="text-xl font-semibold tracking-tight">Sign in</h1>
       </div>
@@ -64,7 +47,7 @@
     </div>
   </div>
 
-  <!-- APP SHELL -->
+  <!-- APP -->
   <div id="app" class="opacity-0 transition-opacity duration-300">
     <!-- Header -->
     <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
@@ -72,11 +55,11 @@
         <div class="h-16 flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div class="size-8 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400"></div>
-            <span class="text-lg font-semibold tracking-tight">Exchange</span>
+            <span class="text-lg font-semibold tracking-tight">DEX</span>
           </div>
           <nav class="hidden md:flex items-center gap-2">
-            <button data-tab="dashboard" class="tab btn">Dashboard</button>
-            <button data-tab="trade" class="tab btn">Trade</button>
+            <button data-tab="dashboard" class="tab btn btn-primary">Dashboard</button>
+            <button data-tab="swap" class="tab btn">Swap</button>
             <button data-tab="settings" class="tab btn">Settings</button>
           </nav>
           <div class="flex items-center gap-2">
@@ -92,7 +75,6 @@
 
       <!-- DASHBOARD -->
       <section id="page-dashboard" class="space-y-6">
-        <!-- Top summary -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div class="card p-5 col-span-2">
             <div class="flex items-center justify-between mb-4">
@@ -110,31 +92,34 @@
                   <div id="nlvDelta" class="text-sm mt-1">—</div>
                 </div>
                 <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                  <div class="text-xs text-slate-500">Cash (USD)</div>
-                  <div id="cashValue" class="text-xl font-semibold mt-1">$—</div>
+                  <div class="text-xs text-slate-500">Top Weight</div>
+                  <div id="topWeight" class="text-sm mt-1">—</div>
                 </div>
               </div>
             </div>
           </div>
 
+          <!-- Quick Swap -->
           <div class="card p-5">
-            <h2 class="text-lg font-semibold mb-3">Quick Trade</h2>
+            <h2 class="text-lg font-semibold mb-3">Quick Swap</h2>
             <div class="space-y-3">
-              <div>
-                <label class="text-xs text-slate-500">Asset</label>
-                <select id="qtAsset" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none">
-                </select>
-              </div>
               <div class="grid grid-cols-2 gap-2">
-                <button id="qtBuy" class="btn btn-primary">Buy</button>
-                <button id="qtSell" class="btn">Sell</button>
+                <div>
+                  <label class="text-xs text-slate-500">From</label>
+                  <select id="qsFrom" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none"></select>
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">To</label>
+                  <select id="qsTo" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none"></select>
+                </div>
               </div>
               <div>
-                <label class="text-xs text-slate-500">Amount (USD)</label>
-                <input id="qtUsd" type="number" min="0" step="0.01" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" placeholder="e.g., 1000" />
+                <label class="text-xs text-slate-500">Amount (From)</label>
+                <input id="qsAmt" type="number" min="0" step="0.000001" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" placeholder="e.g., 0.5" />
               </div>
-              <button id="qtSubmit" class="btn w-full">Submit</button>
-              <div id="qtMsg" class="text-xs text-slate-500"></div>
+              <div class="text-xs text-slate-600" id="qsQuote">—</div>
+              <button id="qsSwap" class="btn w-full">Swap</button>
+              <div id="qsMsg" class="text-xs text-slate-500"></div>
             </div>
           </div>
         </div>
@@ -162,38 +147,36 @@
           </div>
         </div>
 
-        <!-- Recent activity -->
+        <!-- Activity -->
         <div class="card p-5">
           <h2 class="text-lg font-semibold mb-3">Recent Activity</h2>
           <div id="activityList" class="space-y-2 text-sm"></div>
         </div>
       </section>
 
-      <!-- TRADE -->
-      <section id="page-trade" class="hidden space-y-4">
+      <!-- SWAP PAGE -->
+      <section id="page-swap" class="hidden space-y-4">
         <div class="card p-5">
-          <h2 class="text-lg font-semibold mb-4">Place Order</h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <h2 class="text-lg font-semibold mb-4">Swap Assets</h2>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label class="text-xs text-slate-500">Asset</label>
-              <select id="tradeAsset" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none"></select>
+              <label class="text-xs text-slate-500">From</label>
+              <select id="swFrom" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none"></select>
             </div>
             <div>
-              <label class="text-xs text-slate-500">Side</label>
-              <select id="tradeSide" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none">
-                <option>Buy</option>
-                <option>Sell</option>
-              </select>
+              <label class="text-xs text-slate-500">To</label>
+              <select id="swTo" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none"></select>
             </div>
             <div>
-              <label class="text-xs text-slate-500">Amount (USD)</label>
-              <input id="tradeUsd" type="number" min="0" step="0.01" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" placeholder="e.g., 2500" />
+              <label class="text-xs text-slate-500">Amount (From)</label>
+              <input id="swAmt" type="number" min="0" step="0.000001" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" placeholder="e.g., 1.25" />
+            </div>
+            <div class="flex items-end">
+              <button id="swSubmit" class="btn btn-primary w-full">Execute Swap</button>
             </div>
           </div>
-          <div class="mt-4 flex items-center gap-2">
-            <button id="tradeSubmit" class="btn btn-primary">Submit Order</button>
-            <div id="tradeMsg" class="text-sm text-slate-500"></div>
-          </div>
+          <div id="swQuote" class="text-sm text-slate-600 mt-3">—</div>
+          <div id="swMsg" class="text-sm text-slate-500 mt-1"></div>
         </div>
       </section>
 
@@ -204,26 +187,21 @@
           <div class="text-sm text-slate-600">General preferences and account configuration.</div>
         </div>
 
-        <!-- Hidden / Advanced controls (locked) -->
         <div class="card p-5">
           <div class="flex items-center justify-between">
             <h3 class="font-semibold">Advanced Controls</h3>
             <button id="unlockBtn" class="btn">Unlock</button>
           </div>
-          <div id="lockedNote" class="text-sm text-slate-500 mt-2">Restricted section. Enter code to manage balances, holdings, and commission.</div>
+          <div id="lockedNote" class="text-sm text-slate-500 mt-2">Restricted section. Enter code to manage holdings and commission.</div>
 
           <div id="advancedWrap" class="hidden mt-4 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label class="text-xs text-slate-500">USD Cash</label>
-                <input id="advCash" type="number" step="0.01" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" />
-              </div>
               <div>
                 <label class="text-xs text-slate-500">Commission (%)</label>
                 <input id="advCommission" type="number" step="0.001" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" />
               </div>
               <div class="flex items-end">
-                <button id="advSaveBasics" class="btn btn-primary w-full">Save Basics</button>
+                <button id="advSaveBasics" class="btn btn-primary w-full">Save Commission</button>
               </div>
             </div>
 
@@ -245,11 +223,9 @@
 
   <script>
     /***** CONFIG *****/
-    // IMPORTANT: Secret access code for the Advanced Controls section in Settings.
-    // Change this to whatever you like.
     const SECRET_SETTINGS_CODE = "admin123";
 
-    // Market universe (CoinGecko IDs mapped to symbols + nice names)
+    // Asset universe (CoinGecko ids, symbols, names)
     const ASSETS = [
       { id: "bitcoin",       symbol: "BTC", name: "Bitcoin" },
       { id: "ethereum",      symbol: "ETH", name: "Ethereum" },
@@ -263,46 +239,43 @@
       { id: "tron",          symbol: "TRX", name: "TRON" },
     ];
 
-    // Polling interval for live prices (ms)
+    // Polling
     const PRICE_POLL_MS = 10000;
 
     // Storage keys
     const K = {
-      AUTH: "mvp_auth",
-      STATE: "mvp_state_v1",
-      HISTORY: "mvp_history_v1",
-      CHART: "mvp_chart_v1"
+      AUTH: "dex_auth",
+      STATE: "dex_state_v1",
+      HISTORY: "dex_history_v1"
     };
 
-    // Default state
+    // Default state (no cash, some holdings so swaps work)
     const defaultState = () => ({
-      cashUSD: 100000,
-      commissionPct: 0.25, // percent per trade
-      holdings: Object.fromEntries(ASSETS.map(a => [a.id, 0])),
+      commissionPct: 0.30, // % fee applied to input token on swaps
+      holdings: {
+        bitcoin: 0.25,
+        ethereum: 5.0,
+        solana: 100,
+        ripple: 1500,
+        cardano: 2000,
+        binancecoin: 2,
+        polkadot: 300,
+        chainlink: 120,
+        uniswap: 250,
+        tron: 5000
+      }
     });
 
     /***** UTIL *****/
     const $ = sel => document.querySelector(sel);
     const fmtUsd = n => n == null ? "—" : n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
-    const fmtPct = n => `${(n >= 0 ? "+" : "")}${n.toFixed(2)}%`;
-    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
-
-    function loadState() {
-      const raw = localStorage.getItem(K.STATE);
-      return raw ? JSON.parse(raw) : defaultState();
-    }
-    function saveState(s) { localStorage.setItem(K.STATE, JSON.stringify(s)); }
-    function loadHistory() {
-      const raw = localStorage.getItem(K.HISTORY);
-      return raw ? JSON.parse(raw) : [];
-    }
-    function saveHistory(h) { localStorage.setItem(K.HISTORY, JSON.stringify(h)); }
-    function pushActivity(msg) {
-      const h = loadHistory();
-      h.unshift({ t: Date.now(), msg });
-      saveHistory(h.slice(0, 50));
-      renderActivity();
-    }
+    const fmtPct = n => `${(n>=0?"+":"")}${n.toFixed(2)}%`;
+    const clamp = (x,a,b) => Math.max(a, Math.min(b,x));
+    function loadState(){ const raw=localStorage.getItem(K.STATE); return raw?JSON.parse(raw):defaultState(); }
+    function saveState(s){ localStorage.setItem(K.STATE, JSON.stringify(s)); }
+    function loadHistory(){ const raw=localStorage.getItem(K.HISTORY); return raw?JSON.parse(raw):[]; }
+    function saveHistory(h){ localStorage.setItem(K.HISTORY, JSON.stringify(h)); }
+    function pushActivity(msg){ const h=loadHistory(); h.unshift({t:Date.now(),msg}); saveHistory(h.slice(0,80)); renderActivity(); }
 
     /***** AUTH *****/
     const loginOverlay = $("#loginOverlay");
@@ -314,179 +287,154 @@
         $("#loginErr").classList.add("hidden");
         loginOverlay.classList.add("hidden");
         boot();
-      } else {
-        $("#loginErr").classList.remove("hidden");
-      }
+      } else $("#loginErr").classList.remove("hidden");
     });
-
-    // Auto-fill for convenience in demo environments
-    $("#loginUser").value = "jj";
-    $("#loginPass").value = "jj";
+    $("#loginUser").value = "jj"; $("#loginPass").value = "jj";
 
     /***** NAV *****/
     const tabs = document.querySelectorAll(".tab");
     tabs.forEach(btn => btn.addEventListener("click", () => showPage(btn.dataset.tab)));
-    function showPage(id) {
-      ["dashboard","trade","settings"].forEach(p => {
-        $("#page-" + p).classList.toggle("hidden", p !== id);
-      });
-      tabs.forEach(b => b.classList.toggle("btn-primary", b.dataset.tab === id));
+    function showPage(id){
+      ["dashboard","swap","settings"].forEach(p=>$("#page-"+p).classList.toggle("hidden", p!==id));
+      tabs.forEach(b => b.classList.toggle("btn-primary", b.dataset.tab===id));
     }
-
-    $("#logoutBtn").addEventListener("click", () => {
-      localStorage.removeItem(K.AUTH);
-      location.reload();
-    });
+    $("#logoutBtn").addEventListener("click", ()=>{ localStorage.removeItem(K.AUTH); location.reload(); });
 
     /***** MARKET DATA *****/
-    let lastPrices = {}; // id -> { price, chg24 }
+    // Will hold: id -> { price, chg24, image }
+    let market = {};
     let lastUpdated = 0;
 
-    async function fetchPrices() {
-      const ids = ASSETS.map(a => a.id).join(",");
-      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
+    async function fetchMarket() {
+      const ids = ASSETS.map(a=>a.id).join(",");
+      const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`;
       const res = await fetch(url, { headers: { "accept": "application/json" }});
-      if (!res.ok) throw new Error("Price API error");
+      if (!res.ok) throw new Error("Market API error");
       const data = await res.json();
       const out = {};
-      ASSETS.forEach(a => {
-        const row = data[a.id];
-        if (row) out[a.id] = { price: +row.usd, chg24: +row.usd_24h_change };
+      data.forEach(row => {
+        out[row.id] = {
+          price: +row.current_price,
+          chg24: row.price_change_percentage_24h_in_currency ?? row.price_change_percentage_24h ?? 0,
+          image: row.image
+        };
       });
-      lastPrices = out;
+      market = out;
       lastUpdated = Date.now();
       updateUI();
     }
 
-    function currentPrice(id) {
-      return (lastPrices[id]?.price) ?? null;
-    }
+    const priceOf = id => market[id]?.price ?? null;
+    const imageOf = id => market[id]?.image ?? "";
 
-    /***** PORTFOLIO / NLV *****/
-    function calcNLV(state) {
-      let total = state.cashUSD;
-      for (const a of ASSETS) {
-        const p = currentPrice(a.id);
-        if (p != null) total += state.holdings[a.id] * p;
+    /***** PORTFOLIO *****/
+    function calcNLV(state){
+      let total = 0;
+      for (const a of ASSETS){
+        const px = priceOf(a.id);
+        if (px!=null) total += (state.holdings[a.id]||0) * px;
       }
       return total;
     }
 
     /***** CHART *****/
     let chart;
-    function initChart() {
-      const ctx = $("#nlvChart");
-      chart = new Chart(ctx, {
+    function initChart(){
+      chart = new Chart($("#nlvChart"), {
         type: "line",
-        data: {
-          labels: [],
-          datasets: [{
-            label: "Portfolio",
-            data: [],
-            tension: 0.25,
-            borderWidth: 2,
-            pointRadius: 0,
-          }]
-        },
+        data: { labels: [], datasets: [{ label: "Portfolio", data: [], tension: 0.25, borderWidth: 2, pointRadius: 0 }]},
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: { mode: 'index', intersect: false }
-          },
-          scales: {
-            x: { display: false },
-            y: { ticks: { callback: (v) => "$" + (v/1000).toFixed(0) + "k" } }
-          }
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false}, tooltip:{mode:'index',intersect:false} },
+          scales:{ x:{display:false}, y:{ ticks:{ callback:v=>"$"+(v/1000).toFixed(0)+"k" } } }
         }
       });
-
-      // Seed a point
       const s = loadState();
       chart.data.labels.push(new Date().toLocaleTimeString());
-      chart.data.datasets[0].data.push(s.cashUSD);
+      chart.data.datasets[0].data.push(calcNLV(s));
       chart.update();
     }
-
-    function pushChartPoint(nlv) {
-      const maxPts = 120; // ~20 mins at 10s
+    function pushChartPoint(nlv){
+      const max = 120;
       chart.data.labels.push(new Date().toLocaleTimeString());
       chart.data.datasets[0].data.push(nlv);
-      if (chart.data.labels.length > maxPts) {
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
-      }
+      if (chart.data.labels.length>max){ chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
       chart.update();
     }
 
-    /***** RENDERERS *****/
-    function renderHeader(nlv) {
+    /***** RENDER *****/
+    function populateSelects(){
+      const opts = ASSETS.map(a => `<option value="${a.id}">${a.symbol} • ${a.name}</option>`).join("");
+      ["qsFrom","qsTo","swFrom","swTo"].forEach(id => { $("#"+id).innerHTML = opts; });
+      // defaults: From BTC -> To ETH
+      $("#qsFrom").value="bitcoin"; $("#qsTo").value="ethereum";
+      $("#swFrom").value="bitcoin"; $("#swTo").value="ethereum";
+    }
+
+    function renderHeader(nlv){
       $("#headerNLV").textContent = fmtUsd(nlv);
       $("#headerNLV").classList.remove("hidden");
       $("#lastUpdated").textContent = new Date(lastUpdated).toLocaleTimeString();
     }
 
-    function renderSummary(state) {
+    function renderSummary(state){
       const nlv = calcNLV(state);
       $("#nlvValue").textContent = fmtUsd(nlv);
-      $("#cashValue").textContent = fmtUsd(state.cashUSD);
-
-      const h = loadHistory();
-      const lastOpen = h.find(x => x.msg.startsWith("MARK"))?.msg;
-      // Simple delta vs last chart point
       const prev = chart?.data?.datasets?.[0]?.data?.slice(-2, -1)?.[0];
-      const delta = prev != null ? ((nlv - prev) / prev) * 100 : 0;
-      const el = $("#nlvDelta");
-      el.textContent = (prev == null) ? "—" : fmtPct(delta);
-      el.classList.toggle("green", delta >= 0);
-      el.classList.toggle("red", delta < 0);
-
+      const delta = prev!=null ? ((nlv - prev)/prev)*100 : 0;
+      const dEl = $("#nlvDelta");
+      dEl.textContent = (prev==null) ? "—" : fmtPct(delta);
+      dEl.classList.toggle("green", delta>=0);
+      dEl.classList.toggle("red", delta<0);
       renderHeader(nlv);
+
+      // top weight
+      const rows = ASSETS.map(a => {
+        const px = priceOf(a.id)??0, qty = state.holdings[a.id]??0, v=px*qty;
+        return { id:a.id, symbol:a.symbol, v };
+      }).sort((x,y)=>y.v-x.v);
+      const total = nlv || 1;
+      const top = rows[0];
+      $("#topWeight").textContent = top ? `${top.symbol} • ${(top.v/total*100).toFixed(2)}%` : "—";
     }
 
-    function renderPositions(state) {
+    function renderPositions(state){
       const tbody = $("#positionsBody");
       tbody.innerHTML = "";
-      let totalValue = 0;
-      const rows = [];
+      const nlv = calcNLV(state) || 1;
 
-      for (const a of ASSETS) {
-        const qty = state.holdings[a.id] || 0;
-        const px = currentPrice(a.id);
-        const v = (px != null ? qty * px : 0);
-        totalValue += v;
-        rows.push({ a, qty, px, v, chg: lastPrices[a.id]?.chg24 ?? 0 });
-      }
+      for (const a of ASSETS){
+        const qty = state.holdings[a.id]||0;
+        const px = priceOf(a.id);
+        const v = (px!=null) ? qty*px : 0;
+        const weight = (v/nlv)*100;
+        const chg = market[a.id]?.chg24 ?? 0;
 
-      const nlv = totalValue + state.cashUSD;
-      for (const r of rows) {
-        const weight = nlv > 0 ? (r.v / nlv) * 100 : 0;
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td class="py-2">
             <div class="flex items-center gap-2">
-              <div class="size-6 rounded-md bg-slate-200"></div>
+              <img src="${imageOf(a.id)}" alt="${a.symbol}" class="w-6 h-6 rounded-full border border-slate-200"/>
               <div>
-                <div class="font-medium">${r.a.symbol}</div>
-                <div class="text-xs text-slate-500">${r.a.name}</div>
+                <div class="font-medium">${a.symbol}</div>
+                <div class="text-xs text-slate-500">${a.name}</div>
               </div>
             </div>
           </td>
-          <td class="py-2">${r.px != null ? fmtUsd(r.px) : "—"}</td>
-          <td class="py-2 ${r.chg >= 0 ? "green" : "red"}">${fmtPct(r.chg)}</td>
-          <td class="py-2">${r.qty.toFixed(6)}</td>
-          <td class="py-2">${fmtUsd(r.v)}</td>
+          <td class="py-2">${px!=null?fmtUsd(px):"—"}</td>
+          <td class="py-2 ${chg>=0?"green":"red"}">${fmtPct(chg)}</td>
+          <td class="py-2">${qty.toFixed(6)}</td>
+          <td class="py-2">${fmtUsd(v)}</td>
           <td class="py-2">${weight.toFixed(2)}%</td>
         `;
         tbody.appendChild(tr);
       }
     }
 
-    function renderActivity() {
+    function renderActivity(){
       const list = $("#activityList");
       const h = loadHistory();
-      list.innerHTML = h.map(e => {
+      list.innerHTML = h.map(e=>{
         const d = new Date(e.t).toLocaleString();
         return `<div class="flex items-center justify-between">
           <div>${e.msg}</div>
@@ -495,138 +443,145 @@
       }).join("");
     }
 
-    function populateAssetSelects() {
-      const opts = ASSETS.map(a => `<option value="${a.id}">${a.symbol} • ${a.name}</option>`).join("");
-      $("#qtAsset").innerHTML = opts;
-      $("#tradeAsset").innerHTML = opts;
+    /***** QUOTES & SWAPS *****/
+    function quoteSwap(state, fromId, toId, fromAmt){
+      const fromPx = priceOf(fromId), toPx = priceOf(toId);
+      if (fromId===toId) return { ok:false, msg:"Select different assets." };
+      if (fromPx==null || toPx==null) return { ok:false, msg:"No market price." };
+      if (!(fromAmt>0)) return { ok:false, msg:"Enter an amount." };
+      if ((state.holdings[fromId]||0) < fromAmt) return { ok:false, msg:"Insufficient balance." };
+
+      // Commission: reduce effective output by commission %
+      const feePct = clamp(state.commissionPct, 0, 100);
+      const effectiveFrom = fromAmt * (1 - feePct/100.0);
+      const usdValue = effectiveFrom * fromPx;
+      const toAmt = usdValue / toPx;
+      return { ok:true, toAmt, feePct, usdValue, fromPx, toPx };
     }
 
-    /***** TRADING *****/
-    function tradeUSD(state, assetId, side, usdAmount) {
-      const p = currentPrice(assetId);
-      if (p == null) return { ok: false, msg: "No market price." };
-      usdAmount = Math.max(0, +usdAmount);
-
-      const fee = usdAmount * (state.commissionPct / 100);
-      if (side === "Buy") {
-        const needed = usdAmount + fee;
-        if (state.cashUSD < needed) return { ok: false, msg: "Insufficient cash." };
-        const qty = usdAmount / p;
-        state.cashUSD -= needed;
-        state.holdings[assetId] += qty;
-        return { ok: true, msg: `Bought ${qty.toFixed(6)} for ${fmtUsd(usdAmount)} (fee ${fmtUsd(fee)})` };
-      } else {
-        // Sell by USD: compute qty from usd
-        const qty = usdAmount / p;
-        if (state.holdings[assetId] < qty) return { ok: false, msg: "Insufficient position." };
-        const proceeds = usdAmount - fee;
-        state.holdings[assetId] -= qty;
-        state.cashUSD += proceeds;
-        return { ok: true, msg: `Sold ${qty.toFixed(6)} for ${fmtUsd(usdAmount)} (fee ${fmtUsd(fee)})` };
-      }
+    function doSwap(state, fromId, toId, fromAmt){
+      const q = quoteSwap(state, fromId, toId, fromAmt);
+      if (!q.ok) return q;
+      state.holdings[fromId] -= fromAmt;
+      state.holdings[toId] += q.toAmt;
+      return { ok:true, ...q };
     }
 
-    // Quick trade UX
-    let qtSide = "Buy";
-    $("#qtBuy").addEventListener("click", () => {
-      qtSide = "Buy";
-      $("#qtBuy").classList.add("btn-primary");
-      $("#qtSell").classList.remove("btn-primary");
-    });
-    $("#qtSell").addEventListener("click", () => {
-      qtSide = "Sell";
-      $("#qtSell").classList.add("btn-primary");
-      $("#qtBuy").classList.remove("btn-primary");
-    });
-    $("#qtSubmit").addEventListener("click", () => {
+    // Quick Swap UI
+    function updateQuickQuote(){
       const s = loadState();
-      const asset = $("#qtAsset").value;
-      const usd = +$("#qtUsd").value;
-      if (!(usd > 0)) { $("#qtMsg").textContent = "Enter a positive USD amount."; return; }
-      const res = tradeUSD(s, asset, qtSide, usd);
-      if (res.ok) {
+      const from = $("#qsFrom").value, to = $("#qsTo").value;
+      const amt = +$("#qsAmt").value;
+      const q = quoteSwap(s, from, to, amt);
+      const el = $("#qsQuote");
+      if (!q.ok){ el.textContent = q.msg; return; }
+      el.textContent = `≈ Receive ${q.toAmt.toFixed(6)} ${symOf(to)} (fee ${q.feePct.toFixed(2)}%)`;
+    }
+    $("#qsFrom").addEventListener("change", updateQuickQuote);
+    $("#qsTo").addEventListener("change", updateQuickQuote);
+    $("#qsAmt").addEventListener("input", updateQuickQuote);
+    $("#qsSwap").addEventListener("click", ()=>{
+      const s = loadState();
+      const from = $("#qsFrom").value, to = $("#qsTo").value;
+      const amt = +$("#qsAmt").value;
+      const res = doSwap(s, from, to, amt);
+      const msg = $("#qsMsg");
+      if (res.ok){
         saveState(s);
-        pushActivity(`${qtSide.toUpperCase()} ${ASSETS.find(a=>a.id===asset).symbol} • ${res.msg}`);
+        pushActivity(`SWAP • ${amt} ${symOf(from)} → ${res.toAmt.toFixed(6)} ${symOf(to)} (fee ${res.feePct.toFixed(2)}%)`);
         updateUI(true);
-        $("#qtMsg").textContent = "Order executed.";
-      } else {
-        $("#qtMsg").textContent = res.msg;
-      }
+        msg.textContent = "Swap executed.";
+        $("#qsAmt").value = "";
+        updateQuickQuote();
+      } else msg.textContent = res.msg;
     });
 
-    // Trade page
-    $("#tradeSubmit").addEventListener("click", () => {
+    // Full Swap page
+    function updateSwapQuote(){
       const s = loadState();
-      const asset = $("#tradeAsset").value;
-      const side = $("#tradeSide").value;
-      const usd = +$("#tradeUsd").value;
-      if (!(usd > 0)) { $("#tradeMsg").textContent = "Enter a positive USD amount."; return; }
-      const res = tradeUSD(s, asset, side, usd);
-      if (res.ok) {
+      const from = $("#swFrom").value, to = $("#swTo").value;
+      const amt = +$("#swAmt").value;
+      const q = quoteSwap(s, from, to, amt);
+      const el = $("#swQuote");
+      if (!q.ok){ el.textContent = q.msg; return; }
+      el.textContent = `Rate: 1 ${symOf(from)} = ${(q.fromPx/q.toPx).toFixed(6)} ${symOf(to)} • You’ll receive ≈ ${q.toAmt.toFixed(6)} ${symOf(to)} (fee ${q.feePct.toFixed(2)}%)`;
+    }
+    $("#swFrom").addEventListener("change", updateSwapQuote);
+    $("#swTo").addEventListener("change", updateSwapQuote);
+    $("#swAmt").addEventListener("input", updateSwapQuote);
+    $("#swSubmit").addEventListener("click", ()=>{
+      const s = loadState();
+      const from = $("#swFrom").value, to = $("#swTo").value;
+      const amt = +$("#swAmt").value;
+      const res = doSwap(s, from, to, amt);
+      const msg = $("#swMsg");
+      if (res.ok){
         saveState(s);
-        pushActivity(`${side.toUpperCase()} ${ASSETS.find(a=>a.id===asset).symbol} • ${res.msg}`);
+        pushActivity(`SWAP • ${amt} ${symOf(from)} → ${res.toAmt.toFixed(6)} ${symOf(to)} (fee ${res.feePct.toFixed(2)}%)`);
         updateUI(true);
-        $("#tradeMsg").textContent = "Order executed.";
-      } else {
-        $("#tradeMsg").textContent = res.msg;
-      }
+        msg.textContent = "Swap executed.";
+        $("#swAmt").value = "";
+        updateSwapQuote();
+      } else msg.textContent = res.msg;
     });
+
+    const symOf = id => ASSETS.find(a=>a.id===id)?.symbol || id.toUpperCase();
 
     /***** ADVANCED (SECRET) *****/
     const advWrap = $("#advancedWrap");
-    $("#unlockBtn").addEventListener("click", () => {
+    $("#unlockBtn").addEventListener("click", ()=>{
       const code = prompt("Enter access code:");
-      if (code === SECRET_SETTINGS_CODE) {
+      if (code === SECRET_SETTINGS_CODE){
         $("#lockedNote").classList.add("hidden");
         advWrap.classList.remove("hidden");
         loadAdvancedEditor();
-      } else {
-        alert("Incorrect code.");
-      }
+      } else alert("Incorrect code.");
     });
 
-    function loadAdvancedEditor() {
+    function loadAdvancedEditor(){
       const s = loadState();
-      $("#advCash").value = s.cashUSD;
       $("#advCommission").value = s.commissionPct;
-
       const grid = $("#advHoldings");
       grid.innerHTML = "";
-      ASSETS.forEach(a => {
+      ASSETS.forEach(a=>{
         const wrap = document.createElement("div");
         wrap.innerHTML = `
           <div class="p-3 rounded-xl border border-slate-200 bg-white">
-            <div class="text-sm font-medium mb-1">${a.symbol} • ${a.name}</div>
-            <input data-hold="${a.id}" type="number" step="0.000001" class="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none" value="${s.holdings[a.id] ?? 0}">
+            <div class="flex items-center gap-2 mb-2">
+              <img src="${imageOf(a.id)}" class="w-5 h-5 rounded-full border border-slate-200"/>
+              <div class="text-sm font-medium">${a.symbol} • ${a.name}</div>
+            </div>
+            <input data-hold="${a.id}" type="number" step="0.000001"
+              class="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none"
+              value="${s.holdings[a.id] ?? 0}">
           </div>`;
         grid.appendChild(wrap);
       });
     }
 
-    $("#advSaveBasics").addEventListener("click", () => {
+    $("#advSaveBasics").addEventListener("click", ()=>{
       const s = loadState();
-      s.cashUSD = Math.max(0, +$("#advCash").value);
       s.commissionPct = clamp(+$("#advCommission").value, 0, 100);
       saveState(s);
-      pushActivity(`ADMIN • Updated cash to ${fmtUsd(s.cashUSD)} & commission to ${s.commissionPct}%`);
+      pushActivity(`ADMIN • Commission set to ${s.commissionPct}%`);
       updateUI(true);
       alert("Saved.");
     });
 
-    $("#advSaveHoldings").addEventListener("click", () => {
+    $("#advSaveHoldings").addEventListener("click", ()=>{
       const s = loadState();
-      document.querySelectorAll("[data-hold]").forEach(inp => {
+      document.querySelectorAll("[data-hold]").forEach(inp=>{
         const id = inp.dataset.hold;
         s.holdings[id] = Math.max(0, +inp.value);
       });
       saveState(s);
-      pushActivity(`ADMIN • Updated holdings.`);
+      pushActivity("ADMIN • Holdings updated.");
       updateUI(true);
       alert("Saved.");
     });
 
-    $("#advReset").addEventListener("click", () => {
-      if (!confirm("Reset cash, commission, and all holdings to defaults?")) return;
+    $("#advReset").addEventListener("click", ()=>{
+      if (!confirm("Reset commission and all holdings to defaults?")) return;
       const s = defaultState();
       saveState(s);
       pushActivity("ADMIN • Reset to defaults.");
@@ -634,8 +589,8 @@
       updateUI(true);
     });
 
-    /***** UI UPDATE LOOP *****/
-    function updateUI(pushPoint = false) {
+    /***** UI LOOP *****/
+    function updateUI(pushPoint=false){
       const s = loadState();
       renderSummary(s);
       renderPositions(s);
@@ -643,36 +598,23 @@
     }
 
     /***** BOOT *****/
-    async function boot() {
-      // show app shell
+    async function boot(){
       $("#app").style.opacity = 1;
-      populateAssetSelects();
+      populateSelects();
       initChart();
       renderActivity();
 
-      // Immediately fetch once, then poll
-      try {
-        await fetchPrices();
-      } catch (e) {
-        console.warn(e);
-      }
+      try { await fetchMarket(); } catch(e){ console.warn(e); }
       updateUI(true);
 
-      setInterval(async () => {
-        try {
-          await fetchPrices();
-          updateUI(true);
-        } catch (e) {
-          console.warn(e);
-        }
+      setInterval(async ()=>{
+        try { await fetchMarket(); updateUI(true); } catch(e){ console.warn(e); }
       }, PRICE_POLL_MS);
 
-      // default page
       showPage("dashboard");
     }
 
-    // auto-login if already authenticated
-    if (localStorage.getItem(K.AUTH) === "1") {
+    if (localStorage.getItem(K.AUTH) === "1"){
       loginOverlay.classList.add("hidden");
       boot();
     }
