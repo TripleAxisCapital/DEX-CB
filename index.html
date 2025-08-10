@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Exchange</title>
+
+  <!-- Tailwind Play CDN (for speed in a single file MVP) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+
+  <!-- Chart.js for portfolio chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* Smooth cards / subtle glass */
+    .card {
+      @apply rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm;
+      backdrop-filter: saturate(120%) blur(2px);
+    }
+    .btn {
+      @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium border border-slate-200 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 transition;
+    }
+    .btn-primary {
+      @apply bg-slate-900 text-white border-slate-900 hover:bg-black;
+    }
+    .pill {
+      @apply rounded-full px-2.5 py-1 text-xs font-medium;
+    }
+    .green { @apply text-emerald-600; }
+    .red { @apply text-rose-600; }
+    .skeleton {
+      animation: pulse 1.5s ease-in-out infinite;
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
+      background-size: 400% 100%;
+    }
+    @keyframes pulse {0%{background-position:100% 0}100%{background-position:0 0}}
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+
+  <!-- LOGIN OVERLAY -->
+  <div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div class="w-full max-w-sm card p-6 bg-white">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="size-9 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400"></div>
+        <h1 class="text-xl font-semibold tracking-tight">Sign in</h1>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs text-slate-500">Username</label>
+          <input id="loginUser" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-400" placeholder="username" />
+        </div>
+        <div>
+          <label class="text-xs text-slate-500">Password</label>
+          <input id="loginPass" type="password" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-400" placeholder="password" />
+        </div>
+        <button id="loginBtn" class="btn btn-primary w-full">Sign in</button>
+        <p id="loginErr" class="hidden text-sm text-rose-600">Invalid credentials.</p>
+        <p class="text-xs text-slate-500">Use <span class="font-semibold">jj</span> / <span class="font-semibold">jj</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP SHELL -->
+  <div id="app" class="opacity-0 transition-opacity duration-300">
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
+      <div class="mx-auto max-w-6xl px-4 md:px-6">
+        <div class="h-16 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="size-8 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400"></div>
+            <span class="text-lg font-semibold tracking-tight">Exchange</span>
+          </div>
+          <nav class="hidden md:flex items-center gap-2">
+            <button data-tab="dashboard" class="tab btn">Dashboard</button>
+            <button data-tab="trade" class="tab btn">Trade</button>
+            <button data-tab="settings" class="tab btn">Settings</button>
+          </nav>
+          <div class="flex items-center gap-2">
+            <span id="headerNLV" class="hidden md:inline text-sm font-medium px-2.5 py-1 rounded-lg bg-slate-100"></span>
+            <button id="logoutBtn" class="btn">Log out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="mx-auto max-w-6xl px-4 md:px-6 py-6 space-y-6">
+
+      <!-- DASHBOARD -->
+      <section id="page-dashboard" class="space-y-6">
+        <!-- Top summary -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="card p-5 col-span-2">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold">Portfolio</h2>
+              <div class="text-sm text-slate-500">Updated <span id="lastUpdated">—</span></div>
+            </div>
+            <div class="flex flex-col lg:flex-row gap-4">
+              <div class="flex-1">
+                <canvas id="nlvChart" height="140"></canvas>
+              </div>
+              <div class="w-full lg:w-64 space-y-3">
+                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                  <div class="text-xs text-slate-500">Net Liquidation Value</div>
+                  <div id="nlvValue" class="text-2xl font-semibold mt-1">$—</div>
+                  <div id="nlvDelta" class="text-sm mt-1">—</div>
+                </div>
+                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                  <div class="text-xs text-slate-500">Cash (USD)</div>
+                  <div id="cashValue" class="text-xl font-semibold mt-1">$—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card p-5">
+            <h2 class="text-lg font-semibold mb-3">Quick Trade</h2>
+            <div class="space-y-3">
+              <div>
+                <label class="text-xs text-slate-500">Asset</label>
+                <select id="qtAsset" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none">
+                </select>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <button id="qtBuy" class="btn btn-primary">Buy</button>
+                <button id="qtSell" class="btn">Sell</button>
+              </div>
+              <div>
+                <label class="text-xs text-slate-500">Amount (USD)</label>
+                <input id="qtUsd" type="number" min="0" step="0.01" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" placeholder="e.g., 1000" />
+              </div>
+              <button id="qtSubmit" class="btn w-full">Submit</button>
+              <div id="qtMsg" class="text-xs text-slate-500"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Positions -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold">Positions</h2>
+            <div class="text-xs text-slate-500">Market data via public API</div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="text-left text-slate-500">
+                <tr>
+                  <th class="py-2">Asset</th>
+                  <th class="py-2">Price</th>
+                  <th class="py-2">24h</th>
+                  <th class="py-2">Holding</th>
+                  <th class="py-2">Value</th>
+                  <th class="py-2">Weight</th>
+                </tr>
+              </thead>
+              <tbody id="positionsBody" class="divide-y divide-slate-200"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Recent activity -->
+        <div class="card p-5">
+          <h2 class="text-lg font-semibold mb-3">Recent Activity</h2>
+          <div id="activityList" class="space-y-2 text-sm"></div>
+        </div>
+      </section>
+
+      <!-- TRADE -->
+      <section id="page-trade" class="hidden space-y-4">
+        <div class="card p-5">
+          <h2 class="text-lg font-semibold mb-4">Place Order</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="text-xs text-slate-500">Asset</label>
+              <select id="tradeAsset" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none"></select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-500">Side</label>
+              <select id="tradeSide" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none">
+                <option>Buy</option>
+                <option>Sell</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-500">Amount (USD)</label>
+              <input id="tradeUsd" type="number" min="0" step="0.01" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" placeholder="e.g., 2500" />
+            </div>
+          </div>
+          <div class="mt-4 flex items-center gap-2">
+            <button id="tradeSubmit" class="btn btn-primary">Submit Order</button>
+            <div id="tradeMsg" class="text-sm text-slate-500"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="page-settings" class="hidden space-y-4">
+        <div class="card p-5">
+          <h2 class="text-lg font-semibold mb-3">Settings</h2>
+          <div class="text-sm text-slate-600">General preferences and account configuration.</div>
+        </div>
+
+        <!-- Hidden / Advanced controls (locked) -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Advanced Controls</h3>
+            <button id="unlockBtn" class="btn">Unlock</button>
+          </div>
+          <div id="lockedNote" class="text-sm text-slate-500 mt-2">Restricted section. Enter code to manage balances, holdings, and commission.</div>
+
+          <div id="advancedWrap" class="hidden mt-4 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="text-xs text-slate-500">USD Cash</label>
+                <input id="advCash" type="number" step="0.01" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500">Commission (%)</label>
+                <input id="advCommission" type="number" step="0.001" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" />
+              </div>
+              <div class="flex items-end">
+                <button id="advSaveBasics" class="btn btn-primary w-full">Save Basics</button>
+              </div>
+            </div>
+
+            <div class="border-t border-slate-200 pt-4">
+              <h4 class="font-medium mb-2">Edit Holdings</h4>
+              <div id="advHoldings" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+              <button id="advSaveHoldings" class="btn mt-3">Save Holdings</button>
+            </div>
+
+            <div class="border-t border-slate-200 pt-4">
+              <button id="advReset" class="btn">Reset to Defaults</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    /***** CONFIG *****/
+    // IMPORTANT: Secret access code for the Advanced Controls section in Settings.
+    // Change this to whatever you like.
+    const SECRET_SETTINGS_CODE = "admin123";
+
+    // Market universe (CoinGecko IDs mapped to symbols + nice names)
+    const ASSETS = [
+      { id: "bitcoin",       symbol: "BTC", name: "Bitcoin" },
+      { id: "ethereum",      symbol: "ETH", name: "Ethereum" },
+      { id: "solana",        symbol: "SOL", name: "Solana" },
+      { id: "ripple",        symbol: "XRP", name: "XRP" },
+      { id: "cardano",       symbol: "ADA", name: "Cardano" },
+      { id: "binancecoin",   symbol: "BNB", name: "BNB" },
+      { id: "polkadot",      symbol: "DOT", name: "Polkadot" },
+      { id: "chainlink",     symbol: "LINK", name: "Chainlink" },
+      { id: "uniswap",       symbol: "UNI", name: "Uniswap" },
+      { id: "tron",          symbol: "TRX", name: "TRON" },
+    ];
+
+    // Polling interval for live prices (ms)
+    const PRICE_POLL_MS = 10000;
+
+    // Storage keys
+    const K = {
+      AUTH: "mvp_auth",
+      STATE: "mvp_state_v1",
+      HISTORY: "mvp_history_v1",
+      CHART: "mvp_chart_v1"
+    };
+
+    // Default state
+    const defaultState = () => ({
+      cashUSD: 100000,
+      commissionPct: 0.25, // percent per trade
+      holdings: Object.fromEntries(ASSETS.map(a => [a.id, 0])),
+    });
+
+    /***** UTIL *****/
+    const $ = sel => document.querySelector(sel);
+    const fmtUsd = n => n == null ? "—" : n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+    const fmtPct = n => `${(n >= 0 ? "+" : "")}${n.toFixed(2)}%`;
+    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+    function loadState() {
+      const raw = localStorage.getItem(K.STATE);
+      return raw ? JSON.parse(raw) : defaultState();
+    }
+    function saveState(s) { localStorage.setItem(K.STATE, JSON.stringify(s)); }
+    function loadHistory() {
+      const raw = localStorage.getItem(K.HISTORY);
+      return raw ? JSON.parse(raw) : [];
+    }
+    function saveHistory(h) { localStorage.setItem(K.HISTORY, JSON.stringify(h)); }
+    function pushActivity(msg) {
+      const h = loadHistory();
+      h.unshift({ t: Date.now(), msg });
+      saveHistory(h.slice(0, 50));
+      renderActivity();
+    }
+
+    /***** AUTH *****/
+    const loginOverlay = $("#loginOverlay");
+    $("#loginBtn").addEventListener("click", () => {
+      const u = $("#loginUser").value.trim();
+      const p = $("#loginPass").value.trim();
+      if (u === "jj" && p === "jj") {
+        localStorage.setItem(K.AUTH, "1");
+        $("#loginErr").classList.add("hidden");
+        loginOverlay.classList.add("hidden");
+        boot();
+      } else {
+        $("#loginErr").classList.remove("hidden");
+      }
+    });
+
+    // Auto-fill for convenience in demo environments
+    $("#loginUser").value = "jj";
+    $("#loginPass").value = "jj";
+
+    /***** NAV *****/
+    const tabs = document.querySelectorAll(".tab");
+    tabs.forEach(btn => btn.addEventListener("click", () => showPage(btn.dataset.tab)));
+    function showPage(id) {
+      ["dashboard","trade","settings"].forEach(p => {
+        $("#page-" + p).classList.toggle("hidden", p !== id);
+      });
+      tabs.forEach(b => b.classList.toggle("btn-primary", b.dataset.tab === id));
+    }
+
+    $("#logoutBtn").addEventListener("click", () => {
+      localStorage.removeItem(K.AUTH);
+      location.reload();
+    });
+
+    /***** MARKET DATA *****/
+    let lastPrices = {}; // id -> { price, chg24 }
+    let lastUpdated = 0;
+
+    async function fetchPrices() {
+      const ids = ASSETS.map(a => a.id).join(",");
+      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
+      const res = await fetch(url, { headers: { "accept": "application/json" }});
+      if (!res.ok) throw new Error("Price API error");
+      const data = await res.json();
+      const out = {};
+      ASSETS.forEach(a => {
+        const row = data[a.id];
+        if (row) out[a.id] = { price: +row.usd, chg24: +row.usd_24h_change };
+      });
+      lastPrices = out;
+      lastUpdated = Date.now();
+      updateUI();
+    }
+
+    function currentPrice(id) {
+      return (lastPrices[id]?.price) ?? null;
+    }
+
+    /***** PORTFOLIO / NLV *****/
+    function calcNLV(state) {
+      let total = state.cashUSD;
+      for (const a of ASSETS) {
+        const p = currentPrice(a.id);
+        if (p != null) total += state.holdings[a.id] * p;
+      }
+      return total;
+    }
+
+    /***** CHART *****/
+    let chart;
+    function initChart() {
+      const ctx = $("#nlvChart");
+      chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "Portfolio",
+            data: [],
+            tension: 0.25,
+            borderWidth: 2,
+            pointRadius: 0,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { mode: 'index', intersect: false }
+          },
+          scales: {
+            x: { display: false },
+            y: { ticks: { callback: (v) => "$" + (v/1000).toFixed(0) + "k" } }
+          }
+        }
+      });
+
+      // Seed a point
+      const s = loadState();
+      chart.data.labels.push(new Date().toLocaleTimeString());
+      chart.data.datasets[0].data.push(s.cashUSD);
+      chart.update();
+    }
+
+    function pushChartPoint(nlv) {
+      const maxPts = 120; // ~20 mins at 10s
+      chart.data.labels.push(new Date().toLocaleTimeString());
+      chart.data.datasets[0].data.push(nlv);
+      if (chart.data.labels.length > maxPts) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+      }
+      chart.update();
+    }
+
+    /***** RENDERERS *****/
+    function renderHeader(nlv) {
+      $("#headerNLV").textContent = fmtUsd(nlv);
+      $("#headerNLV").classList.remove("hidden");
+      $("#lastUpdated").textContent = new Date(lastUpdated).toLocaleTimeString();
+    }
+
+    function renderSummary(state) {
+      const nlv = calcNLV(state);
+      $("#nlvValue").textContent = fmtUsd(nlv);
+      $("#cashValue").textContent = fmtUsd(state.cashUSD);
+
+      const h = loadHistory();
+      const lastOpen = h.find(x => x.msg.startsWith("MARK"))?.msg;
+      // Simple delta vs last chart point
+      const prev = chart?.data?.datasets?.[0]?.data?.slice(-2, -1)?.[0];
+      const delta = prev != null ? ((nlv - prev) / prev) * 100 : 0;
+      const el = $("#nlvDelta");
+      el.textContent = (prev == null) ? "—" : fmtPct(delta);
+      el.classList.toggle("green", delta >= 0);
+      el.classList.toggle("red", delta < 0);
+
+      renderHeader(nlv);
+    }
+
+    function renderPositions(state) {
+      const tbody = $("#positionsBody");
+      tbody.innerHTML = "";
+      let totalValue = 0;
+      const rows = [];
+
+      for (const a of ASSETS) {
+        const qty = state.holdings[a.id] || 0;
+        const px = currentPrice(a.id);
+        const v = (px != null ? qty * px : 0);
+        totalValue += v;
+        rows.push({ a, qty, px, v, chg: lastPrices[a.id]?.chg24 ?? 0 });
+      }
+
+      const nlv = totalValue + state.cashUSD;
+      for (const r of rows) {
+        const weight = nlv > 0 ? (r.v / nlv) * 100 : 0;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="py-2">
+            <div class="flex items-center gap-2">
+              <div class="size-6 rounded-md bg-slate-200"></div>
+              <div>
+                <div class="font-medium">${r.a.symbol}</div>
+                <div class="text-xs text-slate-500">${r.a.name}</div>
+              </div>
+            </div>
+          </td>
+          <td class="py-2">${r.px != null ? fmtUsd(r.px) : "—"}</td>
+          <td class="py-2 ${r.chg >= 0 ? "green" : "red"}">${fmtPct(r.chg)}</td>
+          <td class="py-2">${r.qty.toFixed(6)}</td>
+          <td class="py-2">${fmtUsd(r.v)}</td>
+          <td class="py-2">${weight.toFixed(2)}%</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function renderActivity() {
+      const list = $("#activityList");
+      const h = loadHistory();
+      list.innerHTML = h.map(e => {
+        const d = new Date(e.t).toLocaleString();
+        return `<div class="flex items-center justify-between">
+          <div>${e.msg}</div>
+          <div class="text-xs text-slate-500">${d}</div>
+        </div>`;
+      }).join("");
+    }
+
+    function populateAssetSelects() {
+      const opts = ASSETS.map(a => `<option value="${a.id}">${a.symbol} • ${a.name}</option>`).join("");
+      $("#qtAsset").innerHTML = opts;
+      $("#tradeAsset").innerHTML = opts;
+    }
+
+    /***** TRADING *****/
+    function tradeUSD(state, assetId, side, usdAmount) {
+      const p = currentPrice(assetId);
+      if (p == null) return { ok: false, msg: "No market price." };
+      usdAmount = Math.max(0, +usdAmount);
+
+      const fee = usdAmount * (state.commissionPct / 100);
+      if (side === "Buy") {
+        const needed = usdAmount + fee;
+        if (state.cashUSD < needed) return { ok: false, msg: "Insufficient cash." };
+        const qty = usdAmount / p;
+        state.cashUSD -= needed;
+        state.holdings[assetId] += qty;
+        return { ok: true, msg: `Bought ${qty.toFixed(6)} for ${fmtUsd(usdAmount)} (fee ${fmtUsd(fee)})` };
+      } else {
+        // Sell by USD: compute qty from usd
+        const qty = usdAmount / p;
+        if (state.holdings[assetId] < qty) return { ok: false, msg: "Insufficient position." };
+        const proceeds = usdAmount - fee;
+        state.holdings[assetId] -= qty;
+        state.cashUSD += proceeds;
+        return { ok: true, msg: `Sold ${qty.toFixed(6)} for ${fmtUsd(usdAmount)} (fee ${fmtUsd(fee)})` };
+      }
+    }
+
+    // Quick trade UX
+    let qtSide = "Buy";
+    $("#qtBuy").addEventListener("click", () => {
+      qtSide = "Buy";
+      $("#qtBuy").classList.add("btn-primary");
+      $("#qtSell").classList.remove("btn-primary");
+    });
+    $("#qtSell").addEventListener("click", () => {
+      qtSide = "Sell";
+      $("#qtSell").classList.add("btn-primary");
+      $("#qtBuy").classList.remove("btn-primary");
+    });
+    $("#qtSubmit").addEventListener("click", () => {
+      const s = loadState();
+      const asset = $("#qtAsset").value;
+      const usd = +$("#qtUsd").value;
+      if (!(usd > 0)) { $("#qtMsg").textContent = "Enter a positive USD amount."; return; }
+      const res = tradeUSD(s, asset, qtSide, usd);
+      if (res.ok) {
+        saveState(s);
+        pushActivity(`${qtSide.toUpperCase()} ${ASSETS.find(a=>a.id===asset).symbol} • ${res.msg}`);
+        updateUI(true);
+        $("#qtMsg").textContent = "Order executed.";
+      } else {
+        $("#qtMsg").textContent = res.msg;
+      }
+    });
+
+    // Trade page
+    $("#tradeSubmit").addEventListener("click", () => {
+      const s = loadState();
+      const asset = $("#tradeAsset").value;
+      const side = $("#tradeSide").value;
+      const usd = +$("#tradeUsd").value;
+      if (!(usd > 0)) { $("#tradeMsg").textContent = "Enter a positive USD amount."; return; }
+      const res = tradeUSD(s, asset, side, usd);
+      if (res.ok) {
+        saveState(s);
+        pushActivity(`${side.toUpperCase()} ${ASSETS.find(a=>a.id===asset).symbol} • ${res.msg}`);
+        updateUI(true);
+        $("#tradeMsg").textContent = "Order executed.";
+      } else {
+        $("#tradeMsg").textContent = res.msg;
+      }
+    });
+
+    /***** ADVANCED (SECRET) *****/
+    const advWrap = $("#advancedWrap");
+    $("#unlockBtn").addEventListener("click", () => {
+      const code = prompt("Enter access code:");
+      if (code === SECRET_SETTINGS_CODE) {
+        $("#lockedNote").classList.add("hidden");
+        advWrap.classList.remove("hidden");
+        loadAdvancedEditor();
+      } else {
+        alert("Incorrect code.");
+      }
+    });
+
+    function loadAdvancedEditor() {
+      const s = loadState();
+      $("#advCash").value = s.cashUSD;
+      $("#advCommission").value = s.commissionPct;
+
+      const grid = $("#advHoldings");
+      grid.innerHTML = "";
+      ASSETS.forEach(a => {
+        const wrap = document.createElement("div");
+        wrap.innerHTML = `
+          <div class="p-3 rounded-xl border border-slate-200 bg-white">
+            <div class="text-sm font-medium mb-1">${a.symbol} • ${a.name}</div>
+            <input data-hold="${a.id}" type="number" step="0.000001" class="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none" value="${s.holdings[a.id] ?? 0}">
+          </div>`;
+        grid.appendChild(wrap);
+      });
+    }
+
+    $("#advSaveBasics").addEventListener("click", () => {
+      const s = loadState();
+      s.cashUSD = Math.max(0, +$("#advCash").value);
+      s.commissionPct = clamp(+$("#advCommission").value, 0, 100);
+      saveState(s);
+      pushActivity(`ADMIN • Updated cash to ${fmtUsd(s.cashUSD)} & commission to ${s.commissionPct}%`);
+      updateUI(true);
+      alert("Saved.");
+    });
+
+    $("#advSaveHoldings").addEventListener("click", () => {
+      const s = loadState();
+      document.querySelectorAll("[data-hold]").forEach(inp => {
+        const id = inp.dataset.hold;
+        s.holdings[id] = Math.max(0, +inp.value);
+      });
+      saveState(s);
+      pushActivity(`ADMIN • Updated holdings.`);
+      updateUI(true);
+      alert("Saved.");
+    });
+
+    $("#advReset").addEventListener("click", () => {
+      if (!confirm("Reset cash, commission, and all holdings to defaults?")) return;
+      const s = defaultState();
+      saveState(s);
+      pushActivity("ADMIN • Reset to defaults.");
+      loadAdvancedEditor();
+      updateUI(true);
+    });
+
+    /***** UI UPDATE LOOP *****/
+    function updateUI(pushPoint = false) {
+      const s = loadState();
+      renderSummary(s);
+      renderPositions(s);
+      if (pushPoint) pushChartPoint(calcNLV(s));
+    }
+
+    /***** BOOT *****/
+    async function boot() {
+      // show app shell
+      $("#app").style.opacity = 1;
+      populateAssetSelects();
+      initChart();
+      renderActivity();
+
+      // Immediately fetch once, then poll
+      try {
+        await fetchPrices();
+      } catch (e) {
+        console.warn(e);
+      }
+      updateUI(true);
+
+      setInterval(async () => {
+        try {
+          await fetchPrices();
+          updateUI(true);
+        } catch (e) {
+          console.warn(e);
+        }
+      }, PRICE_POLL_MS);
+
+      // default page
+      showPage("dashboard");
+    }
+
+    // auto-login if already authenticated
+    if (localStorage.getItem(K.AUTH) === "1") {
+      loginOverlay.classList.add("hidden");
+      boot();
+    }
+  </script>
+</body>
+</html>
