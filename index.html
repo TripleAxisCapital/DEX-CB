@@ -669,7 +669,7 @@
       loginForm.classList.add("hidden");
       loginLoading.classList.remove("hidden");
       bootLogsEl.innerHTML = "";
-      progressBar.style.width = "0%";
+      if (progressBar) progressBar.style.width = "0%";
 
       let idx = 0;
       const totalSteps = BOOT_LINES.length;
@@ -678,7 +678,7 @@
           appendLog(BOOT_LINES[idx] + "…");
           idx++;
           const pct = Math.round((idx/totalSteps)*100);
-          progressBar.style.width = pct + "%";   // one pass, synced
+          if (progressBar) progressBar.style.width = pct + "%";   // one pass, synced
           if (idx >= totalSteps){
             clearInterval(intv);
             setTimeout(res, 350);
@@ -706,6 +706,9 @@
         $("#loginErr").classList.remove("hidden");
       }
     });
+    // Extra safety: clicking the button triggers submit in all browsers
+    const loginBtn = document.getElementById('loginBtn');
+    if (loginBtn) loginBtn.addEventListener('click', (ev)=>{ ev.preventDefault(); if (loginForm) loginForm.requestSubmit(); });
 
     /***** NAV *****/
     const tabs = document.querySelectorAll(".tab");
@@ -746,7 +749,8 @@
       });
       market = out;
       lastUpdated = now();
-      $("#chainText")?.textContent = "Connected";
+      const chainTextEl = document.getElementById("chainText");
+      if (chainTextEl) chainTextEl.textContent = "Connected";  // FIX: no optional-chaining assignment
       updateUI(true);
       // process orders on each market refresh
       processOrders();
