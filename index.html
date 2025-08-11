@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <!-- =========================
        GLOBAL VARIABLES (UI)
@@ -24,6 +24,15 @@
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
+    /* Dark theme variable overrides */
+    [data-theme="dark"]{
+      --ink: #e5e7eb; 
+      --muted: #94a3b8; 
+      --surface: #0b1220;
+      --surface-2: rgba(2,6,23,.85);
+      --bg: #0a0f1a;
+      --border: rgba(148,163,184,.18);
+    }
     @media (min-width: 640px){ :root{ --app-x: 24px; } }
     @media (min-width: 1024px){ :root{ --app-x: 32px; } }
   </style>
@@ -42,10 +51,10 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
-    /* -------- Framework-y utilities (Apple/Coinbase vibes) -------- */
+    /* -------- Framework-y utilities -------- */
     html,body{ background: var(--bg); color: var(--ink); }
     .app-shell{ padding-left: var(--app-x); padding-right: var(--app-x); max-width: var(--app-maxw); margin: 0 auto; }
-    .header-blur{ backdrop-filter: saturate(140%) blur(10px); -webkit-backdrop-filter: saturate(140%) blur(10px); }
+    .header-blur{ backdrop-filter: saturate(140%) blur(10px); -webkit-backdrop-filter: saturate(140%) blur(10px); background: var(--surface-2) !important; }
     .card{ border-radius: var(--radius-2xl); border: 1px solid var(--border); background: var(--surface-2); box-shadow: var(--shadow-sm); }
     .btn{ border-radius: 12px; padding: 10px 14px; font-weight: 600; border: 1px solid var(--border); background: #f1f5f9; transition: .2s transform, .2s background, .2s box-shadow; }
     .btn:active{ transform: translateY(1px); }
@@ -56,9 +65,12 @@
     .green{ color:#059669 } .red{ color:#dc2626 }
     .pill-tab{ padding: .5rem .75rem; border-radius: 12px; border: 1px solid var(--border); font-size:.75rem; }
     .pill-tab.active{ background: #0f172a; color:#fff; border-color:#0f172a; }
+    [data-theme="dark"] .pill-tab.active{ background:#0ea5e9; border-color:#0284c7; }
     .seg{ display:inline-flex; background:#e2e8f0; border-radius:10px; padding:4px; }
     .seg button{ padding:6px 10px; border-radius:8px; font-size:.8rem; }
     .seg button.active{ background:#0f172a; color:#fff; }
+    [data-theme="dark"] .seg{ background:#1f2937; }
+    [data-theme="dark"] .seg button.active{ background:#0ea5e9; }
     .card-pad{ padding: 20px; }
     .section-gap{ gap: 16px; }
     .kpi{ border-radius: 14px; background: #f8fafc; border:1px solid var(--border); padding: 14px; }
@@ -74,13 +86,15 @@
     .modal-card{ position:relative; width:100%; max-width:760px; border-radius:20px; border:1px solid var(--border); background: var(--surface); padding:20px; }
 
     /* Bottom Nav (mobile) */
-    .bottom-nav{ position:sticky; bottom:0; z-index:50; padding: 8px calc(var(--app-x)); background: rgba(255,255,255,.9); border-top:1px solid var(--border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding-bottom: calc(8px + var(--safe-bottom)); }
+    .bottom-nav{ position:sticky; bottom:0; z-index:50; padding: 8px calc(var(--app-x)); background: var(--surface-2); border-top:1px solid var(--border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding-bottom: calc(8px + var(--safe-bottom)); }
     .bottom-btn{ flex:1; display:flex; gap:6px; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:#f8fafc; font-size:.8rem; }
     .bottom-btn.active{ background: #0ea5e9; color:#fff; border-color:#0284c7; }
+    [data-theme="dark"] .bottom-btn{ background:#0b1220; color:#e5e7eb; border-color:#334155; }
 
     /* Inputs */
     .input{ width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; outline:none; background:#fff; }
     .input:focus{ box-shadow:0 0 0 4px rgba(14,165,233,.15); }
+    [data-theme="dark"] .input{ background:#0b1220; color:#e5e7eb; border-color:#334155; }
 
     /* Chart container */
     .chart-box{ height: 240px; }
@@ -99,6 +113,14 @@
       .pos-row{ grid-template-columns: 4fr 2fr 2fr 2fr 2fr; align-items:center; gap: 12px; }
     }
     .pos-row + .pos-row{ border-top: 1px solid var(--border); }
+
+    /* Dark-specific surface tweaks */
+    [data-theme="dark"] .card{ background: rgba(2,6,23,.85); border-color:#334155; }
+    [data-theme="dark"] .kpi{ background:#0b1220; border-color:#334155; }
+    [data-theme="dark"] .btn{ background:#1f2937; color:#e5e7eb; border-color:#334155; }
+    [data-theme="dark"] .btn-ghost{ background: transparent; color:#e5e7eb; }
+    [data-theme="dark"] .modal-card{ background:#0b1220; border-color:#334155; }
+    [data-theme="dark"] .header-blur{ background: rgba(2,6,23,.75)!important; }
   </style>
 </head>
 <body class="min-h-screen">
@@ -106,7 +128,7 @@
   <!-- LOGIN -->
   <div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center"
        style="background: radial-gradient(1200px 600px at 20% -10%, #0ea5e933, transparent), radial-gradient(1200px 600px at 120% 110%, #10b98133, transparent), linear-gradient(180deg,#0b1220, #0b1220);">
-    <div class="w-full max-w-sm card card-pad bg-white/90">
+    <div class="w-full max-w-sm card card-pad" style="background: var(--surface-2);">
       <div class="flex items-center gap-3 mb-2">
         <h1 class="text-xl font-semibold tracking-tight">Sign in</h1>
       </div>
@@ -163,8 +185,8 @@
   <!-- APP -->
   <div id="app" class="opacity-0 transition-opacity duration-300">
 
-    <!-- Header (connection animation removed) -->
-    <header class="sticky top-0 z-40 border-b border-[color:var(--border)] header-blur bg-white/80">
+    <!-- Header -->
+    <header class="sticky top-0 z-40 border-b border-[color:var(--border)] header-blur">
       <div class="app-shell pt-safe">
         <div class="h-14 md:h-16 flex items-center justify-between">
           <div class="flex items-center gap-3">
@@ -174,7 +196,7 @@
             <button id="openAssetSearch" class="btn btn-ghost" title="Search & add assets">
               <i class="ph ph-magnifying-glass"></i><span class="ml-2">Assets</span>
             </button>
-            <span id="headerNLV" class="hidden md:inline text-sm font-medium px-2.5 py-1 rounded-lg bg-slate-100"></span>
+            <span id="headerNLV" class="hidden md:inline text-sm font-medium px-2.5 py-1 rounded-lg" style="background:#e2e8f0;"></span>
             <button id="logoutBtn" class="btn">Log out</button>
           </div>
           <!-- Mobile actions -->
@@ -188,7 +210,7 @@
     <!-- Content -->
     <main class="app-shell py-4 md:py-6 space-y-6">
 
-      <!-- DASHBOARD -->
+      <!-- DASHBOARD (no Positions here) -->
       <section id="page-dashboard" class="space-y-4 md:space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-3 section-gap">
           <div class="card card-pad col-span-2">
@@ -232,7 +254,7 @@
             </div>
           </div>
 
-          <!-- Quick Swap (unchanged) -->
+          <!-- Quick Swap -->
           <div class="card card-pad">
             <div class="flex items-center justify-between mb-3">
               <h2 class="text-lg font-semibold">Quick Swap</h2>
@@ -269,7 +291,18 @@
           </div>
         </div>
 
-        <!-- Positions -->
+        <!-- Activity / Trades -->
+        <div class="card card-pad">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold">Recent Activity & Trades</h2>
+            <button id="exportBtn" class="btn">Export Data</button>
+          </div>
+          <div id="activityList" class="space-y-2 text-sm mt-3"></div>
+        </div>
+      </section>
+
+      <!-- POSITIONS (moved to its own page) -->
+      <section id="page-positions" class="hidden space-y-4">
         <div class="card card-pad">
           <div class="flex items-center justify-between mb-3">
             <h2 class="text-lg font-semibold">Positions</h2>
@@ -286,15 +319,6 @@
           </div>
 
           <div id="positionsList"></div>
-        </div>
-
-        <!-- Activity / Trades -->
-        <div class="card card-pad">
-          <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold">Recent Activity & Trades</h2>
-            <button id="exportBtn" class="btn">Export Data</button>
-          </div>
-          <div id="activityList" class="space-y-2 text-sm mt-3"></div>
         </div>
       </section>
 
@@ -444,7 +468,7 @@
         </div>
 
         <!-- APPEARANCE -->
-        <div class="card card-pad space-y-3">
+        <div class="card card-pad space-y-4">
           <h3 class="font-semibold">Appearance</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div>
@@ -458,6 +482,20 @@
             </div>
             <div class="text-xs text-slate-500">This controls the left/right whitespace across the entire app on all pages.</div>
           </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="text-xs text-slate-500">Theme</label>
+              <div class="seg mt-1" role="tablist">
+                <button id="themeBtnLight" data-theme="light" class="active">Light</button>
+                <button id="themeBtnDark" data-theme="dark">Dark</button>
+              </div>
+            </div>
+            <div class="flex items-end">
+              <button id="saveTheme" class="btn btn-primary w-full">Apply Theme</button>
+            </div>
+            <div class="text-xs text-slate-500">Switch between light and dark modes. Saved to your device.</div>
+          </div>
         </div>
       </section>
 
@@ -468,6 +506,7 @@
       <div class="flex items-center gap-2">
         <button class="bottom-btn active" data-tab="dashboard"><i class="ph ph-house"></i><span>Home</span></button>
         <button class="bottom-btn" data-tab="swap"><i class="ph ph-arrows-left-right"></i><span>Trade</span></button>
+        <button class="bottom-btn" data-tab="positions"><i class="ph ph-list-bullets"></i><span>Positions</span></button>
         <button class="bottom-btn" data-tab="settings"><i class="ph ph-gear"></i><span>Settings</span></button>
       </div>
     </nav>
@@ -505,6 +544,7 @@
   <script>
     /***** CONFIG *****/
     const SECRET_SETTINGS_CODE = "admin123";
+    let __AUTH_OK = false; // in-memory only (lost on reload)
 
     // Core asset universe (ships by default)
     const CORE_ASSETS = [
@@ -525,13 +565,12 @@
 
     // Storage keys
     const K = {
-      AUTH: "dex_auth",
       STATE: "dex_state_v1",
       HISTORY: "dex_history_v1",
       TRADES: "dex_trades_v1",
       EQUITY: "dex_equity_v1",
       FAVS: "dex_favorites_v1",
-      UI: "dex_ui_v1",
+      UI: "dex_ui_v2",
       ORDERS: "dex_orders_v1"
     };
 
@@ -571,8 +610,16 @@
     function saveEquity(e){ localStorage.setItem(K.EQUITY, JSON.stringify(e)); }
     function loadFavs(){ const raw=localStorage.getItem(K.FAVS); return raw?JSON.parse(raw):[]; }
     function saveFavs(arr){ localStorage.setItem(K.FAVS, JSON.stringify(arr)); }
-    function loadUI(){ const raw=localStorage.getItem(K.UI); return raw?JSON.parse(raw):{ paddingPx: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-x')) || 16 }; }
-    function saveUI(u){ localStorage.setItem(K.UI, JSON.stringify(u)); }
+    function loadUI(){ 
+      const raw=localStorage.getItem(K.UI); 
+      const defPad = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-x')) || 16;
+      const base = { paddingPx: defPad, theme: "light" };
+      return raw? { ...base, ...JSON.parse(raw) } : base;
+    }
+    function saveUI(u){ 
+      const cur = loadUI();
+      localStorage.setItem(K.UI, JSON.stringify({ ...cur, ...u })); 
+    }
     function loadOrders(){ const raw=localStorage.getItem(K.ORDERS); return raw?JSON.parse(raw):[]; }
     function saveOrders(o){ localStorage.setItem(K.ORDERS, JSON.stringify(o)); }
 
@@ -668,7 +715,7 @@
       });
     }
 
-    // Handle login
+    // Handle login (ALWAYS required; no persisted auth)
     loginForm.addEventListener("submit", async (e)=>{
       e.preventDefault();
       const acct = document.getElementById("loginAccount").value.trim();
@@ -679,7 +726,7 @@
       if (ok) {
         $("#loginErr").classList.add("hidden");
         await runBootSequence();
-        localStorage.setItem(K.AUTH, "1");
+        __AUTH_OK = true;               // in-memory only
         loginOverlay.classList.add("hidden");
         ["loginAccount","loginPass","loginKey"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
         boot();
@@ -691,20 +738,16 @@
     if (loginBtn) loginBtn.addEventListener('click', (ev)=>{ ev.preventDefault(); if (loginForm) loginForm.requestSubmit(); });
 
     /***** NAV *****/
-    const tabs = document.querySelectorAll(".tab");
-    document.addEventListener("click",(e)=>{
-      const el = e.target.closest(".tab");
-      if(!el) return;
-      showPage(el.dataset.tab);
-      tabs.forEach(b => b.classList.toggle("btn-primary", b===el));
-    });
     function showPage(id){
-      ["dashboard","swap","settings"].forEach(p=>$("#page-"+p).classList.toggle("hidden", p!==id));
+      const pages = ["dashboard","swap","positions","settings"];
+      pages.forEach(p=>$("#page-"+p).classList.toggle("hidden", p!==id));
       document.querySelectorAll(".bottom-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===id));
-      document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("btn-primary", b?.dataset?.tab===id));
       window.scrollTo({top:0, behavior:'smooth'});
     }
-    $("#logoutBtn")?.addEventListener("click", ()=>{ localStorage.removeItem(K.AUTH); location.reload(); });
+    $("#logoutBtn")?.addEventListener("click", ()=>{
+      __AUTH_OK = false;
+      location.reload(); // always back to login
+    });
     document.querySelectorAll(".bottom-btn").forEach(btn=>{
       btn.addEventListener("click", ()=>showPage(btn.dataset.tab));
     });
@@ -739,7 +782,7 @@
     function priceCPB(currencyId, buyId){
       const c = priceOf(currencyId), b = priceOf(buyId);
       if (c==null || b==null) return null;
-      return b / c; // how many units of currency per 1 unit of buy asset
+      return b / c; // currency units per 1 unit of buy asset
     }
     function commissionPct(){ return clamp(loadState().commissionPct, 0, 100); }
     function calcFromForBuyQty(buyQty, px, feePct){
@@ -749,16 +792,14 @@
     }
     function executeBuyAtPrice(state, currencyId, buyId, buyQty, px){
       const feePct = commissionPct();
-      const { fromAmt, feeAmt } = calcFromForBuyQty(buyQty, px, feePct);
+      const { fromAmt } = calcFromForBuyQty(buyQty, px, feePct);
       if ((state.holdings[currencyId]||0) < fromAmt) return { ok:false, msg:"Insufficient balance." };
       state.holdings[currencyId] -= fromAmt;
       state.holdings[buyId] = (state.holdings[buyId]||0) + buyQty;
-      return { ok:true, fromAmt, feePct, feeAmt, px };
+      return { ok:true, fromAmt, feePct, px };
     }
 
-    /***** PORTFOLIO *****
-     * NLV is still computed in USD using CoinGecko prices
-     */
+    /***** PORTFOLIO *****/
     function calcNLV(state){
       let total = 0;
       for (const a of getTradableAssets()){
@@ -835,13 +876,11 @@
     /***** RENDER *****/
     function populateSelects(){
       const opts = getTradableAssets().map(a => `<option value="${a.id}">${a.symbol} • ${a.name}</option>`).join("");
-      ["qsFrom","qsTo"].forEach(id => { const el=$("#"+id); if (el) el.innerHTML = opts; });
-      // Trade ticket selects
-      ["payCurrency","buyAsset"].forEach(id => { const el=$("#"+id); if (el) el.innerHTML = opts; });
-      if (!$("#qsFrom").value){ $("#qsFrom").value="bitcoin"; }
-      if (!$("#qsTo").value){ $("#qsTo").value="ethereum"; }
-      if (!$("#payCurrency").value){ $("#payCurrency").value="bitcoin"; }
-      if (!$("#buyAsset").value){ $("#buyAsset").value="ethereum"; }
+      ["qsFrom","qsTo","payCurrency","buyAsset"].forEach(id => { const el=$("#"+id); if (el) el.innerHTML = opts; });
+      if ($("#qsFrom") && !$("#qsFrom").value){ $("#qsFrom").value="bitcoin"; }
+      if ($("#qsTo") && !$("#qsTo").value){ $("#qsTo").value="ethereum"; }
+      if ($("#payCurrency") && !$("#payCurrency").value){ $("#payCurrency").value="bitcoin"; }
+      if ($("#buyAsset") && !$("#buyAsset").value){ $("#buyAsset").value="ethereum"; }
     }
     function renderHeader(nlv){
       $("#headerNLV").textContent = fmtUsd(nlv);
@@ -870,9 +909,10 @@
     }
     function isFav(id){ return loadFavs().some(f=>f.id===id); }
 
-    // Apple-like list rendering
+    // Positions list
     function renderPositions(state){
       const list = $("#positionsList");
+      if (!list) return;
       list.innerHTML = "";
       const nlv = calcNLV(state) || 1;
 
@@ -959,15 +999,17 @@
           <div class="text-xs text-slate-500">${d}</div>
         </div>`;
       }).join("");
-      list.innerHTML = `
-        <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Trades</div>
-        <div class="space-y-2 mb-4">${tradeBlocks || '<div class="text-slate-500">No trades yet.</div>'}</div>
-        <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">System</div>
-        <div class="space-y-2">${actBlocks || '<div class="text-slate-500">No activity yet.</div>'}</div>
-      `;
+      if (list) {
+        list.innerHTML = `
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Trades</div>
+          <div class="space-y-2 mb-4">${tradeBlocks || '<div class="text-slate-500">No trades yet.</div>'}</div>
+          <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">System</div>
+          <div class="space-y-2">${actBlocks || '<div class="text-slate-500">No activity yet.</div>'}</div>
+        `;
+      }
     }
 
-    /***** QUICK SWAP (unchanged) *****/
+    /***** QUICK SWAP *****/
     function marketRate(fromId, toId){
       const fp = priceOf(fromId), tp = priceOf(toId);
       if (fp==null || tp==null) return null;
@@ -1005,26 +1047,27 @@
 
     function updateQuickQuote(){
       const s = loadState();
-      const from = $("#qsFrom").value, to = $("#qsTo").value;
-      const fp = priceOf(from), tp = priceOf(to);
+      const from = $("#qsFrom")?.value, to = $("#qsTo")?.value;
+      if (!from || !to) return;
       const r = marketRate(from,to);
       const fee = commissionPct();
 
-      const amtFrom = +$("#qsAmtFrom").value || 0;
-      const amtTo   = +$("#qsAmtTo").value   || 0;
+      const amtFrom = +($("#qsAmtFrom")?.value || 0);
+      const amtTo   = +($("#qsAmtTo")?.value   || 0);
 
       const el = $("#qsQuote");
-      if (!r || !fp || !tp){ el.textContent = "No market price."; return; }
+      if (!el) return;
+      if (!r){ el.textContent = "No market price."; return; }
 
       let needFrom = 0, getTo = 0;
       if (qsMode==="FROM"){
         needFrom = amtFrom;
         getTo = (needFrom * (1 - fee/100)) * r;
-        $("#qsAmtTo").value = getTo ? getTo.toFixed(6) : "";
+        if ($("#qsAmtTo")) $("#qsAmtTo").value = getTo ? getTo.toFixed(6) : "";
       } else {
         getTo = amtTo;
         needFrom = getTo / r / (1 - fee/100);
-        $("#qsAmtFrom").value = needFrom ? needFrom.toFixed(6) : "";
+        if ($("#qsAmtFrom")) $("#qsAmtFrom").value = needFrom ? needFrom.toFixed(6) : "";
       }
 
       if (!(needFrom>0)){ el.textContent = "Enter an amount."; return; }
@@ -1033,12 +1076,12 @@
       el.textContent = `Rate: 1 ${getSymbol(from)} = ${r.toFixed(6)} ${getSymbol(to)} • Fee ${fee.toFixed(2)}% • Receive ≈ ${getTo.toFixed(6)} ${getSymbol(to)}`;
     }
 
-    $("#qsFrom").addEventListener("change", updateQuickQuote);
-    $("#qsTo").addEventListener("change", updateQuickQuote);
-    $("#qsAmtFrom").addEventListener("input", ()=>{ setQsMode("FROM"); updateQuickQuote(); });
-    $("#qsAmtTo").addEventListener("input", ()=>{ setQsMode("TO"); updateQuickQuote(); });
+    $("#qsFrom")?.addEventListener("change", updateQuickQuote);
+    $("#qsTo")?.addEventListener("change", updateQuickQuote);
+    $("#qsAmtFrom")?.addEventListener("input", ()=>{ setQsMode("FROM"); updateQuickQuote(); });
+    $("#qsAmtTo")?.addEventListener("input", ()=>{ setQsMode("TO"); updateQuickQuote(); });
 
-    $("#qsSwap").addEventListener("click", ()=>{
+    $("#qsSwap")?.addEventListener("click", ()=>{
       const s = loadState();
       const from = $("#qsFrom").value, to = $("#qsTo").value;
       let fromAmt = 0;
@@ -1101,11 +1144,12 @@
     });
 
     function updateTradeQuote(){
-      const cur = $("#payCurrency").value, buy = $("#buyAsset").value;
-      const qty = +($("#buyQty").value || 0);
+      const cur = $("#payCurrency")?.value, buy = $("#buyAsset")?.value;
+      const qty = +($("#buyQty")?.value || 0);
       const fee = commissionPct();
       const s = loadState();
       const el = $("#swQuote");
+      if (!el) return;
       if (!cur || !buy || cur===buy){ el.textContent = "Choose different assets."; return; }
       const mkt = priceCPB(cur,buy);
       if (!mkt){ el.textContent = "No market price."; return; }
@@ -1153,7 +1197,7 @@
         const act = +$("#trailActivation").value || null;
         if (!(tVal>0)){ el.textContent = "Enter a trail value."; return; }
         const label = tType==="PCT" ? `${tVal}%` : `${tVal} ${getSymbol(cur)}`;
-        el.textContent = `Trailing (buy) • trails the low by ${label}${act?`, activates ≤ ${act}`:""} • Current need (mkt): ${needText(mkt)}`;
+        el.textContent = `Trailing (buy) • trails the low by ${label}${isFinite(act)?`, activates ≤ ${act}`:""} • Current need (mkt): ${needText(mkt)}`;
       }
     }
 
@@ -1163,7 +1207,6 @@
       const qty = +($("#buyQty").value || 0);
       const s = loadState();
       const mkt = priceCPB(cur,buy);
-      const fee = commissionPct();
       const msg = $("#swMsg");
       msg.textContent = "";
 
@@ -1175,9 +1218,9 @@
         const res = executeBuyAtPrice(s, cur, buy, qty, mkt);
         if (res.ok){
           saveState(s);
-          const trade = { t: now(), fromId: cur, toId: buy, fromAmt: +res.fromAmt.toFixed(6), toAmt: +qty.toFixed(6), feePct: +res.feePct, rate: +mkt.toFixed(6) };
+          const trade = { t: now(), fromId: cur, toId: buy, fromAmt: +res.fromAmt.toFixed(6), toAmt: +qty.toFixed(6), feePct: +commissionPct(), rate: +mkt.toFixed(6) };
           recordTrade(trade);
-          pushActivity(`MARKET BUY • ${qty} ${getSymbol(buy)} using ${res.fromAmt.toFixed(6)} ${getSymbol(cur)} @ ${mkt.toFixed(6)}`);
+          pushActivity(`MARKET BUY • ${qty} ${getSymbol(buy)} using ${trade.fromAmt} ${getSymbol(cur)} @ ${mkt.toFixed(6)}`);
           updateUI(true);
           msg.textContent = "Order filled.";
           $("#buyQty").value="";
@@ -1191,12 +1234,11 @@
         const tif = $("#tif").value || "GTC";
         if (!(L>0)){ msg.textContent = "Enter a limit price."; return; }
 
-        // Try immediate fill if market is equal/lower than limit (better price)
         if (mkt <= L){
           const res = executeBuyAtPrice(s, cur, buy, qty, L);
           if (res.ok){
             saveState(s);
-            const trade = { t: now(), fromId: cur, toId: buy, fromAmt: +res.fromAmt.toFixed(6), toAmt: +qty.toFixed(6), feePct: +res.feePct, rate: +L.toFixed(6) };
+            const trade = { t: now(), fromId: cur, toId: buy, fromAmt: +res.fromAmt.toFixed(6), toAmt: +qty.toFixed(6), feePct: +commissionPct(), rate: +L.toFixed(6) };
             recordTrade(trade);
             pushActivity(`FILL • LIMIT BUY @ ${L} (${qty} ${getSymbol(buy)})`);
             updateUI(true);
@@ -1204,7 +1246,7 @@
             $("#buyQty").value="";
             updateTradeQuote();
             return;
-          } // if insufficient, fall through to place order
+          }
         }
 
         const order = {
@@ -1257,7 +1299,7 @@
           trailType: tType, trailValue: tVal,
           activationPrice: isFinite(act) ? act : null,
           activated: isFinite(act) ? false : true,
-          peg: mkt // lowest seen since activation
+          peg: priceCPB(cur,buy) // lowest seen since activation
         };
         const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
         pushActivity(`ORDER • TRAILING BUY by ${tType==="PCT"? tVal+"%": tVal+" "+getSymbol(cur)}${order.activationPrice? " (activates ≤ "+order.activationPrice+")":""}`);
@@ -1272,6 +1314,7 @@
     function renderOpenOrders(){
       const box = $("#openOrders");
       const orders = loadOrders().filter(o=>o.status==="OPEN");
+      if (!box) return;
       if (!orders.length){ box.innerHTML = `<div class="text-slate-500">No open orders.</div>`; return; }
       box.innerHTML = orders.map(o=>{
         const pair = `${getSymbol(o.buyId)}/${getSymbol(o.currencyId)}`;
@@ -1280,7 +1323,7 @@
         if (o.type==="STOP")  desc = `STOP ${o.stopSide} ${(+o.stopPrice).toFixed(6)} ${o.onTrigger==="LIMIT"?"→ LIMIT @ "+(+o.limitPrice).toFixed(6):"→ MARKET"} • ${o.buyQty} ${getSymbol(o.buyId)}`;
         if (o.type==="TRAIL") desc = `TRAIL ${o.trailType==="PCT"?o.trailValue+"%":o.trailValue+" "+getSymbol(o.currencyId)}${o.activationPrice? " • activates ≤ "+o.activationPrice:""} • ${o.buyQty} ${getSymbol(o.buyId)}`;
         return `
-        <div class="flex items-center justify-between p-2 rounded-lg border border-slate-200 bg-white">
+        <div class="flex items-center justify-between p-2 rounded-lg border border-slate-200" style="background: var(--surface);">
           <div class="flex flex-col">
             <div class="font-medium">Buy ${pair}</div>
             <div class="text-xs text-slate-600">${o.type} • ${desc}</div>
@@ -1310,7 +1353,6 @@
         const mkt = priceCPB(o.currencyId, o.buyId);
         if (!mkt) continue;
 
-        // Determine currency needed at a given price:
         const needAt = (px)=> calcFromForBuyQty(o.buyQty, px, commissionPct()).fromAmt;
 
         // LIMIT: fill when market ≤ limit
@@ -1322,7 +1364,7 @@
               const res = executeBuyAtPrice(s, o.currencyId, o.buyId, o.buyQty, o.limitPrice);
               if (res.ok){
                 saveState(s);
-                const trade = { t: now(), fromId: o.currencyId, toId: o.buyId, fromAmt: +res.fromAmt.toFixed(6), toAmt: +o.buyQty.toFixed(6), feePct: +res.feePct, rate: +o.limitPrice.toFixed(6) };
+                const trade = { t: now(), fromId: o.currencyId, toId: o.buyId, fromAmt: +res.fromAmt.toFixed(6), toAmt: +o.buyQty.toFixed(6), feePct: +commissionPct(), rate: +o.limitPrice.toFixed(6) };
                 recordTrade(trade);
                 pushActivity(`FILL • LIMIT BUY @ ${o.limitPrice} (${o.buyQty} ${getSymbol(o.buyId)})`);
                 o.status="FILLED"; changed=true;
@@ -1334,7 +1376,7 @@
           continue;
         }
 
-        // STOP: trigger condition; on trigger, market or convert to limit
+        // STOP: trigger condition
         if (o.type==="STOP"){
           const trig = (o.stopSide==="ABOVE") ? (mkt >= o.stopPrice) : (mkt <= o.stopPrice);
           if (!trig) continue;
@@ -1345,28 +1387,26 @@
               const res = executeBuyAtPrice(s, o.currencyId, o.buyId, o.buyQty, mkt);
               if (res.ok){
                 saveState(s);
-                const trade = { t: now(), fromId: o.currencyId, toId: o.buyId, fromAmt: +res.fromAmt.toFixed(6), toAmt: +o.buyQty.toFixed(6), feePct: +res.feePct, rate: +mkt.toFixed(6) };
+                const trade = { t: now(), fromId: o.currencyId, toId: o.buyId, fromAmt: +res.fromAmt.toFixed(6), toAmt: +o.buyQty.toFixed(6), feePct: +commissionPct(), rate: +mkt.toFixed(6) };
                 recordTrade(trade);
                 pushActivity(`FILL • STOP-MARKET BUY @ ${mkt.toFixed(6)} (trigger ${o.stopSide} ${o.stopPrice})`);
                 o.status="FILLED"; changed=true;
               }
-            } // if insufficient, keep waiting
+            }
           } else { // LIMIT on trigger
-            // If at or better than stop-limit price, try fill, else convert to LIMIT (GTC)
             if (mkt <= o.limitPrice){
               const fromAmt = needAt(o.limitPrice);
               if ((s.holdings[o.currencyId]||0) >= fromAmt){
                 const res = executeBuyAtPrice(s, o.currencyId, o.buyId, o.buyQty, o.limitPrice);
                 if (res.ok){
                   saveState(s);
-                  const trade = { t: now(), fromId: o.currencyId, toId: o.buyId, fromAmt: +res.fromAmt.toFixed(6), toAmt: +o.buyQty.toFixed(6), feePct: +res.feePct, rate: +o.limitPrice.toFixed(6) };
+                  const trade = { t: now(), fromId: o.currencyId, toId: o.buyId, fromAmt: +res.fromAmt.toFixed(6), toAmt: +o.buyQty.toFixed(6), feePct: +commissionPct(), rate: +o.limitPrice.toFixed(6) };
                   recordTrade(trade);
                   pushActivity(`FILL • STOP-LIMIT BUY @ ${o.limitPrice} (trigger ${o.stopSide} ${o.stopPrice})`);
                   o.status="FILLED"; changed=true;
                 }
               }
             } else {
-              // convert to plain LIMIT once triggered
               if (!o.triggered){
                 o.type="LIMIT"; o.tif="GTC"; o.triggered=true;
                 pushActivity(`TRIGGER • STOP → LIMIT @ ${o.limitPrice}`);
@@ -1383,12 +1423,11 @@
             if (mkt <= o.activationPrice){ o.activated = true; o.peg = mkt; pushActivity(`TRAIL • Activated @ ${mkt.toFixed(6)}`); changed=true; }
             continue;
           }
-          // update lowest seen
           o.peg = Math.min(o.peg, mkt);
           let trig = false;
           if (o.trailType==="PCT"){
             trig = mkt >= o.peg * (1 + o.trailValue/100);
-          } else { // AMT
+          } else {
             trig = mkt >= o.peg + o.trailValue;
           }
           if (trig){
@@ -1397,7 +1436,7 @@
               const res = executeBuyAtPrice(s, o.currencyId, o.buyId, o.buyQty, mkt);
               if (res.ok){
                 saveState(s);
-                const trade = { t: now(), fromId: o.currencyId, toId: o.buyId, fromAmt: +res.fromAmt.toFixed(6), toAmt: +o.buyQty.toFixed(6), feePct: +res.feePct, rate: +mkt.toFixed(6) };
+                const trade = { t: now(), fromId: o.currencyId, toId: o.buyId, fromAmt: +res.fromAmt.toFixed(6), toAmt: +o.buyQty.toFixed(6), feePct: +commissionPct(), rate: +mkt.toFixed(6) };
                 recordTrade(trade);
                 pushActivity(`FILL • TRAILING BUY @ ${mkt.toFixed(6)} (peg ${o.peg.toFixed(6)})`);
                 o.status="FILLED"; changed=true;
@@ -1423,13 +1462,15 @@
     });
     function loadAdvancedEditor(){
       const s = loadState();
-      $("#advCommission").value = s.commissionPct;
+      const advCommission = $("#advCommission");
+      if (advCommission) advCommission.value = s.commissionPct;
       const grid = $("#advHoldings");
+      if (!grid) return;
       grid.innerHTML = "";
       getTradableAssets().forEach(a=>{
         const wrap = document.createElement("div");
         wrap.innerHTML = `
-          <div class="p-3 rounded-xl border border-slate-200 bg-white">
+          <div class="p-3 rounded-xl border border-slate-200" style="background: var(--surface);">
             <div class="flex items-center gap-2 mb-2">
               <img src="${imageOf(a.id)||''}" class="w-5 h-5 rounded-md border border-slate-200"/>
               <div class="text-sm font-medium">${a.symbol} • ${a.name}</div>
@@ -1560,6 +1601,7 @@
     function renderFavoritesPanel(){
       const favs = loadFavs();
       const box = $("#favoriteList");
+      if (!box) return;
       if (!favs.length){ box.innerHTML = `<div class="text-slate-500 text-sm">No favorites yet.</div>`; return; }
       box.innerHTML = favs.map(f=>`
         <div class="flex items-center justify-between">
@@ -1588,7 +1630,7 @@
     }
 
     /***** EXPORT *****/
-    $("#exportBtn").addEventListener("click", ()=>{
+    $("#exportBtn")?.addEventListener("click", ()=>{
       const blob = new Blob([JSON.stringify({
         state: loadState(),
         trades: loadTrades(),
@@ -1613,23 +1655,51 @@
       if (pushPoint){ const nlv = calcNLV(s); pushChartPoint(nlv); } else { refreshChart(); }
     }
 
-    /***** APPEARANCE (Global Padding) *****/
+    /***** APPEARANCE (Padding + Theme) *****/
     function applyPadding(px){
       const val = Math.max(8, Math.min(56, +px || 16));
       document.documentElement.style.setProperty('--app-x', val+'px');
-      $("#uiPadding").value = val;
-      $("#uiPaddingVal").textContent = val + 'px';
+      const slider = $("#uiPadding");
+      if (slider) slider.value = val;
+      const label = $("#uiPaddingVal");
+      if (label) label.textContent = val + 'px';
     }
-    $("#saveUI").addEventListener("click", ()=>{
+    function applyTheme(mode){
+      const root = document.documentElement;
+      if (mode === "dark") root.setAttribute("data-theme","dark");
+      else root.setAttribute("data-theme","light");
+      // mark UI
+      $("#themeBtnLight")?.classList.toggle("active", mode==="light");
+      $("#themeBtnDark")?.classList.toggle("active", mode==="dark");
+    }
+    $("#saveUI")?.addEventListener("click", ()=>{
       const px = +$("#uiPadding").value || 16;
       applyPadding(px);
       saveUI({ paddingPx: px });
       pushActivity(`APPEARANCE • Global padding set to ${px}px`);
     });
 
+    // Theme controls
+    $("#themeBtnLight")?.addEventListener("click", ()=>{ applyTheme("light"); });
+    $("#themeBtnDark")?.addEventListener("click", ()=>{ applyTheme("dark"); });
+    $("#saveTheme")?.addEventListener("click", ()=>{
+      const mode = $("#themeBtnDark").classList.contains("active") ? "dark" : "light";
+      saveUI({ theme: mode });
+      pushActivity(`APPEARANCE • Theme set to ${mode}`);
+    });
+
     /***** BOOT *****/
     async function boot(){
-      const ui = loadUI(); applyPadding(ui.paddingPx);
+      if (!__AUTH_OK) { // guard against manual boot without login
+        try { document.location.hash = ""; } catch(e) {}
+        loginOverlay.classList.remove("hidden");
+        return;
+      }
+
+      // Apply saved UI & theme
+      const ui = loadUI(); 
+      applyPadding(ui.paddingPx);
+      applyTheme(ui.theme || "light");
 
       $("#app").style.opacity = 1;
       populateSelects();
@@ -1648,11 +1718,7 @@
       showPage("dashboard");
     }
 
-    // Auto-boot if already authed
-    if (localStorage.getItem(K.AUTH) === "1"){
-      loginOverlay.classList.add("hidden");
-      boot();
-    }
+    // NOTE: No auto-boot. Login is always required on reload.
 
     /***** EVENTS for Asset Modal *****/
     function openAssetModal(){ $("#assetModal").classList.remove("hidden"); $("#assetSearchInput").focus(); renderFavoritesPanel(); $("#assetResults").innerHTML = `<div class="text-slate-500 text-sm">Try searching for “pepe”, “aptos”, “litecoin”…</div>`; }
