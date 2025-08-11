@@ -22,18 +22,37 @@
     .pill { @apply rounded-full px-2.5 py-1 text-xs font-medium; }
     .pill-tab { @apply px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium cursor-pointer; }
     .pill-tab.active { @apply bg-slate-900 text-white border-slate-900; }
+
+    /* Login loading bar */
+    .progress-wrap{ @apply mt-4 w-full h-2 rounded-full bg-slate-200 overflow-hidden; }
+    .progress-bar{
+      height:100%; width:0%; background: linear-gradient(90deg,#10b981,#06b6d4);
+      animation: loadbar 1.8s ease-in-out infinite;
+    }
+    @keyframes loadbar{
+      0%{ width:0% } 50%{ width:85% } 100%{ width:100% }
+    }
+
+    /* Modal */
+    .modal { @apply fixed inset-0 z-[60] flex items-end md:items-center justify-center; }
+    .modal-bg { @apply absolute inset-0 bg-black/40 backdrop-blur-sm; }
+    .modal-card { @apply relative w-full md:max-w-2xl card p-5 bg-white; }
+
+    /* Small chips */
+    .chip { @apply inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 text-xs; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
 
   <!-- LOGIN -->
-  <div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-    <div class="w-full max-w-sm card p-6 bg-white">
+  <div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div class="w-full max-w-sm card p-6 bg-white/95">
       <div class="flex items-center gap-3 mb-4">
         <div class="size-9 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400"></div>
         <h1 class="text-xl font-semibold tracking-tight">Sign in</h1>
       </div>
-      <div class="space-y-3">
+
+      <div id="loginForm" class="space-y-3">
         <div>
           <label class="text-xs text-slate-500">Username</label>
           <input id="loginUser" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-400" placeholder="username" />
@@ -46,6 +65,16 @@
         <p id="loginErr" class="hidden text-sm text-rose-600">Invalid credentials.</p>
         <p class="text-xs text-slate-500">Use <span class="font-semibold">jj</span> / <span class="font-semibold">jj</span></p>
       </div>
+
+      <!-- Post-auth loading state -->
+      <div id="loginLoading" class="hidden">
+        <div class="flex items-center gap-2 text-slate-600">
+          <i class="ph ph-shield-check"></i>
+          <span class="text-sm font-medium">Authenticating…</span>
+        </div>
+        <div class="progress-wrap"><div class="progress-bar"></div></div>
+        <div id="bootLogs" class="mt-3 h-24 overflow-hidden rounded-lg bg-slate-50 border border-slate-200 p-2 text-[11px] font-mono text-slate-700"></div>
+      </div>
     </div>
   </div>
 
@@ -56,8 +85,9 @@
       <div class="mx-auto max-w-6xl px-4 md:px-6">
         <div class="h-16 flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <!--<div class="size-8 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400"></div>-->
             <span class="text-lg font-semibold tracking-tight">DEX</span>
+            <!-- Favorites quick chips -->
+            <div id="favChips" class="hidden md:flex items-center gap-2 ml-3"></div>
           </div>
           <nav class="hidden md:flex items-center gap-2">
             <button data-tab="dashboard" class="tab btn btn-primary">Dashboard</button>
@@ -65,6 +95,9 @@
             <button data-tab="settings" class="tab btn">Settings</button>
           </nav>
           <div class="flex items-center gap-2">
+            <button id="openAssetSearch" class="btn" title="Search & add assets">
+              <i class="ph ph-magnifying-glass"></i><span class="ml-2 hidden sm:inline">Assets</span>
+            </button>
             <span id="headerNLV" class="hidden md:inline text-sm font-medium px-2.5 py-1 rounded-lg bg-slate-100"></span>
             <button id="logoutBtn" class="btn">Log out</button>
           </div>
@@ -244,12 +277,41 @@
     </main>
   </div>
 
+  <!-- ASSET SEARCH MODAL -->
+  <div id="assetModal" class="hidden modal">
+    <div class="modal-bg" data-close-modal></div>
+    <div class="modal-card">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <i class="ph ph-magnifying-glass text-slate-500"></i>
+          <h3 class="font-semibold">Search Assets (CoinGecko)</h3>
+        </div>
+        <button class="btn" data-close-modal>Close</button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="md:col-span-2">
+          <div class="flex items-center gap-2">
+            <input id="assetSearchInput" class="flex-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" placeholder="Search by name or symbol (e.g., 'doge', 'solana', 'bitcoin')" />
+            <button id="assetSearchBtn" class="btn btn-primary"><i class="ph ph-magnifying-glass"></i><span class="ml-2 hidden sm:inline">Search</span></button>
+          </div>
+          <div id="assetResults" class="mt-3 max-h-80 overflow-auto divide-y divide-slate-200"></div>
+        </div>
+
+        <div>
+          <div class="text-sm font-medium mb-2">Favorites</div>
+          <div id="favoriteList" class="space-y-2 max-h-80 overflow-auto"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     /***** CONFIG *****/
     const SECRET_SETTINGS_CODE = "admin123";
 
-    // Asset universe (CoinGecko ids, symbols, names)
-    const ASSETS = [
+    // Core asset universe (ships by default)
+    const CORE_ASSETS = [
       { id: "bitcoin",       symbol: "BTC", name: "Bitcoin" },
       { id: "ethereum",      symbol: "ETH", name: "Ethereum" },
       { id: "solana",        symbol: "SOL", name: "Solana" },
@@ -271,12 +333,13 @@
       STATE: "dex_state_v1",
       HISTORY: "dex_history_v1",   // human-readable activity log
       TRADES: "dex_trades_v1",     // structured trades
-      EQUITY: "dex_equity_v1"      // [{t, nlv}]
+      EQUITY: "dex_equity_v1",     // [{t, nlv}]
+      FAVS: "dex_favorites_v1"     // [{id,symbol,name}]
     };
 
     // Default state (no cash, some holdings so swaps work)
     const defaultState = () => ({
-      commissionPct: 0.30, // % fee applied to input token on swaps
+      commissionPct: 0.30,
       holdings: {
         bitcoin: 0.25,
         ethereum: 5.0,
@@ -296,9 +359,9 @@
     const fmtUsd = n => n == null ? "—" : n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
     const fmtPct = n => `${(n>=0?"+":"")}${n.toFixed(2)}%`;
     const clamp = (x,a,b) => Math.max(a, Math.min(b,x));
-    const symOf = id => ASSETS.find(a=>a.id===id)?.symbol || id.toUpperCase();
     const now = () => Date.now();
 
+    // State & persistence
     function loadState(){ const raw=localStorage.getItem(K.STATE); return raw?JSON.parse(raw):defaultState(); }
     function saveState(s){ localStorage.setItem(K.STATE, JSON.stringify(s)); }
     function loadHistory(){ const raw=localStorage.getItem(K.HISTORY); return raw?JSON.parse(raw):[]; }
@@ -307,21 +370,18 @@
     function saveTrades(t){ localStorage.setItem(K.TRADES, JSON.stringify(t)); }
     function loadEquity(){ const raw=localStorage.getItem(K.EQUITY); return raw?JSON.parse(raw):[]; }
     function saveEquity(e){ localStorage.setItem(K.EQUITY, JSON.stringify(e)); }
+    function loadFavs(){ const raw=localStorage.getItem(K.FAVS); return raw?JSON.parse(raw):[]; }
+    function saveFavs(arr){ localStorage.setItem(K.FAVS, JSON.stringify(arr)); renderFavChips(); }
 
+    // Activity & trades
     function pushActivity(msg){
-      const h=loadHistory();
-      h.unshift({t:now(),msg});
-      saveHistory(h.slice(0,200));
-      renderActivity();
+      const h=loadHistory(); h.unshift({t:now(),msg}); saveHistory(h.slice(0,200)); renderActivity();
     }
-
     function recordTrade(trade){
-      const list = loadTrades();
-      list.unshift(trade);
-      saveTrades(list.slice(0,500));
+      const list = loadTrades(); list.unshift(trade); saveTrades(list.slice(0,500));
     }
 
-    // Persist equity points; throttle to avoid spam (minGapMs)
+    // Equity series (persisted)
     function recordEquityPoint(nlv, minGapMs=60_000){
       if (!isFinite(nlv)) return;
       const series = loadEquity();
@@ -333,17 +393,71 @@
       }
     }
 
+    // Tradable assets = CORE + FAVS (dedup by id)
+    function getTradableAssets(){
+      const favs = loadFavs();
+      const map = new Map();
+      CORE_ASSETS.forEach(a=>map.set(a.id,a));
+      favs.forEach(a=>map.set(a.id,a));
+      return Array.from(map.values());
+    }
+    const symOf = id => {
+      const a = getTradableAssets().find(x=>x.id===id);
+      return a?.symbol || id.toUpperCase();
+    };
+
     /***** AUTH *****/
     const loginOverlay = $("#loginOverlay");
-    $("#loginBtn").addEventListener("click", () => {
+    const loginForm = $("#loginForm");
+    const loginLoading = $("#loginLoading");
+    const bootLogsEl = $("#bootLogs");
+    let bootTimer;
+
+    function appendLog(line){
+      const el = document.createElement("div");
+      el.textContent = `> ${line}`;
+      bootLogsEl.appendChild(el);
+      bootLogsEl.scrollTop = bootLogsEl.scrollHeight;
+    }
+
+    async function runBootSequence(){
+      loginForm.classList.add("hidden");
+      loginLoading.classList.remove("hidden");
+      bootLogsEl.innerHTML = "";
+
+      const lines = [
+        "Checking authentication…",
+        "Establishing secure session…",
+        "Connecting to market data…",
+        "Syncing portfolio and trades…",
+        "Warming caches…",
+        "Finalizing UI…"
+      ];
+      let idx = 0;
+      await new Promise(res=>{
+        bootTimer = setInterval(()=>{
+          appendLog(lines[idx % lines.length]);
+          idx++;
+          if (idx > lines.length + 2){
+            clearInterval(bootTimer);
+            setTimeout(res, 400);
+          }
+        }, 400);
+      });
+    }
+
+    $("#loginBtn").addEventListener("click", async () => {
       const u = $("#loginUser").value.trim();
       const p = $("#loginPass").value.trim();
       if (u === "jj" && p === "jj") {
-        localStorage.setItem(K.AUTH, "1");
         $("#loginErr").classList.add("hidden");
+        await runBootSequence();
+        localStorage.setItem(K.AUTH, "1");
         loginOverlay.classList.add("hidden");
         boot();
-      } else $("#loginErr").classList.remove("hidden");
+      } else {
+        $("#loginErr").classList.remove("hidden");
+      }
     });
     $("#loginUser").value = "jj"; $("#loginPass").value = "jj";
 
@@ -362,7 +476,9 @@
     let lastUpdated = 0;
 
     async function fetchMarket() {
-      const ids = ASSETS.map(a=>a.id).join(",");
+      const tradables = getTradableAssets();
+      if (tradables.length === 0) return;
+      const ids = tradables.map(a=>a.id).join(",");
       const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`;
       const res = await fetch(url, { headers: { "accept": "application/json" }});
       if (!res.ok) throw new Error("Market API error");
@@ -386,7 +502,7 @@
     /***** PORTFOLIO *****/
     function calcNLV(state){
       let total = 0;
-      for (const a of ASSETS){
+      for (const a of getTradableAssets()){
         const px = priceOf(a.id);
         if (px!=null) total += (state.holdings[a.id]||0) * px;
       }
@@ -408,10 +524,7 @@
             label: ctx => fmtUsd(ctx.parsed.y)
           }}},
           scales:{ 
-            x:{ display:true, ticks:{ maxTicksLimit:6, callback: (_,i,arr)=> {
-              const label = chart.data.labels[_];
-              return label;
-            }}},
+            x:{ display:true, ticks:{ maxTicksLimit:6 }},
             y:{ ticks:{ callback:v=>"$"+(v/1000).toFixed(0)+"k" } } 
           }
         }
@@ -440,7 +553,6 @@
       if (!chart) return;
       const series = loadEquity(); // newest first
       const cutoff = isFinite(rangeToMs(currentRange)) ? (now() - rangeToMs(currentRange)) : -Infinity;
-      // Filter to selected range, then reverse to chronological
       const filtered = series.filter(p => p.t >= cutoff).slice().reverse();
       const data = resample(filtered, 300);
 
@@ -453,7 +565,6 @@
       chart.data.datasets[0].data = data.map(p => ({x:p.t, y:p.nlv}));
       chart.update("none");
 
-      // Range change %
       const first = data[0]?.nlv, last = data[data.length-1]?.nlv;
       const el = $("#rangeChange");
       if (first && last){
@@ -468,7 +579,6 @@
     }
 
     function pushChartPoint(nlv){
-      // Persist + repaint subset
       recordEquityPoint(nlv);
       refreshChart();
     }
@@ -485,11 +595,12 @@
 
     /***** RENDER *****/
     function populateSelects(){
-      const opts = ASSETS.map(a => `<option value="${a.id}">${a.symbol} • ${a.name}</option>`).join("");
+      const opts = getTradableAssets().map(a => `<option value="${a.id}">${a.symbol} • ${a.name}</option>`).join("");
       ["qsFrom","qsTo","swFrom","swTo"].forEach(id => { $("#"+id).innerHTML = opts; });
-      // defaults: From BTC -> To ETH
-      $("#qsFrom").value="bitcoin"; $("#qsTo").value="ethereum";
-      $("#swFrom").value="bitcoin"; $("#swTo").value="ethereum";
+      if (!$("#qsFrom").value){ $("#qsFrom").value="bitcoin"; }
+      if (!$("#qsTo").value){ $("#qsTo").value="ethereum"; }
+      if (!$("#swFrom").value){ $("#swFrom").value="bitcoin"; }
+      if (!$("#swTo").value){ $("#swTo").value="ethereum"; }
     }
 
     function renderHeader(nlv){
@@ -502,7 +613,7 @@
       const nlv = calcNLV(state);
       $("#nlvValue").textContent = fmtUsd(nlv);
       const series = loadEquity();
-      const prev = series[1]?.nlv; // previous persisted point
+      const prev = series[1]?.nlv;
       const delta = prev!=null ? ((nlv - prev)/prev)*100 : 0;
       const dEl = $("#nlvDelta");
       dEl.textContent = (prev==null) ? "—" : fmtPct(delta);
@@ -510,9 +621,8 @@
       dEl.classList.toggle("red", delta<0);
       renderHeader(nlv);
 
-      // top weight
-      const rows = ASSETS.map(a => {
-        const px = priceOf(a.id)??0, qty = state.holdings[a.id]??0, v=px*qty;
+      const rows = getTradableAssets().map(a => {
+        const px = priceOf(a.id)??0, qty = loadState().holdings[a.id]??0, v=px*qty;
         return { id:a.id, symbol:a.symbol, v };
       }).sort((x,y)=>y.v-x.v);
       const total = nlv || 1;
@@ -525,7 +635,7 @@
       tbody.innerHTML = "";
       const nlv = calcNLV(state) || 1;
 
-      for (const a of ASSETS){
+      for (const a of getTradableAssets()){
         const qty = state.holdings[a.id]||0;
         const px = priceOf(a.id);
         const v = (px!=null) ? qty*px : 0;
@@ -536,10 +646,16 @@
         tr.innerHTML = `
           <td class="py-2">
             <div class="flex items-center gap-2">
-              <img src="${imageOf(a.id)}" alt="${a.symbol}" class="w-6 h-6 rounded-full border border-slate-200"/>
-              <div>
-                <div class="font-medium">${a.symbol}</div>
-                <div class="text-xs text-slate-500">${a.name}</div>
+              <img src="${imageOf(a.id) || 'https://cryptoicons.org/api/icon/btc/32'}" alt="${a.symbol}" class="w-6 h-6 rounded-full border border-slate-200"/>
+              <div class="flex items-center gap-2">
+                <div>
+                  <div class="font-medium">${a.symbol}</div>
+                  <div class="text-xs text-slate-500">${a.name}</div>
+                </div>
+                <button class="chip" data-toggle-fav="${a.id}">
+                  <i class="ph ${isFav(a.id)?'ph-star':'ph-star-four'}"></i>
+                  <span>${isFav(a.id)?'Favorited':'Favorite'}</span>
+                </button>
               </div>
             </div>
           </td>
@@ -551,6 +667,14 @@
         `;
         tbody.appendChild(tr);
       }
+
+      // Fav toggle handlers
+      tbody.querySelectorAll("[data-toggle-fav]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const id = btn.getAttribute("data-toggle-fav");
+          toggleFavoriteById(id);
+        });
+      });
     }
 
     function renderActivity(){
@@ -563,7 +687,7 @@
         return `<div class="flex items-center justify-between">
           <div>
             <span class="font-medium">SWAP</span>
-            • ${tr.fromAmt} ${symOf(tr.fromId)} → ${tr.toAmt} ${symOf(tr.toId)}
+            • ${tr.fromAmt} ${getSymbol(tr.fromId)} → ${tr.toAmt} ${getSymbol(tr.toId)}
             <span class="text-slate-500"> (fee ${tr.feePct.toFixed(2)}%, rate ${tr.rate})</span>
           </div>
           <div class="text-xs text-slate-500">${d}</div>
@@ -586,6 +710,11 @@
       `;
     }
 
+    const getSymbol = id => {
+      const a = getTradableAssets().find(x=>x.id===id);
+      return a?.symbol || id.toUpperCase();
+    };
+
     /***** QUOTES & SWAPS *****/
     function quoteSwap(state, fromId, toId, fromAmt){
       const fromPx = priceOf(fromId), toPx = priceOf(toId);
@@ -594,7 +723,6 @@
       if (!(fromAmt>0)) return { ok:false, msg:"Enter an amount." };
       if ((state.holdings[fromId]||0) < fromAmt) return { ok:false, msg:"Insufficient balance." };
 
-      // Commission: reduce effective output by commission %
       const feePct = clamp(state.commissionPct, 0, 100);
       const effectiveFrom = fromAmt * (1 - feePct/100.0);
       const usdValue = effectiveFrom * fromPx;
@@ -618,7 +746,7 @@
       const q = quoteSwap(s, from, to, amt);
       const el = $("#qsQuote");
       if (!q.ok){ el.textContent = q.msg; return; }
-      el.textContent = `≈ Receive ${q.toAmt.toFixed(6)} ${symOf(to)} (fee ${q.feePct.toFixed(2)}%)`;
+      el.textContent = `≈ Receive ${q.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${q.feePct.toFixed(2)}%)`;
     }
     $("#qsFrom").addEventListener("change", updateQuickQuote);
     $("#qsTo").addEventListener("change", updateQuickQuote);
@@ -640,7 +768,7 @@
           rate: +(res.fromPx/res.toPx).toFixed(6)
         };
         recordTrade(trade);
-        pushActivity(`SWAP • ${amt} ${symOf(from)} → ${res.toAmt.toFixed(6)} ${symOf(to)} (fee ${res.feePct.toFixed(2)}%)`);
+        pushActivity(`SWAP • ${amt} ${getSymbol(from)} → ${res.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${res.feePct.toFixed(2)}%)`);
         updateUI(true);
         msg.textContent = "Swap executed.";
         $("#qsAmt").value = "";
@@ -656,7 +784,7 @@
       const q = quoteSwap(s, from, to, amt);
       const el = $("#swQuote");
       if (!q.ok){ el.textContent = q.msg; return; }
-      el.textContent = `Rate: 1 ${symOf(from)} = ${(q.fromPx/q.toPx).toFixed(6)} ${symOf(to)} • You’ll receive ≈ ${q.toAmt.toFixed(6)} ${symOf(to)} (fee ${q.feePct.toFixed(2)}%)`;
+      el.textContent = `Rate: 1 ${getSymbol(from)} = ${(q.fromPx/q.toPx).toFixed(6)} ${getSymbol(to)} • You’ll receive ≈ ${q.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${q.feePct.toFixed(2)}%)`;
     }
     $("#swFrom").addEventListener("change", updateSwapQuote);
     $("#swTo").addEventListener("change", updateSwapQuote);
@@ -678,7 +806,7 @@
           rate: +(res.fromPx/res.toPx).toFixed(6)
         };
         recordTrade(trade);
-        pushActivity(`SWAP • ${amt} ${symOf(from)} → ${res.toAmt.toFixed(6)} ${symOf(to)} (fee ${res.feePct.toFixed(2)}%)`);
+        pushActivity(`SWAP • ${amt} ${getSymbol(from)} → ${res.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${res.feePct.toFixed(2)}%)`);
         updateUI(true);
         msg.textContent = "Swap executed.";
         $("#swAmt").value = "";
@@ -702,12 +830,12 @@
       $("#advCommission").value = s.commissionPct;
       const grid = $("#advHoldings");
       grid.innerHTML = "";
-      ASSETS.forEach(a=>{
+      getTradableAssets().forEach(a=>{
         const wrap = document.createElement("div");
         wrap.innerHTML = `
           <div class="p-3 rounded-xl border border-slate-200 bg-white">
             <div class="flex items-center gap-2 mb-2">
-              <img src="${imageOf(a.id)}" class="w-5 h-5 rounded-full border border-slate-200"/>
+              <img src="${imageOf(a.id)||''}" class="w-5 h-5 rounded-full border border-slate-200"/>
               <div class="text-sm font-medium">${a.symbol} • ${a.name}</div>
             </div>
             <input data-hold="${a.id}" type="number" step="0.000001"
@@ -748,13 +876,175 @@
       updateUI(true);
     });
 
+    /***** FAVORITES & ASSET SEARCH *****/
+    function isFav(id){
+      return loadFavs().some(f=>f.id===id);
+    }
+    function addFavorite(asset){
+      const favs = loadFavs();
+      if (!favs.some(f=>f.id===asset.id)){
+        favs.unshift({ id: asset.id, symbol: asset.symbol.toUpperCase(), name: asset.name });
+        saveFavs(favs.slice(0,500));
+        // initialize holding if missing
+        const s = loadState();
+        if (s.holdings[asset.id] == null) { s.holdings[asset.id] = 0; saveState(s); }
+        pushActivity(`FAVORITE • Added ${asset.symbol.toUpperCase()} (${asset.name})`);
+        refreshAfterUniverseChange();
+      }
+    }
+    function removeFavorite(id){
+      const favs = loadFavs().filter(f=>f.id!==id);
+      saveFavs(favs);
+      pushActivity(`FAVORITE • Removed ${id}`);
+      refreshAfterUniverseChange();
+    }
+    function toggleFavoriteById(id){
+      const all = getTradableAssets();
+      const found = all.find(a=>a.id===id) || {};
+      if (isFav(id)) removeFavorite(id);
+      else addFavorite({ id, symbol: found.symbol||id, name: found.name||id });
+    }
+
+    async function searchCoinGecko(q){
+      if (!q) return [];
+      const url = `https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`;
+      const res = await fetch(url, { headers: { "accept": "application/json" }});
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.coins||[]).map(c=>({ id:c.id, symbol:c.symbol.toUpperCase(), name:c.name, thumb:c.thumb }));
+    }
+
+    function openAssetModal(){
+      $("#assetModal").classList.remove("hidden");
+      $("#assetSearchInput").focus();
+      renderFavoritesPanel();
+      $("#assetResults").innerHTML = `<div class="text-slate-500 text-sm">Try searching for “pepe”, “aptos”, “litecoin”…</div>`;
+    }
+    function closeAssetModal(){
+      $("#assetModal").classList.add("hidden");
+    }
+
+    $("#openAssetSearch").addEventListener("click", openAssetModal);
+    document.querySelectorAll("[data-close-modal]").forEach(el=>el.addEventListener("click", closeAssetModal));
+
+    $("#assetSearchBtn").addEventListener("click", async ()=>{
+      const q = $("#assetSearchInput").value.trim();
+      const list = await searchCoinGecko(q);
+      renderSearchResults(list);
+    });
+    $("#assetSearchInput").addEventListener("keydown", async (e)=>{
+      if (e.key === "Enter"){
+        const q = e.currentTarget.value.trim();
+        const list = await searchCoinGecko(q);
+        renderSearchResults(list);
+      }
+    });
+
+    function renderSearchResults(list){
+      const wrap = $("#assetResults");
+      if (!list.length){
+        wrap.innerHTML = `<div class="text-slate-500 text-sm">No results.</div>`;
+        return;
+      }
+      wrap.innerHTML = list.slice(0,100).map(a=>`
+        <div class="flex items-center justify-between py-2">
+          <div class="flex items-center gap-3">
+            <img src="${a.thumb}" class="w-6 h-6 rounded border border-slate-200"/>
+            <div>
+              <div class="font-medium text-sm">${a.symbol}</div>
+              <div class="text-xs text-slate-500">${a.name}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            ${isFav(a.id) ? 
+              `<button class="btn" data-remove-fav="${a.id}"><i class="ph ph-star"></i> Remove</button>` :
+              `<button class="btn btn-primary" data-add-fav='${JSON.stringify(a)}'><i class="ph ph-star-four"></i> Add</button>`
+            }
+          </div>
+        </div>
+      `).join("");
+
+      wrap.querySelectorAll("[data-add-fav]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const asset = JSON.parse(btn.getAttribute("data-add-fav"));
+          addFavorite(asset);
+          // refresh results UI
+          const q = $("#assetSearchInput").value.trim();
+          searchCoinGecko(q).then(renderSearchResults);
+        });
+      });
+      wrap.querySelectorAll("[data-remove-fav]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const id = btn.getAttribute("data-remove-fav");
+          removeFavorite(id);
+          const q = $("#assetSearchInput").value.trim();
+          searchCoinGecko(q).then(renderSearchResults);
+        });
+      });
+    }
+
+    function renderFavoritesPanel(){
+      const favs = loadFavs();
+      const box = $("#favoriteList");
+      if (!favs.length){
+        box.innerHTML = `<div class="text-slate-500 text-sm">No favorites yet.</div>`;
+        return;
+      }
+      box.innerHTML = favs.map(f=>`
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="chip"><strong>${f.symbol}</strong><span class="text-slate-500">${f.name}</span></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="btn" data-remove-fav="${f.id}"><i class="ph ph-x"></i></button>
+          </div>
+        </div>
+      `).join("");
+
+      box.querySelectorAll("[data-remove-fav]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const id = btn.getAttribute("data-remove-fav");
+          removeFavorite(id);
+          renderFavoritesPanel();
+        });
+      });
+    }
+
+    function renderFavChips(){
+      const bar = $("#favChips");
+      const favs = loadFavs().slice(0,6);
+      if (!favs.length){ bar.classList.add("hidden"); bar.innerHTML=""; return; }
+      bar.classList.remove("hidden");
+      bar.innerHTML = favs.map(f=>`<span class="chip cursor-pointer" data-jump="${f.id}">${f.symbol}</span>`).join("");
+      bar.querySelectorAll("[data-jump]").forEach(ch=>{
+        ch.addEventListener("click", ()=>{
+          // quick set selects to that asset
+          $("#qsFrom").value = ch.getAttribute("data-jump");
+          updateQuickQuote();
+          showPage("swap");
+          tabs.forEach(b => b.classList.toggle("btn-primary", b.dataset.tab==="swap"));
+        });
+      });
+    }
+
+    async function refreshAfterUniverseChange(){
+      // Repaint selects, positions, and refetch market for new ids
+      populateSelects();
+      loadAdvancedEditor();
+      await fetchMarket().catch(()=>{});
+      updateUI(true);
+      renderFavoritesPanel();
+      renderFavChips();
+    }
+
     /***** EXPORT *****/
     $("#exportBtn").addEventListener("click", ()=>{
       const blob = new Blob([JSON.stringify({
         state: loadState(),
         trades: loadTrades(),
         activity: loadHistory(),
-        equity: loadEquity()
+        equity: loadEquity(),
+        favorites: loadFavs()
       }, null, 2)], {type:"application/json"});
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -782,24 +1072,25 @@
       populateSelects();
       initChart();
       renderActivity();
+      renderFavChips();
 
-      // Seed equity history if empty
       if (loadEquity().length === 0){
         const s = loadState();
         const nlv0 = calcNLV(s);
-        recordEquityPoint(nlv0, 0); // immediate
+        recordEquityPoint(nlv0, 0);
       }
 
       try { await fetchMarket(); } catch(e){ console.warn(e); }
       updateUI(true);
 
       setInterval(async ()=>{
-        try { await fetchMarket(); /* updateUI(true) called within fetchMarket */ } catch(e){ console.warn(e); }
+        try { await fetchMarket(); } catch(e){ console.warn(e); }
       }, PRICE_POLL_MS);
 
       showPage("dashboard");
     }
 
+    // Auto-boot if already authed
     if (localStorage.getItem(K.AUTH) === "1"){
       loginOverlay.classList.add("hidden");
       boot();
