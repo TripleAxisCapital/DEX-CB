@@ -1,6 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- =========================
+       GLOBAL VARIABLES (UI)
+       ========================= -->
+  <style>
+    :root{
+      /* Global horizontal padding — change this or use Settings → Appearance */
+      --app-x: 16px;           /* left/right padding on all pages */
+      --app-maxw: 1200px;      /* content max width */
+      --radius-xl: 16px;       /* card rounding */
+      --radius-2xl: 20px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.05), 0 1px 1px rgba(0,0,0,.04);
+      --shadow-md: 0 6px 20px rgba(0,0,0,.08);
+      --brand: #0ea5e9;        /* sky-500 (Apple-esque blue) */
+      --brand-2: #10b981;      /* emerald-500 */
+      --ink: #0f172a;          /* slate-900 */
+      --muted: #64748b;        /* slate-500 */
+      --surface: #ffffff;
+      --surface-2: rgba(255,255,255,.85);
+      --bg: #f8fafc;           /* slate-50 */
+      --border: rgba(15,23,42,.08);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    @media (min-width: 640px){ :root{ --app-x: 24px; } }
+    @media (min-width: 1024px){ :root{ --app-x: 32px; } }
+  </style>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>DEX</title>
@@ -15,60 +42,81 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
-    .card { @apply rounded-2xl border border-slate-200/80 bg-white/95 shadow-sm; backdrop-filter: saturate(120%) blur(2px); }
-    .btn { @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium border border-slate-200 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 transition; }
-    .btn-primary { @apply bg-slate-900 text-white border-slate-900 hover:bg-black; }
-    .green { @apply text-emerald-600; } .red { @apply text-rose-600; }
-    .pill { @apply rounded-full px-2.5 py-1 text-xs font-medium; }
-    .pill-tab { @apply px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium cursor-pointer; }
-    .pill-tab.active { @apply bg-slate-900 text-white border-slate-900; }
+    /* -------- Framework-y utilities (Apple/Coinbase vibes) -------- */
+    html,body{ background: var(--bg); color: var(--ink); }
+    .app-shell{ padding-left: var(--app-x); padding-right: var(--app-x); max-width: var(--app-maxw); margin: 0 auto; }
+    .header-blur{ backdrop-filter: saturate(140%) blur(10px); -webkit-backdrop-filter: saturate(140%) blur(10px); }
+    .card{ border-radius: var(--radius-2xl); border: 1px solid var(--border); background: var(--surface-2); box-shadow: var(--shadow-sm); }
+    .btn{ border-radius: 12px; padding: 10px 14px; font-weight: 600; border: 1px solid var(--border); background: #f1f5f9; transition: .2s transform, .2s background, .2s box-shadow; }
+    .btn:active{ transform: translateY(1px); }
+    .btn-primary{ background: linear-gradient(180deg, #0ea5e9, #0284c7); color: #fff; border-color: #0284c7; box-shadow: 0 6px 20px rgba(2,132,199,.25); }
+    .btn-primary:hover{ filter: brightness(1.02); }
+    .btn-ghost{ background: transparent; }
+    .chip{ display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .5rem; border-radius:999px; border:1px solid var(--border); font-size:.75rem; }
+    .green{ color:#059669 } .red{ color:#dc2626 }
+    .pill-tab{ padding: .5rem .75rem; border-radius: 12px; border: 1px solid var(--border); font-size:.75rem; }
+    .pill-tab.active{ background: #0f172a; color:#fff; border-color:#0f172a; }
+    .table{ width:100%; font-size:. nine; } /* keep default size small */
+    .card-pad{ padding: 20px; }
+    .section-gap{ gap: 16px; }
+    .kpi{ border-radius: 14px; background: #f8fafc; border:1px solid var(--border); padding: 14px; }
 
     /* Login loading bar */
-    .progress-wrap{ @apply mt-4 w-full h-2 rounded-full bg-slate-200 overflow-hidden; }
-    .progress-bar{
-      height:100%; width:0%; background: linear-gradient(90deg,#10b981,#06b6d4);
-      animation: loadbar 1.8s ease-in-out infinite;
-    }
-    @keyframes loadbar{
-      0%{ width:0% } 50%{ width:85% } 100%{ width:100% }
-    }
+    .progress-wrap{ margin-top:.75rem; width:100%; height:8px; border-radius:999px; background:#e2e8f0; overflow:hidden; }
+    .progress-bar{ height:100%; width:0%; background: linear-gradient(90deg,var(--brand),#06b6d4); animation: loadbar 1.8s ease-in-out infinite; }
+    @keyframes loadbar{ 0%{ width:0% } 50%{ width:85% } 100%{ width:100% } }
 
     /* Modal */
-    .modal { @apply fixed inset-0 z-[60] flex items-end md:items-center justify-center; }
-    .modal-bg { @apply absolute inset-0 bg-black/40 backdrop-blur-sm; }
-    .modal-card { @apply relative w-full md:max-w-2xl card p-5 bg-white; }
+    .modal{ position:fixed; inset:0; z-index:60; display:flex; align-items:flex-end; justify-content:center; }
+    @media (min-width:768px){ .modal{ align-items:center; } }
+    .modal-bg{ position:absolute; inset:0; background:rgba(0,0,0,.45); backdrop-filter: blur(4px); }
+    .modal-card{ position:relative; width:100%; max-width:760px; border-radius:20px; border:1px solid var(--border); background: var(--surface); padding:20px; }
 
-    /* Small chips */
-    .chip { @apply inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 text-xs; }
+    /* Bottom Nav (mobile) */
+    .bottom-nav{ position:sticky; bottom:0; z-index:50; padding: 8px calc(var(--app-x)); background: rgba(255,255,255,.9); border-top:1px solid var(--border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding-bottom: calc(8px + var(--safe-bottom)); }
+    .bottom-btn{ flex:1; display:flex; gap:6px; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:#f8fafc; font-size:.8rem; }
+    .bottom-btn.active{ background: #0ea5e9; color:#fff; border-color:#0284c7; }
+
+    /* Inputs */
+    .input{ width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; outline:none; background:#fff; }
+    .input:focus{ box-shadow:0 0 0 4px rgba(14,165,233,.15); }
+
+    /* Chart container */
+    .chart-box{ height: 240px; }
+    @media (min-width:1024px){ .chart-box{ height: 280px; } }
+
+    /* Safe top for header */
+    .pt-safe{ padding-top: calc(8px + var(--safe-top)); }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen">
+<body class="min-h-screen">
 
   <!-- LOGIN -->
-  <div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-    <div class="w-full max-w-sm card p-6 bg-white/95">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="size-9 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400"></div>
+  <div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center"
+       style="background: radial-gradient(1200px 600px at 20% -10%, #0ea5e933, transparent), radial-gradient(1200px 600px at 120% 110%, #10b98133, transparent), linear-gradient(180deg,#0b1220, #0b1220);">
+    <div class="w-full max-w-sm card card-pad bg-white/90">
+      <div class="flex items-center gap-3 mb-2">
+        <div style="width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--brand-2))"></div>
         <h1 class="text-xl font-semibold tracking-tight">Sign in</h1>
       </div>
 
       <div id="loginForm" class="space-y-3">
         <div>
           <label class="text-xs text-slate-500">Username</label>
-          <input id="loginUser" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-400" placeholder="username" />
+          <input id="loginUser" class="input mt-1" placeholder="username" />
         </div>
         <div>
           <label class="text-xs text-slate-500">Password</label>
-          <input id="loginPass" type="password" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-400" placeholder="password" />
+          <input id="loginPass" type="password" class="input mt-1" placeholder="password" />
         </div>
-        <button id="loginBtn" class="btn btn-primary w-full">Sign in</button>
+        <button id="loginBtn" class="btn btn-primary w-full">Continue</button>
         <p id="loginErr" class="hidden text-sm text-rose-600">Invalid credentials.</p>
         <p class="text-xs text-slate-500">Use <span class="font-semibold">jj</span> / <span class="font-semibold">jj</span></p>
       </div>
 
       <!-- Post-auth loading state -->
       <div id="loginLoading" class="hidden">
-        <div class="flex items-center gap-2 text-slate-600">
+        <div class="flex items-center gap-2 text-slate-700">
           <i class="ph ph-shield-check"></i>
           <span class="text-sm font-medium">Authenticating…</span>
         </div>
@@ -80,41 +128,42 @@
 
   <!-- APP -->
   <div id="app" class="opacity-0 transition-opacity duration-300">
+
     <!-- Header -->
-    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
-      <div class="mx-auto max-w-6xl px-4 md:px-6">
-        <div class="h-16 flex items-center justify-between">
+    <header class="sticky top-0 z-40 border-b border-[color:var(--border)] header-blur bg-white/80">
+      <div class="app-shell pt-safe">
+        <div class="h-14 md:h-16 flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <span class="text-lg font-semibold tracking-tight">DEX</span>
+            <div style="width:28px;height:28px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand-2))"></div>
+            <span class="text-lg font-semibold -tracking-tight">DEX</span>
             <!-- Favorites quick chips -->
-            <div id="favChips" class="hidden md:flex items-center gap-2 ml-3"></div>
+            <div id="favChips" class="hidden md:flex items-center gap-2 ml-2"></div>
           </div>
-          <nav class="hidden md:flex items-center gap-2">
-            <button data-tab="dashboard" class="tab btn btn-primary">Dashboard</button>
-            <button data-tab="swap" class="tab btn">Swap</button>
-            <button data-tab="settings" class="tab btn">Settings</button>
-          </nav>
-          <div class="flex items-center gap-2">
-            <button id="openAssetSearch" class="btn" title="Search & add assets">
-              <i class="ph ph-magnifying-glass"></i><span class="ml-2 hidden sm:inline">Assets</span>
+          <div class="hidden md:flex items-center gap-2">
+            <button id="openAssetSearch" class="btn btn-ghost" title="Search & add assets">
+              <i class="ph ph-magnifying-glass"></i><span class="ml-2">Assets</span>
             </button>
             <span id="headerNLV" class="hidden md:inline text-sm font-medium px-2.5 py-1 rounded-lg bg-slate-100"></span>
             <button id="logoutBtn" class="btn">Log out</button>
+          </div>
+          <!-- Mobile actions -->
+          <div class="md:hidden flex items-center gap-2">
+            <button id="openAssetSearchMobile" class="btn btn-ghost p-2"><i class="ph ph-magnifying-glass"></i></button>
           </div>
         </div>
       </div>
     </header>
 
     <!-- Content -->
-    <main class="mx-auto max-w-6xl px-4 md:px-6 py-6 space-y-6">
+    <main class="app-shell py-4 md:py-6 space-y-6">
 
       <!-- DASHBOARD -->
-      <section id="page-dashboard" class="space-y-6">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div class="card p-5 col-span-2">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-lg font-semibold">Portfolio</h2>
-              <div class="text-sm text-slate-500">Updated <span id="lastUpdated">—</span></div>
+      <section id="page-dashboard" class="space-y-4 md:space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 section-gap">
+          <div class="card card-pad col-span-2">
+            <div class="flex items-center justify-between mb-3 md:mb-4">
+              <h2 class="text-lg md:text-xl font-semibold">Portfolio</h2>
+              <div class="text-xs md:text-sm text-slate-500">Updated <span id="lastUpdated">—</span></div>
             </div>
 
             <!-- Range Tabs -->
@@ -134,17 +183,17 @@
 
             <div class="flex flex-col lg:flex-row gap-4">
               <div class="flex-1">
-                <div class="h-[220px]">
-                  <canvas id="nlvChart" height="200"></canvas>
+                <div class="chart-box">
+                  <canvas id="nlvChart"></canvas>
                 </div>
               </div>
               <div class="w-full lg:w-64 space-y-3">
-                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                <div class="kpi">
                   <div class="text-xs text-slate-500">Net Liquidation Value</div>
-                  <div id="nlvValue" class="text-2xl font-semibold mt-1">$—</div>
+                  <div id="nlvValue" class="text-2xl md:text-3xl font-semibold mt-1">$—</div>
                   <div id="nlvDelta" class="text-sm mt-1">—</div>
                 </div>
-                <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                <div class="kpi">
                   <div class="text-xs text-slate-500">Top Weight</div>
                   <div id="topWeight" class="text-sm mt-1">—</div>
                 </div>
@@ -153,32 +202,32 @@
           </div>
 
           <!-- Quick Swap -->
-          <div class="card p-5">
+          <div class="card card-pad">
             <h2 class="text-lg font-semibold mb-3">Quick Swap</h2>
             <div class="space-y-3">
               <div class="grid grid-cols-2 gap-2">
                 <div>
                   <label class="text-xs text-slate-500">From</label>
-                  <select id="qsFrom" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none"></select>
+                  <select id="qsFrom" class="input mt-1"></select>
                 </div>
                 <div>
                   <label class="text-xs text-slate-500">To</label>
-                  <select id="qsTo" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none"></select>
+                  <select id="qsTo" class="input mt-1"></select>
                 </div>
               </div>
               <div>
                 <label class="text-xs text-slate-500">Amount (From)</label>
-                <input id="qsAmt" type="number" min="0" step="0.000001" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" placeholder="e.g., 0.5" />
+                <input id="qsAmt" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 0.5" />
               </div>
               <div class="text-xs text-slate-600" id="qsQuote">—</div>
-              <button id="qsSwap" class="btn w-full">Swap</button>
+              <button id="qsSwap" class="btn btn-primary w-full">Swap</button>
               <div id="qsMsg" class="text-xs text-slate-500"></div>
             </div>
           </div>
         </div>
 
         <!-- Positions -->
-        <div class="card p-5">
+        <div class="card card-pad">
           <div class="flex items-center justify-between mb-3">
             <h2 class="text-lg font-semibold">Positions</h2>
             <div class="text-xs text-slate-500">Market data via public API</div>
@@ -201,7 +250,7 @@
         </div>
 
         <!-- Activity / Trades -->
-        <div class="card p-5">
+        <div class="card card-pad">
           <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold">Recent Activity & Trades</h2>
             <button id="exportBtn" class="btn">Export Data</button>
@@ -212,20 +261,20 @@
 
       <!-- SWAP PAGE -->
       <section id="page-swap" class="hidden space-y-4">
-        <div class="card p-5">
+        <div class="card card-pad">
           <h2 class="text-lg font-semibold mb-4">Swap Assets</h2>
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label class="text-xs text-slate-500">From</label>
-              <select id="swFrom" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none"></select>
+              <select id="swFrom" class="input mt-1"></select>
             </div>
             <div>
               <label class="text-xs text-slate-500">To</label>
-              <select id="swTo" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none"></select>
+              <select id="swTo" class="input mt-1"></select>
             </div>
             <div>
               <label class="text-xs text-slate-500">Amount (From)</label>
-              <input id="swAmt" type="number" min="0" step="0.000001" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" placeholder="e.g., 1.25" />
+              <input id="swAmt" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 1.25" />
             </div>
             <div class="flex items-end">
               <button id="swSubmit" class="btn btn-primary w-full">Execute Swap</button>
@@ -238,23 +287,23 @@
 
       <!-- SETTINGS -->
       <section id="page-settings" class="hidden space-y-4">
-        <div class="card p-5">
+        <div class="card card-pad">
           <h2 class="text-lg font-semibold mb-3">Settings</h2>
           <div class="text-sm text-slate-600">General preferences and account configuration.</div>
         </div>
 
-        <div class="card p-5">
+        <div class="card card-pad space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="font-semibold">Advanced Controls</h3>
             <button id="unlockBtn" class="btn">Unlock</button>
           </div>
-          <div id="lockedNote" class="text-sm text-slate-500 mt-2">Restricted section. Enter code to manage holdings and commission.</div>
+          <div id="lockedNote" class="text-sm text-slate-500">Restricted section. Enter code to manage holdings and commission.</div>
 
-          <div id="advancedWrap" class="hidden mt-4 space-y-4">
+          <div id="advancedWrap" class="hidden space-y-6 mt-2">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label class="text-xs text-slate-500">Commission (%)</label>
-                <input id="advCommission" type="number" step="0.001" class="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" />
+                <input id="advCommission" type="number" step="0.001" class="input mt-1" />
               </div>
               <div class="flex items-end">
                 <button id="advSaveBasics" class="btn btn-primary w-full">Save Commission</button>
@@ -272,9 +321,35 @@
             </div>
           </div>
         </div>
+
+        <!-- APPEARANCE -->
+        <div class="card card-pad space-y-3">
+          <h3 class="font-semibold">Appearance</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="text-xs text-slate-500">Global Side Padding (px)</label>
+              <input id="uiPadding" type="range" min="8" max="56" step="2" class="w-full"
+                     oninput="document.getElementById('uiPaddingVal').textContent = this.value+'px'">
+              <div class="text-xs text-slate-500"><span id="uiPaddingVal">16px</span></div>
+            </div>
+            <div class="flex items-end">
+              <button id="saveUI" class="btn btn-primary w-full">Save Spacing</button>
+            </div>
+            <div class="text-xs text-slate-500">This controls the left/right whitespace across the entire app on all pages.</div>
+          </div>
+        </div>
       </section>
 
     </main>
+
+    <!-- Bottom Nav (mobile) -->
+    <nav class="bottom-nav md:hidden">
+      <div class="flex items-center gap-2">
+        <button class="bottom-btn active" data-tab="dashboard"><i class="ph ph-house"></i><span>Home</span></button>
+        <button class="bottom-btn" data-tab="swap"><i class="ph ph-arrows-left-right"></i><span>Swap</span></button>
+        <button class="bottom-btn" data-tab="settings"><i class="ph ph-gear"></i><span>Settings</span></button>
+      </div>
+    </nav>
   </div>
 
   <!-- ASSET SEARCH MODAL -->
@@ -292,7 +367,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div class="md:col-span-2">
           <div class="flex items-center gap-2">
-            <input id="assetSearchInput" class="flex-1 rounded-xl border border-slate-200 px-3 py-2 outline-none" placeholder="Search by name or symbol (e.g., 'doge', 'solana', 'bitcoin')" />
+            <input id="assetSearchInput" class="input flex-1" placeholder="Search by name or symbol (e.g., 'doge', 'solana', 'bitcoin')" />
             <button id="assetSearchBtn" class="btn btn-primary"><i class="ph ph-magnifying-glass"></i><span class="ml-2 hidden sm:inline">Search</span></button>
           </div>
           <div id="assetResults" class="mt-3 max-h-80 overflow-auto divide-y divide-slate-200"></div>
@@ -334,10 +409,11 @@
       HISTORY: "dex_history_v1",   // human-readable activity log
       TRADES: "dex_trades_v1",     // structured trades
       EQUITY: "dex_equity_v1",     // [{t, nlv}]
-      FAVS: "dex_favorites_v1"     // [{id,symbol,name}]
+      FAVS: "dex_favorites_v1",    // [{id,symbol,name}]
+      UI: "dex_ui_v1"              // { paddingPx }
     };
 
-    // Default state (no cash, some holdings so swaps work)
+    // Default state
     const defaultState = () => ({
       commissionPct: 0.30,
       holdings: {
@@ -372,6 +448,8 @@
     function saveEquity(e){ localStorage.setItem(K.EQUITY, JSON.stringify(e)); }
     function loadFavs(){ const raw=localStorage.getItem(K.FAVS); return raw?JSON.parse(raw):[]; }
     function saveFavs(arr){ localStorage.setItem(K.FAVS, JSON.stringify(arr)); renderFavChips(); }
+    function loadUI(){ const raw=localStorage.getItem(K.UI); return raw?JSON.parse(raw):{ paddingPx: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-x')) || 16 }; }
+    function saveUI(u){ localStorage.setItem(K.UI, JSON.stringify(u)); }
 
     // Activity & trades
     function pushActivity(msg){
@@ -393,7 +471,7 @@
       }
     }
 
-    // Tradable assets = CORE + FAVS (dedup by id)
+    // Tradable assets = CORE + FAVS
     function getTradableAssets(){
       const favs = loadFavs();
       const map = new Map();
@@ -401,12 +479,12 @@
       favs.forEach(a=>map.set(a.id,a));
       return Array.from(map.values());
     }
-    const symOf = id => {
+    const getSymbol = id => {
       const a = getTradableAssets().find(x=>x.id===id);
       return a?.symbol || id.toUpperCase();
     };
 
-    /***** AUTH *****/
+    /***** AUTH (Login + Boot) *****/
     const loginOverlay = $("#loginOverlay");
     const loginForm = $("#loginForm");
     const loginLoading = $("#loginLoading");
@@ -419,12 +497,10 @@
       bootLogsEl.appendChild(el);
       bootLogsEl.scrollTop = bootLogsEl.scrollHeight;
     }
-
     async function runBootSequence(){
       loginForm.classList.add("hidden");
       loginLoading.classList.remove("hidden");
       bootLogsEl.innerHTML = "";
-
       const lines = [
         "Checking authentication…",
         "Establishing secure session…",
@@ -438,14 +514,10 @@
         bootTimer = setInterval(()=>{
           appendLog(lines[idx % lines.length]);
           idx++;
-          if (idx > lines.length + 2){
-            clearInterval(bootTimer);
-            setTimeout(res, 400);
-          }
+          if (idx > lines.length + 2){ clearInterval(bootTimer); setTimeout(res, 400); }
         }, 400);
       });
     }
-
     $("#loginBtn").addEventListener("click", async () => {
       const u = $("#loginUser").value.trim();
       const p = $("#loginPass").value.trim();
@@ -463,18 +535,33 @@
 
     /***** NAV *****/
     const tabs = document.querySelectorAll(".tab");
-    tabs.forEach(btn => btn.addEventListener("click", () => showPage(btn.dataset.tab)));
+    // top nav buttons (desktop)
+    document.addEventListener("click",(e)=>{
+      const el = e.target.closest(".tab");
+      if(!el) return;
+      showPage(el.dataset.tab);
+      tabs.forEach(b => b.classList.toggle("btn-primary", b===el));
+    });
     function showPage(id){
       ["dashboard","swap","settings"].forEach(p=>$("#page-"+p).classList.toggle("hidden", p!==id));
-      tabs.forEach(b => b.classList.toggle("btn-primary", b.dataset.tab===id));
+      // bottom nav active
+      document.querySelectorAll(".bottom-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===id));
+      // top nav (if exists)
+      document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("btn-primary", b.dataset.tab===id));
+      window.scrollTo({top:0, behavior:'smooth'});
     }
-    $("#logoutBtn").addEventListener("click", ()=>{ localStorage.removeItem(K.AUTH); location.reload(); });
+    $("#logoutBtn")?.addEventListener("click", ()=>{ localStorage.removeItem(K.AUTH); location.reload(); });
+    // bottom nav buttons (mobile)
+    document.querySelectorAll(".bottom-btn").forEach(btn=>{
+      btn.addEventListener("click", ()=>showPage(btn.dataset.tab));
+    });
+
+    // Mobile header search
+    $("#openAssetSearchMobile")?.addEventListener("click", ()=>openAssetModal());
+    $("#openAssetSearch")?.addEventListener("click", ()=>openAssetModal());
 
     /***** MARKET DATA *****/
-    // Will hold: id -> { price, chg24, image }
-    let market = {};
-    let lastUpdated = 0;
-
+    let market = {}; let lastUpdated = 0;
     async function fetchMarket() {
       const tradables = getTradableAssets();
       if (tradables.length === 0) return;
@@ -485,17 +572,12 @@
       const data = await res.json();
       const out = {};
       data.forEach(row => {
-        out[row.id] = {
-          price: +row.current_price,
-          chg24: row.price_change_percentage_24h_in_currency ?? row.price_change_percentage_24h ?? 0,
-          image: row.image
-        };
+        out[row.id] = { price: +row.current_price, chg24: row.price_change_percentage_24h_in_currency ?? row.price_change_percentage_24h ?? 0, image: row.image };
       });
       market = out;
       lastUpdated = now();
-      updateUI(true); // push new equity point from fresh prices
+      updateUI(true);
     }
-
     const priceOf = id => market[id]?.price ?? null;
     const imageOf = id => market[id]?.image ?? "";
 
@@ -510,57 +592,49 @@
     }
 
     /***** CHART *****/
-    let chart;
-    let currentRange = "7D";
-
+    let chart; let currentRange = "7D";
     function initChart(){
-      chart = new Chart($("#nlvChart"), {
+      const ctx = $("#nlvChart").getContext("2d");
+      const gradient = ctx.createLinearGradient(0,0,0,260);
+      gradient.addColorStop(0, "rgba(14,165,233,0.35)");
+      gradient.addColorStop(1, "rgba(14,165,233,0.02)");
+      chart = new Chart(ctx, {
         type: "line",
-        data: { labels: [], datasets: [{ label: "Portfolio", data: [], tension: 0.3, borderWidth: 2, pointRadius: 0 }]},
+        data: {
+          labels: [],
+          datasets: [{
+            label: "Portfolio",
+            data: [],
+            tension: 0.3, borderWidth: 2, pointRadius: 0,
+            borderColor: "#0ea5e9",
+            fill: true, backgroundColor: gradient
+          }]
+        },
         options: {
-          responsive:true, maintainAspectRatio:false,
-          animation: false,
-          plugins:{ legend:{display:false}, tooltip:{mode:'index',intersect:false, callbacks:{
-            label: ctx => fmtUsd(ctx.parsed.y)
-          }}},
-          scales:{ 
-            x:{ display:true, ticks:{ maxTicksLimit:6 }},
-            y:{ ticks:{ callback:v=>"$"+(v/1000).toFixed(0)+"k" } } 
-          }
+          responsive:true, maintainAspectRatio:false, animation:false,
+          plugins:{ legend:{display:false}, tooltip:{mode:'index',intersect:false, callbacks:{ label: ctx => fmtUsd(ctx.parsed.y) }}},
+          scales:{ x:{ display:true, ticks:{ maxTicksLimit:6 }}, y:{ ticks:{ callback:v=>"$"+(v/1000).toFixed(0)+"k" } } }
         }
       });
-      refreshChart(); // initial paint from persisted equity
+      refreshChart();
     }
-
-    function rangeToMs(range){
-      switch(range){
-        case "7D": return 7*24*3600*1000;
-        case "1M": return 30*24*3600*1000;
-        case "3M": return 90*24*3600*1000;
-        case "1Y": return 365*24*3600*1000;
-        default: return Infinity; // ALL
-      }
-    }
-
+    function rangeToMs(range){ switch(range){ case "7D": return 7*24*3600*1000; case "1M": return 30*24*3600*1000; case "3M": return 90*24*3600*1000; case "1Y": return 365*24*3600*1000; default: return Infinity; } }
     function resample(series, maxPoints=300){
-      if (series.length <= maxPoints) return series;
-      const step = Math.ceil(series.length / maxPoints);
-      const out=[]; for(let i=0;i<series.length;i+=step) out.push(series[i]);
-      return out;
+      if (series.length <= maxPoints) return series; const step = Math.ceil(series.length / maxPoints);
+      const out=[]; for(let i=0;i<series.length;i+=step) out.push(series[i]); return out;
     }
-
     function refreshChart(){
       if (!chart) return;
-      const series = loadEquity(); // newest first
+      const series = loadEquity();
       const cutoff = isFinite(rangeToMs(currentRange)) ? (now() - rangeToMs(currentRange)) : -Infinity;
       const filtered = series.filter(p => p.t >= cutoff).slice().reverse();
       const data = resample(filtered, 300);
 
       chart.data.labels = data.map(p => {
         const d=new Date(p.t);
-        const r = currentRange;
-        if (r==="7D"||r==="1M"){ return d.toLocaleDateString(undefined,{month:"short", day:"numeric"})+" "+d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"}) }
-        return d.toLocaleDateString(undefined,{year:"2-digit",month:"short", day:"numeric"});
+        return (currentRange==="7D"||currentRange==="1M")
+          ? (d.toLocaleDateString(undefined,{month:"short", day:"numeric"})+" "+d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"}))
+          : d.toLocaleDateString(undefined,{year:"2-digit",month:"short", day:"numeric"});
       });
       chart.data.datasets[0].data = data.map(p => ({x:p.t, y:p.nlv}));
       chart.update("none");
@@ -572,43 +646,30 @@
         el.textContent = fmtPct(pct);
         el.classList.toggle("green", pct>=0);
         el.classList.toggle("red", pct<0);
-      } else {
-        el.textContent = "—";
-        el.classList.remove("green","red");
-      }
+      } else { el.textContent = "—"; el.classList.remove("green","red"); }
     }
-
-    function pushChartPoint(nlv){
-      recordEquityPoint(nlv);
-      refreshChart();
-    }
-
-    // Range tab handlers
+    function pushChartPoint(nlv){ recordEquityPoint(nlv); refreshChart(); }
+    // Range tabs
     document.addEventListener("click", (e)=>{
-      const tab = e.target.closest(".pill-tab");
-      if (!tab) return;
+      const tab = e.target.closest(".pill-tab"); if (!tab) return;
       document.querySelectorAll(".pill-tab").forEach(b=>b.classList.remove("active"));
-      tab.classList.add("active");
-      currentRange = tab.dataset.range;
-      refreshChart();
+      tab.classList.add("active"); currentRange = tab.dataset.range; refreshChart();
     });
 
     /***** RENDER *****/
     function populateSelects(){
       const opts = getTradableAssets().map(a => `<option value="${a.id}">${a.symbol} • ${a.name}</option>`).join("");
-      ["qsFrom","qsTo","swFrom","swTo"].forEach(id => { $("#"+id).innerHTML = opts; });
+      ["qsFrom","qsTo","swFrom","swTo"].forEach(id => { const el=$("#"+id); el.innerHTML = opts; });
       if (!$("#qsFrom").value){ $("#qsFrom").value="bitcoin"; }
       if (!$("#qsTo").value){ $("#qsTo").value="ethereum"; }
       if (!$("#swFrom").value){ $("#swFrom").value="bitcoin"; }
       if (!$("#swTo").value){ $("#swTo").value="ethereum"; }
     }
-
     function renderHeader(nlv){
       $("#headerNLV").textContent = fmtUsd(nlv);
       $("#headerNLV").classList.remove("hidden");
       $("#lastUpdated").textContent = new Date(lastUpdated).toLocaleTimeString();
     }
-
     function renderSummary(state){
       const nlv = calcNLV(state);
       $("#nlvValue").textContent = fmtUsd(nlv);
@@ -629,24 +690,22 @@
       const top = rows[0];
       $("#topWeight").textContent = top ? `${top.symbol} • ${(top.v/total*100).toFixed(2)}%` : "—";
     }
-
+    function isFav(id){ return loadFavs().some(f=>f.id===id); }
     function renderPositions(state){
       const tbody = $("#positionsBody");
       tbody.innerHTML = "";
       const nlv = calcNLV(state) || 1;
-
       for (const a of getTradableAssets()){
         const qty = state.holdings[a.id]||0;
         const px = priceOf(a.id);
         const v = (px!=null) ? qty*px : 0;
         const weight = (v/nlv)*100;
         const chg = market[a.id]?.chg24 ?? 0;
-
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td class="py-2">
             <div class="flex items-center gap-2">
-              <img src="${imageOf(a.id) || 'https://cryptoicons.org/api/icon/btc/32'}" alt="${a.symbol}" class="w-6 h-6 rounded-full border border-slate-200"/>
+              <img src="${imageOf(a.id) || 'https://cryptoicons.org/api/icon/btc/32'}" alt="${a.symbol}" class="w-6 h-6 rounded-lg border border-slate-200"/>
               <div class="flex items-center gap-2">
                 <div>
                   <div class="font-medium">${a.symbol}</div>
@@ -667,8 +726,6 @@
         `;
         tbody.appendChild(tr);
       }
-
-      // Fav toggle handlers
       tbody.querySelectorAll("[data-toggle-fav]").forEach(btn=>{
         btn.addEventListener("click", ()=>{
           const id = btn.getAttribute("data-toggle-fav");
@@ -676,7 +733,6 @@
         });
       });
     }
-
     function renderActivity(){
       const list = $("#activityList");
       const h = loadHistory();
@@ -693,7 +749,6 @@
           <div class="text-xs text-slate-500">${d}</div>
         </div>`;
       }).join("");
-
       const actBlocks = h.slice(0,50).map(e=>{
         const d = new Date(e.t).toLocaleString();
         return `<div class="flex items-center justify-between">
@@ -701,7 +756,6 @@
           <div class="text-xs text-slate-500">${d}</div>
         </div>`;
       }).join("");
-
       list.innerHTML = `
         <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Trades</div>
         <div class="space-y-2 mb-4">${tradeBlocks || '<div class="text-slate-500">No trades yet.</div>'}</div>
@@ -710,11 +764,6 @@
       `;
     }
 
-    const getSymbol = id => {
-      const a = getTradableAssets().find(x=>x.id===id);
-      return a?.symbol || id.toUpperCase();
-    };
-
     /***** QUOTES & SWAPS *****/
     function quoteSwap(state, fromId, toId, fromAmt){
       const fromPx = priceOf(fromId), toPx = priceOf(toId);
@@ -722,14 +771,12 @@
       if (fromPx==null || toPx==null) return { ok:false, msg:"No market price." };
       if (!(fromAmt>0)) return { ok:false, msg:"Enter an amount." };
       if ((state.holdings[fromId]||0) < fromAmt) return { ok:false, msg:"Insufficient balance." };
-
-      const feePct = clamp(state.commissionPct, 0, 100);
+      const feePct = clamp(loadState().commissionPct, 0, 100);
       const effectiveFrom = fromAmt * (1 - feePct/100.0);
       const usdValue = effectiveFrom * fromPx;
       const toAmt = usdValue / toPx;
       return { ok:true, toAmt, feePct, usdValue, fromPx, toPx };
     }
-
     function doSwap(state, fromId, toId, fromAmt){
       const q = quoteSwap(state, fromId, toId, fromAmt);
       if (!q.ok) return q;
@@ -759,14 +806,7 @@
       const msg = $("#qsMsg");
       if (res.ok){
         saveState(s);
-        const trade = {
-          t: now(),
-          fromId: from, toId: to,
-          fromAmt: +amt,
-          toAmt: +res.toAmt.toFixed(6),
-          feePct: +res.feePct,
-          rate: +(res.fromPx/res.toPx).toFixed(6)
-        };
+        const trade = { t: now(), fromId: from, toId: to, fromAmt: +amt, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
         recordTrade(trade);
         pushActivity(`SWAP • ${amt} ${getSymbol(from)} → ${res.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${res.feePct.toFixed(2)}%)`);
         updateUI(true);
@@ -797,14 +837,7 @@
       const msg = $("#swMsg");
       if (res.ok){
         saveState(s);
-        const trade = {
-          t: now(),
-          fromId: from, toId: to,
-          fromAmt: +amt,
-          toAmt: +res.toAmt.toFixed(6),
-          feePct: +res.feePct,
-          rate: +(res.fromPx/res.toPx).toFixed(6)
-        };
+        const trade = { t: now(), fromId: from, toId: to, fromAmt: +amt, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
         recordTrade(trade);
         pushActivity(`SWAP • ${amt} ${getSymbol(from)} → ${res.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${res.feePct.toFixed(2)}%)`);
         updateUI(true);
@@ -824,7 +857,6 @@
         loadAdvancedEditor();
       } else alert("Incorrect code.");
     });
-
     function loadAdvancedEditor(){
       const s = loadState();
       $("#advCommission").value = s.commissionPct;
@@ -835,17 +867,15 @@
         wrap.innerHTML = `
           <div class="p-3 rounded-xl border border-slate-200 bg-white">
             <div class="flex items-center gap-2 mb-2">
-              <img src="${imageOf(a.id)||''}" class="w-5 h-5 rounded-full border border-slate-200"/>
+              <img src="${imageOf(a.id)||''}" class="w-5 h-5 rounded-md border border-slate-200"/>
               <div class="text-sm font-medium">${a.symbol} • ${a.name}</div>
             </div>
-            <input data-hold="${a.id}" type="number" step="0.000001"
-              class="w-full rounded-lg border border-slate-200 px-3 py-2 outline-none"
+            <input data-hold="${a.id}" type="number" step="0.000001" class="input"
               value="${s.holdings[a.id] ?? 0}">
           </div>`;
         grid.appendChild(wrap);
       });
     }
-
     $("#advSaveBasics").addEventListener("click", ()=>{
       const s = loadState();
       s.commissionPct = clamp(+$("#advCommission").value, 0, 100);
@@ -854,7 +884,6 @@
       updateUI(true);
       alert("Saved.");
     });
-
     $("#advSaveHoldings").addEventListener("click", ()=>{
       const s = loadState();
       document.querySelectorAll("[data-hold]").forEach(inp=>{
@@ -866,7 +895,6 @@
       updateUI(true);
       alert("Saved.");
     });
-
     $("#advReset").addEventListener("click", ()=>{
       if (!confirm("Reset commission and all holdings to defaults?")) return;
       const s = defaultState();
@@ -877,15 +905,11 @@
     });
 
     /***** FAVORITES & ASSET SEARCH *****/
-    function isFav(id){
-      return loadFavs().some(f=>f.id===id);
-    }
     function addFavorite(asset){
       const favs = loadFavs();
       if (!favs.some(f=>f.id===asset.id)){
         favs.unshift({ id: asset.id, symbol: asset.symbol.toUpperCase(), name: asset.name });
         saveFavs(favs.slice(0,500));
-        // initialize holding if missing
         const s = loadState();
         if (s.holdings[asset.id] == null) { s.holdings[asset.id] = 0; saveState(s); }
         pushActivity(`FAVORITE • Added ${asset.symbol.toUpperCase()} (${asset.name})`);
@@ -904,7 +928,6 @@
       if (isFav(id)) removeFavorite(id);
       else addFavorite({ id, symbol: found.symbol||id, name: found.name||id });
     }
-
     async function searchCoinGecko(q){
       if (!q) return [];
       const url = `https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`;
@@ -913,20 +936,14 @@
       const data = await res.json();
       return (data.coins||[]).map(c=>({ id:c.id, symbol:c.symbol.toUpperCase(), name:c.name, thumb:c.thumb }));
     }
-
     function openAssetModal(){
       $("#assetModal").classList.remove("hidden");
       $("#assetSearchInput").focus();
       renderFavoritesPanel();
       $("#assetResults").innerHTML = `<div class="text-slate-500 text-sm">Try searching for “pepe”, “aptos”, “litecoin”…</div>`;
     }
-    function closeAssetModal(){
-      $("#assetModal").classList.add("hidden");
-    }
-
-    $("#openAssetSearch").addEventListener("click", openAssetModal);
+    function closeAssetModal(){ $("#assetModal").classList.add("hidden"); }
     document.querySelectorAll("[data-close-modal]").forEach(el=>el.addEventListener("click", closeAssetModal));
-
     $("#assetSearchBtn").addEventListener("click", async ()=>{
       const q = $("#assetSearchInput").value.trim();
       const list = await searchCoinGecko(q);
@@ -939,13 +956,9 @@
         renderSearchResults(list);
       }
     });
-
     function renderSearchResults(list){
       const wrap = $("#assetResults");
-      if (!list.length){
-        wrap.innerHTML = `<div class="text-slate-500 text-sm">No results.</div>`;
-        return;
-      }
+      if (!list.length){ wrap.innerHTML = `<div class="text-slate-500 text-sm">No results.</div>`; return; }
       wrap.innerHTML = list.slice(0,100).map(a=>`
         <div class="flex items-center justify-between py-2">
           <div class="flex items-center gap-3">
@@ -963,12 +976,10 @@
           </div>
         </div>
       `).join("");
-
       wrap.querySelectorAll("[data-add-fav]").forEach(btn=>{
         btn.addEventListener("click", ()=>{
           const asset = JSON.parse(btn.getAttribute("data-add-fav"));
           addFavorite(asset);
-          // refresh results UI
           const q = $("#assetSearchInput").value.trim();
           searchCoinGecko(q).then(renderSearchResults);
         });
@@ -982,14 +993,10 @@
         });
       });
     }
-
     function renderFavoritesPanel(){
       const favs = loadFavs();
       const box = $("#favoriteList");
-      if (!favs.length){
-        box.innerHTML = `<div class="text-slate-500 text-sm">No favorites yet.</div>`;
-        return;
-      }
+      if (!favs.length){ box.innerHTML = `<div class="text-slate-500 text-sm">No favorites yet.</div>`; return; }
       box.innerHTML = favs.map(f=>`
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
@@ -1000,7 +1007,6 @@
           </div>
         </div>
       `).join("");
-
       box.querySelectorAll("[data-remove-fav]").forEach(btn=>{
         btn.addEventListener("click", ()=>{
           const id = btn.getAttribute("data-remove-fav");
@@ -1009,7 +1015,6 @@
         });
       });
     }
-
     function renderFavChips(){
       const bar = $("#favChips");
       const favs = loadFavs().slice(0,6);
@@ -1018,17 +1023,13 @@
       bar.innerHTML = favs.map(f=>`<span class="chip cursor-pointer" data-jump="${f.id}">${f.symbol}</span>`).join("");
       bar.querySelectorAll("[data-jump]").forEach(ch=>{
         ch.addEventListener("click", ()=>{
-          // quick set selects to that asset
           $("#qsFrom").value = ch.getAttribute("data-jump");
           updateQuickQuote();
           showPage("swap");
-          tabs.forEach(b => b.classList.toggle("btn-primary", b.dataset.tab==="swap"));
         });
       });
     }
-
     async function refreshAfterUniverseChange(){
-      // Repaint selects, positions, and refetch market for new ids
       populateSelects();
       loadAdvancedEditor();
       await fetchMarket().catch(()=>{});
@@ -1044,7 +1045,8 @@
         trades: loadTrades(),
         activity: loadHistory(),
         equity: loadEquity(),
-        favorites: loadFavs()
+        favorites: loadFavs(),
+        ui: loadUI()
       }, null, 2)], {type:"application/json"});
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -1058,35 +1060,41 @@
       const s = loadState();
       renderSummary(s);
       renderPositions(s);
-      if (pushPoint){
-        const nlv = calcNLV(s);
-        pushChartPoint(nlv);
-      } else {
-        refreshChart();
-      }
+      if (pushPoint){ const nlv = calcNLV(s); pushChartPoint(nlv); } else { refreshChart(); }
     }
+
+    /***** APPEARANCE (Global Padding) *****/
+    function applyPadding(px){
+      const val = Math.max(8, Math.min(56, +px || 16));
+      document.documentElement.style.setProperty('--app-x', val+'px');
+      $("#uiPadding").value = val;
+      $("#uiPaddingVal").textContent = val + 'px';
+    }
+    $("#saveUI").addEventListener("click", ()=>{
+      const px = +$("#uiPadding").value || 16;
+      applyPadding(px);
+      saveUI({ paddingPx: px });
+      pushActivity(`APPEARANCE • Global padding set to ${px}px`);
+    });
 
     /***** BOOT *****/
     async function boot(){
+      // Apply saved UI spacing
+      const ui = loadUI(); applyPadding(ui.paddingPx);
+
       $("#app").style.opacity = 1;
       populateSelects();
       initChart();
       renderActivity();
       renderFavChips();
-
       if (loadEquity().length === 0){
         const s = loadState();
         const nlv0 = calcNLV(s);
         recordEquityPoint(nlv0, 0);
       }
-
       try { await fetchMarket(); } catch(e){ console.warn(e); }
       updateUI(true);
-
-      setInterval(async ()=>{
-        try { await fetchMarket(); } catch(e){ console.warn(e); }
-      }, PRICE_POLL_MS);
-
+      setInterval(async ()=>{ try { await fetchMarket(); } catch(e){ console.warn(e); } }, PRICE_POLL_MS);
       showPage("dashboard");
     }
 
@@ -1095,6 +1103,9 @@
       loginOverlay.classList.add("hidden");
       boot();
     }
+
+    /***** EVENTS for Asset Modal *****/
+    function openAssetModal(){ $("#assetModal").classList.remove("hidden"); $("#assetSearchInput").focus(); renderFavoritesPanel(); $("#assetResults").innerHTML = `<div class="text-slate-500 text-sm">Try searching for “pepe”, “aptos”, “litecoin”…</div>`; }
   </script>
 </body>
 </html>
