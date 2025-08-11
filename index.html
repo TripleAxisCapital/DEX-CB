@@ -13,7 +13,7 @@
       --radius-2xl: 20px;
       --shadow-sm: 0 1px 2px rgba(0,0,0,.05), 0 1px 1px rgba(0,0,0,.04);
       --shadow-md: 0 6px 20px rgba(0,0,0,.08);
-      --brand: #0ea5e9;        /* sky-500 (Apple-esque blue) */
+      --brand: #0ea5e9;        /* sky-500 */
       --brand-2: #10b981;      /* emerald-500 */
       --ink: #0f172a;          /* slate-900 */
       --muted: #64748b;        /* slate-500 */
@@ -56,11 +56,14 @@
     .green{ color:#059669 } .red{ color:#dc2626 }
     .pill-tab{ padding: .5rem .75rem; border-radius: 12px; border: 1px solid var(--border); font-size:.75rem; }
     .pill-tab.active{ background: #0f172a; color:#fff; border-color:#0f172a; }
+    .seg{ display:inline-flex; background:#e2e8f0; border-radius:10px; padding:4px; }
+    .seg button{ padding:6px 10px; border-radius:8px; font-size:.8rem; }
+    .seg button.active{ background:#0f172a; color:#fff; }
     .card-pad{ padding: 20px; }
     .section-gap{ gap: 16px; }
     .kpi{ border-radius: 14px; background: #f8fafc; border:1px solid var(--border); padding: 14px; }
 
-    /* Login loading bar (controlled by JS for one-time sync) */
+    /* Login progress (one-time, JS-controlled) */
     .progress-wrap{ margin-top:.75rem; width:100%; height:8px; border-radius:999px; background:#e2e8f0; overflow:hidden; }
     .progress-bar{ height:100%; width:0%; background: linear-gradient(90deg,var(--brand),#06b6d4); transition: width .35s ease; }
 
@@ -96,6 +99,22 @@
       .pos-row{ grid-template-columns: 4fr 2fr 2fr 2fr 2fr; align-items:center; gap: 12px; }
     }
     .pos-row + .pos-row{ border-top: 1px solid var(--border); }
+
+    /* Chain status animation */
+    .chain{ display:flex; align-items:center; gap:8px; }
+    .chain-orb{
+      width:14px; height:14px; border-radius:50%;
+      background: radial-gradient(30% 30% at 30% 30%, #9ae6ff, transparent 70%), radial-gradient(30% 30% at 70% 70%, #a7f3d0, transparent 70%), #0ea5e9;
+      position:relative; box-shadow: 0 0 8px rgba(14,165,233,.6), inset 0 0 6px rgba(255,255,255,.6);
+      overflow: visible;
+    }
+    .chain-orb:before,.chain-orb:after{
+      content:""; position:absolute; inset:-8px; border-radius:50%;
+      border:1px dashed rgba(14,165,233,.5);
+      animation: spin 4s linear infinite;
+    }
+    .chain-orb:after{ inset:-14px; animation-duration: 7s; border-color: rgba(16,185,129,.4); }
+    @keyframes spin{ to{ transform: rotate(360deg); } }
   </style>
 </head>
 <body class="min-h-screen">
@@ -105,7 +124,6 @@
        style="background: radial-gradient(1200px 600px at 20% -10%, #0ea5e933, transparent), radial-gradient(1200px 600px at 120% 110%, #10b98133, transparent), linear-gradient(180deg,#0b1220, #0b1220);">
     <div class="w-full max-w-sm card card-pad bg-white/90">
       <div class="flex items-center gap-3 mb-2">
-        <div style="width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--brand-2))"></div>
         <h1 class="text-xl font-semibold tracking-tight">Sign in</h1>
       </div>
 
@@ -166,12 +184,14 @@
       <div class="app-shell pt-safe">
         <div class="h-14 md:h-16 flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <div style="width:28px;height:28px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand-2))"></div>
+            <!-- Removed logo square -->
             <span class="text-lg font-semibold -tracking-tight">DEX</span>
-            <!-- Favorites quick chips -->
-            <div id="favChips" class="hidden md:flex items-center gap-2 ml-2"></div>
           </div>
-          <div class="hidden md:flex items-center gap-2">
+          <div class="hidden md:flex items-center gap-4">
+            <div class="chain">
+              <div class="chain-orb"></div>
+              <span id="chainText" class="text-xs text-slate-600">Connecting…</span>
+            </div>
             <button id="openAssetSearch" class="btn btn-ghost" title="Search & add assets">
               <i class="ph ph-magnifying-glass"></i><span class="ml-2">Assets</span>
             </button>
@@ -179,7 +199,10 @@
             <button id="logoutBtn" class="btn">Log out</button>
           </div>
           <!-- Mobile actions -->
-          <div class="md:hidden flex items-center gap-2">
+          <div class="md:hidden flex items-center gap-3">
+            <div class="chain">
+              <div class="chain-orb"></div>
+            </div>
             <button id="openAssetSearchMobile" class="btn btn-ghost p-2"><i class="ph ph-magnifying-glass"></i></button>
           </div>
         </div>
@@ -235,7 +258,13 @@
 
           <!-- Quick Swap -->
           <div class="card card-pad">
-            <h2 class="text-lg font-semibold mb-3">Quick Swap</h2>
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-lg font-semibold">Quick Swap</h2>
+              <div class="seg">
+                <button id="qsModeFrom" class="active" data-mode="FROM">Specify From</button>
+                <button id="qsModeTo" data-mode="TO">Specify To</button>
+              </div>
+            </div>
             <div class="space-y-3">
               <div class="grid grid-cols-2 gap-2">
                 <div>
@@ -247,9 +276,15 @@
                   <select id="qsTo" class="input mt-1"></select>
                 </div>
               </div>
-              <div>
-                <label class="text-xs text-slate-500">Amount (From)</label>
-                <input id="qsAmt" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 0.5" />
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-xs text-slate-500">Amount (From)</label>
+                  <input id="qsAmtFrom" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 0.5" />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">Amount (To)</label>
+                  <input id="qsAmtTo" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 2.0" />
+                </div>
               </div>
               <div class="text-xs text-slate-600" id="qsQuote">—</div>
               <button id="qsSwap" class="btn btn-primary w-full">Swap</button>
@@ -287,29 +322,105 @@
         </div>
       </section>
 
-      <!-- SWAP PAGE -->
+      <!-- SWAP / TRADING PAGE -->
       <section id="page-swap" class="hidden space-y-4">
-        <div class="card card-pad">
-          <h2 class="text-lg font-semibold mb-4">Swap Assets</h2>
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label class="text-xs text-slate-500">From</label>
-              <select id="swFrom" class="input mt-1"></select>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <!-- Order ticket -->
+          <div class="card card-pad lg:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold">Trade</h2>
+              <div class="seg">
+                <button class="active" data-ordtype="MARKET" id="ordTypeMarket">Market</button>
+                <button data-ordtype="LIMIT" id="ordTypeLimit">Limit</button>
+                <button data-ordtype="STOP" id="ordTypeStop">Stop</button>
+              </div>
             </div>
-            <div>
-              <label class="text-xs text-slate-500">To</label>
-              <select id="swTo" class="input mt-1"></select>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label class="text-xs text-slate-500">From</label>
+                <select id="swFrom" class="input mt-1"></select>
+              </div>
+              <div>
+                <label class="text-xs text-slate-500">To</label>
+                <select id="swTo" class="input mt-1"></select>
+              </div>
+              <div class="md:col-span-2 flex items-end">
+                <div class="w-full flex items-center justify-between">
+                  <div class="seg">
+                    <button class="active" id="swModeFrom" data-mode="FROM">Specify From</button>
+                    <button id="swModeTo" data-mode="TO">Specify To</button>
+                  </div>
+                  <div class="text-xs text-slate-500 ml-2">Fee auto-applied</div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label class="text-xs text-slate-500">Amount (From)</label>
-              <input id="swAmt" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 1.25" />
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+              <div>
+                <label class="text-xs text-slate-500">Amount (From)</label>
+                <input id="swAmtFrom" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 1.25" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500">Amount (To)</label>
+                <input id="swAmtTo" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 25.0" />
+              </div>
             </div>
-            <div class="flex items-end">
-              <button id="swSubmit" class="btn btn-primary w-full">Execute Swap</button>
+
+            <!-- Advanced price controls by order type -->
+            <div id="limitWrap" class="hidden mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="text-xs text-slate-500">Limit Price (To / 1 From)</label>
+                <input id="limitPrice" type="number" min="0" step="0.0000001" class="input mt-1" placeholder="e.g., 15.5" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500">Time in Force</label>
+                <select id="tif" class="input mt-1">
+                  <option value="GTC">GTC</option>
+                  <option value="IOC">IOC</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="stopWrap" class="hidden mt-3 grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label class="text-xs text-slate-500">Stop Trigger (To / 1 From)</label>
+                <input id="stopPrice" type="number" min="0" step="0.0000001" class="input mt-1" placeholder="e.g., 14.0" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500">Trigger Direction</label>
+                <select id="stopSide" class="input mt-1">
+                  <option value="ABOVE">Above</option>
+                  <option value="BELOW">Below</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs text-slate-500">On Trigger</label>
+                <select id="stopExec" class="input mt-1">
+                  <option value="MARKET">Market</option>
+                  <option value="LIMIT">Place Limit</option>
+                </select>
+              </div>
+              <div id="stopLimitCell" class="hidden">
+                <label class="text-xs text-slate-500">Limit Price</label>
+                <input id="stopLimitPrice" type="number" min="0" step="0.0000001" class="input mt-1" placeholder="e.g., 14.2" />
+              </div>
+            </div>
+
+            <div class="mt-3 text-sm text-slate-600" id="swQuote">—</div>
+            <div class="mt-2 flex items-center gap-2">
+              <button id="placeOrderBtn" class="btn btn-primary">Place Order</button>
+              <div id="swMsg" class="text-sm text-slate-500"></div>
             </div>
           </div>
-          <div id="swQuote" class="text-sm text-slate-600 mt-3">—</div>
-          <div id="swMsg" class="text-sm text-slate-500 mt-1"></div>
+
+          <!-- Orders/Status -->
+          <div class="card card-pad">
+            <h3 class="font-semibold mb-3">Open Orders</h3>
+            <div id="openOrders" class="space-y-2 text-sm">
+              <div class="text-slate-500">No open orders.</div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -374,7 +485,7 @@
     <nav class="bottom-nav md:hidden">
       <div class="flex items-center gap-2">
         <button class="bottom-btn active" data-tab="dashboard"><i class="ph ph-house"></i><span>Home</span></button>
-        <button class="bottom-btn" data-tab="swap"><i class="ph ph-arrows-left-right"></i><span>Swap</span></button>
+        <button class="bottom-btn" data-tab="swap"><i class="ph ph-arrows-left-right"></i><span>Trade</span></button>
         <button class="bottom-btn" data-tab="settings"><i class="ph ph-gear"></i><span>Settings</span></button>
       </div>
     </nav>
@@ -434,11 +545,12 @@
     const K = {
       AUTH: "dex_auth",
       STATE: "dex_state_v1",
-      HISTORY: "dex_history_v1",   // human-readable activity log
-      TRADES: "dex_trades_v1",     // structured trades
-      EQUITY: "dex_equity_v1",     // [{t, nlv}]
-      FAVS: "dex_favorites_v1",    // [{id,symbol,name}]
-      UI: "dex_ui_v1"              // { paddingPx }
+      HISTORY: "dex_history_v1",
+      TRADES: "dex_trades_v1",
+      EQUITY: "dex_equity_v1",
+      FAVS: "dex_favorites_v1",
+      UI: "dex_ui_v1",
+      ORDERS: "dex_orders_v1"
     };
 
     // Default state
@@ -464,6 +576,7 @@
     const fmtPct = n => `${(n>=0?"+":"")}${n.toFixed(2)}%`;
     const clamp = (x,a,b) => Math.max(a, Math.min(b,x));
     const now = () => Date.now();
+    const uid = () => (Date.now().toString(36)+Math.random().toString(36).slice(2,7)).toUpperCase();
 
     // State & persistence
     function loadState(){ const raw=localStorage.getItem(K.STATE); return raw?JSON.parse(raw):defaultState(); }
@@ -475,9 +588,11 @@
     function loadEquity(){ const raw=localStorage.getItem(K.EQUITY); return raw?JSON.parse(raw):[]; }
     function saveEquity(e){ localStorage.setItem(K.EQUITY, JSON.stringify(e)); }
     function loadFavs(){ const raw=localStorage.getItem(K.FAVS); return raw?JSON.parse(raw):[]; }
-    function saveFavs(arr){ localStorage.setItem(K.FAVS, JSON.stringify(arr)); renderFavChips(); }
+    function saveFavs(arr){ localStorage.setItem(K.FAVS, JSON.stringify(arr)); /* header chips removed */ }
     function loadUI(){ const raw=localStorage.getItem(K.UI); return raw?JSON.parse(raw):{ paddingPx: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-x')) || 16 }; }
     function saveUI(u){ localStorage.setItem(K.UI, JSON.stringify(u)); }
+    function loadOrders(){ const raw=localStorage.getItem(K.ORDERS); return raw?JSON.parse(raw):[]; }
+    function saveOrders(o){ localStorage.setItem(K.ORDERS, JSON.stringify(o)); }
 
     // Activity & trades
     function pushActivity(msg){
@@ -518,7 +633,6 @@
     const loginLoading = $("#loginLoading");
     const bootLogsEl = $("#bootLogs");
     const progressBar = $("#progressBar");
-    let bootTimer;
 
     // Credentials (not persisted)
     const VALID_ACCOUNT = "DCEBF009";
@@ -539,7 +653,7 @@
       bootLogsEl.scrollTop = bootLogsEl.scrollHeight;
     }
 
-    // Boot lines with exchange-like phrasing
+    // Exchange-like boot lines
     const BOOT_LINES = [
       "Verifying device posture",
       "Negotiating TLS 1.3 + ECDHE",
@@ -560,15 +674,14 @@
       let idx = 0;
       const totalSteps = BOOT_LINES.length;
       await new Promise(res=>{
-        bootTimer = setInterval(()=>{
-          const line = BOOT_LINES[idx % totalSteps];
-          appendLog(line + "…");
+        const intv = setInterval(()=>{
+          appendLog(BOOT_LINES[idx] + "…");
           idx++;
           const pct = Math.round((idx/totalSteps)*100);
           progressBar.style.width = pct + "%";   // one pass, synced
           if (idx >= totalSteps){
-            clearInterval(bootTimer);
-            setTimeout(res, 350); // allow bar transition to finish
+            clearInterval(intv);
+            setTimeout(res, 350);
           }
         }, 420);
       });
@@ -581,14 +694,12 @@
       const pass = document.getElementById("loginPass").value;
       const key  = document.getElementById("loginKey").value.trim();
 
-      // Never persist user inputs
       const ok = (acct === VALID_ACCOUNT && pass === VALID_PASSWORD && key === VALID_KEY);
       if (ok) {
         $("#loginErr").classList.add("hidden");
         await runBootSequence();
         localStorage.setItem(K.AUTH, "1"); // only store auth flag
         loginOverlay.classList.add("hidden");
-        // Clear fields explicitly
         ["loginAccount","loginPass","loginKey"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
         boot();
       } else {
@@ -607,7 +718,7 @@
     function showPage(id){
       ["dashboard","swap","settings"].forEach(p=>$("#page-"+p).classList.toggle("hidden", p!==id));
       document.querySelectorAll(".bottom-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===id));
-      document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("btn-primary", b.dataset.tab===id));
+      document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("btn-primary", b?.dataset?.tab===id));
       window.scrollTo({top:0, behavior:'smooth'});
     }
     $("#logoutBtn")?.addEventListener("click", ()=>{ localStorage.removeItem(K.AUTH); location.reload(); });
@@ -635,7 +746,10 @@
       });
       market = out;
       lastUpdated = now();
+      $("#chainText")?.textContent = "Connected";
       updateUI(true);
+      // process orders on each market refresh
+      processOrders();
     }
     const priceOf = id => market[id]?.price ?? null;
     const imageOf = id => market[id]?.image ?? "";
@@ -750,7 +864,7 @@
     }
     function isFav(id){ return loadFavs().some(f=>f.id===id); }
 
-    // New Apple-like list rendering
+    // Apple-like list rendering
     function renderPositions(state){
       const list = $("#positionsList");
       list.innerHTML = "";
@@ -847,6 +961,14 @@
       `;
     }
 
+    /***** PRICING HELPERS *****/
+    function marketRate(fromId, toId){
+      const fp = priceOf(fromId), tp = priceOf(toId);
+      if (fp==null || tp==null) return null;
+      return fp / tp; // To per 1 From
+    }
+    function commissionPct(){ return clamp(loadState().commissionPct, 0, 100); }
+
     /***** QUOTES & SWAPS *****/
     function quoteSwap(state, fromId, toId, fromAmt){
       const fromPx = priceOf(fromId), toPx = priceOf(toId);
@@ -854,7 +976,7 @@
       if (fromPx==null || toPx==null) return { ok:false, msg:"No market price." };
       if (!(fromAmt>0)) return { ok:false, msg:"Enter an amount." };
       if ((state.holdings[fromId]||0) < fromAmt) return { ok:false, msg:"Insufficient balance." };
-      const feePct = clamp(loadState().commissionPct, 0, 100);
+      const feePct = commissionPct();
       const effectiveFrom = fromAmt * (1 - feePct/100.0);
       const usdValue = effectiveFrom * fromPx;
       const toAmt = usdValue / toPx;
@@ -868,67 +990,342 @@
       return { ok:true, ...q };
     }
 
-    // Quick Swap UI
+    /***** QUICK SWAP (dual-mode) *****/
+    let qsMode = "FROM"; // FROM or TO
+    function setQsMode(m){
+      qsMode = m;
+      $("#qsModeFrom").classList.toggle("active", m==="FROM");
+      $("#qsModeTo").classList.toggle("active", m==="TO");
+    }
+    $("#qsModeFrom").addEventListener("click", ()=>{ setQsMode("FROM"); updateQuickQuote(); });
+    $("#qsModeTo").addEventListener("click", ()=>{ setQsMode("TO"); updateQuickQuote(); });
+
     function updateQuickQuote(){
       const s = loadState();
       const from = $("#qsFrom").value, to = $("#qsTo").value;
-      const amt = +$("#qsAmt").value;
-      const q = quoteSwap(s, from, to, amt);
+      const fp = priceOf(from), tp = priceOf(to);
+      const r = marketRate(from,to);
+      const fee = commissionPct();
+
+      const amtFrom = +$("#qsAmtFrom").value || 0;
+      const amtTo   = +$("#qsAmtTo").value   || 0;
+
       const el = $("#qsQuote");
-      if (!q.ok){ el.textContent = q.msg; return; }
-      el.textContent = `≈ Receive ${q.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${q.feePct.toFixed(2)}%)`;
+      if (!r || !fp || !tp){ el.textContent = "No market price."; return; }
+
+      let needFrom = 0, getTo = 0;
+      if (qsMode==="FROM"){
+        needFrom = amtFrom;
+        // apply fee on from side
+        getTo = (needFrom * (1 - fee/100)) * r;
+        $("#qsAmtTo").value = getTo ? getTo.toFixed(6) : "";
+      } else {
+        getTo = amtTo;
+        needFrom = getTo / r / (1 - fee/100);
+        $("#qsAmtFrom").value = needFrom ? needFrom.toFixed(6) : "";
+      }
+
+      if (!(needFrom>0)){ el.textContent = "Enter an amount."; return; }
+      if ((s.holdings[from]||0) < needFrom){ el.textContent = "Insufficient balance."; return; }
+
+      el.textContent = `Rate: 1 ${getSymbol(from)} = ${r.toFixed(6)} ${getSymbol(to)} • Fee ${fee.toFixed(2)}% • Receive ≈ ${getTo.toFixed(6)} ${getSymbol(to)}`;
     }
+
     $("#qsFrom").addEventListener("change", updateQuickQuote);
     $("#qsTo").addEventListener("change", updateQuickQuote);
-    $("#qsAmt").addEventListener("input", updateQuickQuote);
+    $("#qsAmtFrom").addEventListener("input", ()=>{ setQsMode("FROM"); updateQuickQuote(); });
+    $("#qsAmtTo").addEventListener("input", ()=>{ setQsMode("TO"); updateQuickQuote(); });
+
     $("#qsSwap").addEventListener("click", ()=>{
       const s = loadState();
       const from = $("#qsFrom").value, to = $("#qsTo").value;
-      const amt = +$("#qsAmt").value;
-      const res = doSwap(s, from, to, amt);
+      let fromAmt = 0;
+      if (qsMode==="FROM"){
+        fromAmt = +$("#qsAmtFrom").value;
+      } else {
+        const wantTo = +$("#qsAmtTo").value;
+        const r = marketRate(from,to);
+        const fee = commissionPct();
+        fromAmt = wantTo / r / (1 - fee/100);
+      }
+
+      const res = doSwap(s, from, to, fromAmt);
       const msg = $("#qsMsg");
       if (res.ok){
         saveState(s);
-        const trade = { t: now(), fromId: from, toId: to, fromAmt: +amt, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
+        const trade = { t: now(), fromId: from, toId: to, fromAmt: +fromAmt, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
         recordTrade(trade);
-        pushActivity(`SWAP • ${amt} ${getSymbol(from)} → ${res.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${res.feePct.toFixed(2)}%)`);
+        pushActivity(`SWAP • ${fromAmt} ${getSymbol(from)} → ${res.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${res.feePct.toFixed(2)}%)`);
         updateUI(true);
         msg.textContent = "Swap executed.";
-        $("#qsAmt").value = "";
+        $("#qsAmtFrom").value = ""; $("#qsAmtTo").value = "";
         updateQuickQuote();
       } else msg.textContent = res.msg;
     });
 
-    // Full Swap page
-    function updateSwapQuote(){
-      const s = loadState();
-      const from = $("#swFrom").value, to = $("#swTo").value;
-      const amt = +$("#swAmt").value;
-      const q = quoteSwap(s, from, to, amt);
-      const el = $("#swQuote");
-      if (!q.ok){ el.textContent = q.msg; return; }
-      el.textContent = `Rate: 1 ${getSymbol(from)} = ${(q.fromPx/q.toPx).toFixed(6)} ${getSymbol(to)} • You’ll receive ≈ ${q.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${q.feePct.toFixed(2)}%)`;
+    /***** TRADING TICKET (Market/Limit/Stop) *****/
+    let swOrderType = "MARKET"; // MARKET | LIMIT | STOP
+    let swMode = "FROM";
+    function setSwMode(m){
+      swMode = m;
+      $("#swModeFrom").classList.toggle("active", m==="FROM");
+      $("#swModeTo").classList.toggle("active", m==="TO");
+      updateTradeQuote();
     }
-    $("#swFrom").addEventListener("change", updateSwapQuote);
-    $("#swTo").addEventListener("change", updateSwapQuote);
-    $("#swAmt").addEventListener("input", updateSwapQuote);
-    $("#swSubmit").addEventListener("click", ()=>{
-      const s = loadState();
-      const from = $("#swFrom").value, to = $("#swTo").value;
-      const amt = +$("#swAmt").value;
-      const res = doSwap(s, from, to, amt);
-      const msg = $("#swMsg");
-      if (res.ok){
-        saveState(s);
-        const trade = { t: now(), fromId: from, toId: to, fromAmt: +amt, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
-        recordTrade(trade);
-        pushActivity(`SWAP • ${amt} ${getSymbol(from)} → ${res.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${res.feePct.toFixed(2)}%)`);
-        updateUI(true);
-        msg.textContent = "Swap executed.";
-        $("#swAmt").value = "";
-        updateSwapQuote();
-      } else msg.textContent = res.msg;
+    $("#swModeFrom").addEventListener("click", ()=>setSwMode("FROM"));
+    $("#swModeTo").addEventListener("click", ()=>setSwMode("TO"));
+
+    function setOrderType(t){
+      swOrderType = t;
+      ["ordTypeMarket","ordTypeLimit","ordTypeStop"].forEach(id=>{
+        const btn = $("#"+id); if(!btn) return;
+        const val = btn.dataset.ordtype;
+        btn.classList.toggle("active", val===t);
+      });
+      $("#limitWrap").classList.toggle("hidden", t!=="LIMIT");
+      $("#stopWrap").classList.toggle("hidden", t!=="STOP");
+      // stop exec mode toggle for limit price cell
+      const execSel = $("#stopExec");
+      if (execSel) {
+        const showLimit = (t==="STOP" && execSel.value==="LIMIT");
+        $("#stopLimitCell").classList.toggle("hidden", !showLimit);
+      }
+      updateTradeQuote();
+    }
+    $("#ordTypeMarket").addEventListener("click", ()=>setOrderType("MARKET"));
+    $("#ordTypeLimit").addEventListener("click", ()=>setOrderType("LIMIT"));
+    $("#ordTypeStop").addEventListener("click", ()=>setOrderType("STOP"));
+    $("#stopExec").addEventListener("change", ()=>{
+      $("#stopLimitCell").classList.toggle("hidden", $("#stopExec").value!=="LIMIT");
+      updateTradeQuote();
     });
+
+    ["swFrom","swTo","swAmtFrom","swAmtTo","limitPrice","tif","stopPrice","stopSide","stopLimitPrice"].forEach(id=>{
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("input", updateTradeQuote);
+      if (el) el.addEventListener("change", updateTradeQuote);
+    });
+
+    function updateTradeQuote(){
+      const from = $("#swFrom").value, to = $("#swTo").value;
+      const r = marketRate(from,to);
+      const fee = commissionPct();
+      const s = loadState();
+      const el = $("#swQuote");
+
+      const amtFrom = +$("#swAmtFrom").value || 0;
+      const amtTo   = +$("#swAmtTo").value   || 0;
+
+      if (!r){ el.textContent = "No market price."; return; }
+
+      let needFrom = 0, getTo = 0;
+      if (swMode==="FROM"){
+        needFrom = amtFrom;
+        getTo = (needFrom * (1 - fee/100)) * r;
+        $("#swAmtTo").value = getTo ? getTo.toFixed(6) : "";
+      } else {
+        getTo = amtTo;
+        needFrom = getTo / r / (1 - fee/100);
+        $("#swAmtFrom").value = needFrom ? needFrom.toFixed(6) : "";
+      }
+
+      if (swOrderType==="MARKET"){
+        if (!(needFrom>0)) { el.textContent = "Enter an amount."; return; }
+        const okBal = (s.holdings[from]||0) >= needFrom;
+        el.textContent = `Market • Rate ${r.toFixed(6)} • ${okBal?"Ready":"Insufficient balance"} • Est receive ${getTo.toFixed(6)} ${getSymbol(to)}`;
+        return;
+      }
+
+      if (swOrderType==="LIMIT"){
+        const L = +$("#limitPrice").value || 0;
+        if (!(needFrom>0) || !(L>0)) { el.textContent = "Enter amount and limit price."; return; }
+        const cond = r >= L ? "fillable now" : `waiting ≥ ${L}`;
+        el.textContent = `Limit • Desired ${L.toFixed(6)} ${getSymbol(to)}/1 ${getSymbol(from)} • ${cond}`;
+        return;
+      }
+
+      if (swOrderType==="STOP"){
+        const S = +$("#stopPrice").value || 0;
+        const dir = $("#stopSide").value || "ABOVE";
+        if (!(needFrom>0) || !(S>0)) { el.textContent = "Enter amount and stop trigger."; return; }
+        const trig = dir==="ABOVE" ? `triggers when ≥ ${S}` : `triggers when ≤ ${S}`;
+        if ($("#stopExec").value==="LIMIT"){
+          const SL = +$("#stopLimitPrice").value || 0;
+          if (!(SL>0)) { el.textContent = "Enter stop & limit price."; return; }
+          el.textContent = `Stop-Limit • ${trig}, then place Limit @ ${SL}`;
+        } else {
+          el.textContent = `Stop-Market • ${trig}, then execute at market`;
+        }
+      }
+    }
+
+    // Place order or execute
+    $("#placeOrderBtn").addEventListener("click", ()=>{
+      const from = $("#swFrom").value, to = $("#swTo").value;
+      const s = loadState();
+      const amtFrom = +$("#swAmtFrom").value || 0;
+      const amtTo   = +$("#swAmtTo").value   || 0;
+
+      // Decide effective from amount based on mode (for market immediate)
+      const r = marketRate(from,to), fee = commissionPct();
+      let needFrom = swMode==="FROM" ? amtFrom : (amtTo / r / (1 - fee/100));
+
+      if (swOrderType==="MARKET"){
+        const res = doSwap(s, from, to, needFrom);
+        const msg = $("#swMsg");
+        if (res.ok){
+          saveState(s);
+          const trade = { t: now(), fromId: from, toId: to, fromAmt: +needFrom, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
+          recordTrade(trade);
+          pushActivity(`MARKET • ${needFrom} ${getSymbol(from)} → ${res.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${res.feePct.toFixed(2)}%)`);
+          updateUI(true);
+          msg.textContent = "Order filled.";
+          $("#swAmtFrom").value=""; $("#swAmtTo").value="";
+          updateTradeQuote();
+        } else { msg.textContent = res.msg; }
+        return;
+      }
+
+      if (swOrderType==="LIMIT"){
+        const L = +$("#limitPrice").value || 0;
+        const tif = $("#tif").value || "GTC";
+        if (!(L>0) || !(needFrom>0)){ $("#swMsg").textContent = "Enter amount and limit price."; return; }
+
+        const order = {
+          id: uid(), t: now(), type: "LIMIT", tif,
+          fromId: from, toId: to, mode: swMode,
+          fromAmt: needFrom, toAmt: (needFrom * (1 - fee/100)) * r,
+          limitPrice: L, status: "OPEN"
+        };
+        const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
+        pushActivity(`ORDER • LIMIT placed @ ${L} ${getSymbol(to)}/1 ${getSymbol(from)} (${needFrom} ${getSymbol(from)})`);
+        renderOpenOrders();
+        $("#swMsg").textContent = "Limit order placed.";
+        updateTradeQuote();
+        processOrders(); // try immediate fill
+        return;
+      }
+
+      if (swOrderType==="STOP"){
+        const S = +$("#stopPrice").value || 0;
+        const dir = $("#stopSide").value || "ABOVE";
+        const exec = $("#stopExec").value || "MARKET";
+        const SL = +$("#stopLimitPrice").value || 0;
+        if (!(S>0) || !(needFrom>0)){ $("#swMsg").textContent = "Enter amount and stop trigger."; return; }
+        if (exec==="LIMIT" && !(SL>0)){ $("#swMsg").textContent = "Enter stop & limit price."; return; }
+
+        const order = {
+          id: uid(), t: now(), type: "STOP", mode: swMode,
+          fromId: from, toId: to, fromAmt: needFrom,
+          stopPrice: S, stopSide: dir, onTrigger: exec,
+          limitPrice: exec==="LIMIT" ? SL : null,
+          status: "OPEN"
+        };
+        const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
+        pushActivity(`ORDER • STOP ${dir} ${S} (${needFrom} ${getSymbol(from)}) ${exec==="LIMIT" ? "→ LIMIT @ "+SL : "→ MARKET"}`);
+        renderOpenOrders();
+        $("#swMsg").textContent = "Stop order placed.";
+        updateTradeQuote();
+        processOrders(); // try immediate trigger
+      }
+    });
+
+    /***** ORDER ENGINE *****/
+    function renderOpenOrders(){
+      const box = $("#openOrders");
+      const orders = loadOrders().filter(o=>o.status==="OPEN");
+      if (!orders.length){ box.innerHTML = `<div class="text-slate-500">No open orders.</div>`; return; }
+      box.innerHTML = orders.map(o=>{
+        const pair = `${getSymbol(o.fromId)}/${getSymbol(o.toId)}`;
+        let desc = "";
+        if (o.type==="LIMIT") desc = `LIMIT @ ${(+o.limitPrice).toFixed(6)}`;
+        if (o.type==="STOP")  desc = `STOP ${o.stopSide} ${(+o.stopPrice).toFixed(6)} ${o.onTrigger==="LIMIT"?"→ LIMIT @ "+(+o.limitPrice).toFixed(6):"→ MARKET"}`;
+        const amt = `${o.fromAmt} ${getSymbol(o.fromId)}`;
+        return `
+        <div class="flex items-center justify-between p-2 rounded-lg border border-slate-200 bg-white">
+          <div class="flex flex-col">
+            <div class="font-medium">${pair}</div>
+            <div class="text-xs text-slate-600">${o.type} • ${desc}</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="text-sm">${amt}</div>
+            <button class="btn" data-cancel="${o.id}"><i class="ph ph-x"></i></button>
+          </div>
+        </div>`;
+      }).join("");
+      box.querySelectorAll("[data-cancel]").forEach(b=>{
+        b.addEventListener("click", ()=>{
+          const id = b.getAttribute("data-cancel");
+          const orders = loadOrders();
+          const idx = orders.findIndex(x=>x.id===id);
+          if (idx>=0){ orders[idx].status="CANCELLED"; saveOrders(orders); renderOpenOrders(); pushActivity(`ORDER • Cancelled ${id}`); }
+        });
+      });
+    }
+
+    function processOrders(){
+      const s = loadState();
+      let orders = loadOrders();
+      let changed = false;
+
+      for (const o of orders){
+        if (o.status!=="OPEN") continue;
+        const r = marketRate(o.fromId, o.toId);
+        if (!r) continue;
+
+        // Ensure amount still valid
+        let fromAmt = o.fromAmt;
+        if (!(fromAmt>0)) continue;
+        if ((s.holdings[o.fromId]||0) < fromAmt) {
+          // Insufficient: IOC cancels, GTC stays
+          if (o.type==="LIMIT" && o.tif==="IOC"){ o.status="CANCELLED"; changed=true; pushActivity(`ORDER • IOC cancelled ${o.id} (insufficient)`); }
+          continue;
+        }
+
+        if (o.type==="LIMIT"){
+          if (r >= o.limitPrice){ // fill
+            const res = doSwap(s, o.fromId, o.toId, fromAmt);
+            if (res.ok){
+              saveState(s);
+              const trade = { t: now(), fromId: o.fromId, toId: o.toId, fromAmt: +fromAmt, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
+              recordTrade(trade);
+              pushActivity(`FILL • LIMIT @ ${o.limitPrice} (${fromAmt} ${getSymbol(o.fromId)})`);
+              o.status="FILLED"; changed=true;
+            }
+          }
+          continue;
+        }
+
+        if (o.type==="STOP"){
+          const trig = (o.stopSide==="ABOVE") ? (r >= o.stopPrice) : (r <= o.stopPrice);
+          if (!trig) continue;
+
+          if (o.onTrigger==="MARKET"){
+            const res = doSwap(s, o.fromId, o.toId, fromAmt);
+            if (res.ok){
+              saveState(s);
+              const trade = { t: now(), fromId: o.fromId, toId: o.toId, fromAmt: +fromAmt, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
+              recordTrade(trade);
+              pushActivity(`FILL • STOP-MARKET triggered @ ${r.toFixed(6)} (${fromAmt} ${getSymbol(o.fromId)})`);
+              o.status="FILLED"; changed=true;
+            }
+          } else { // LIMIT on trigger
+            if (r >= o.limitPrice){
+              const res = doSwap(s, o.fromId, o.toId, fromAmt);
+              if (res.ok){
+                saveState(s);
+                const trade = { t: now(), fromId: o.fromId, toId: o.toId, fromAmt: +fromAmt, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
+                recordTrade(trade);
+                pushActivity(`FILL • STOP-LIMIT @ ${o.limitPrice} (trigger ${o.stopSide} ${o.stopPrice})`);
+                o.status="FILLED"; changed=true;
+              }
+            } // else wait for limit condition
+          }
+        }
+      }
+
+      if (changed){ saveOrders(orders); renderOpenOrders(); updateUI(true); }
+    }
 
     /***** ADVANCED (SECRET) *****/
     const advWrap = $("#advancedWrap");
@@ -1098,27 +1495,12 @@
         });
       });
     }
-    function renderFavChips(){
-      const bar = $("#favChips");
-      const favs = loadFavs().slice(0,6);
-      if (!favs.length){ bar.classList.add("hidden"); bar.innerHTML=""; return; }
-      bar.classList.remove("hidden");
-      bar.innerHTML = favs.map(f=>`<span class="chip cursor-pointer" data-jump="${f.id}">${f.symbol}</span>`).join("");
-      bar.querySelectorAll("[data-jump]").forEach(ch=>{
-        ch.addEventListener("click", ()=>{
-          $("#qsFrom").value = ch.getAttribute("data-jump");
-          updateQuickQuote();
-          showPage("swap");
-        });
-      });
-    }
     async function refreshAfterUniverseChange(){
       populateSelects();
       loadAdvancedEditor();
       await fetchMarket().catch(()=>{});
       updateUI(true);
       renderFavoritesPanel();
-      renderFavChips();
     }
 
     /***** EXPORT *****/
@@ -1129,7 +1511,8 @@
         activity: loadHistory(),
         equity: loadEquity(),
         favorites: loadFavs(),
-        ui: loadUI()
+        ui: loadUI(),
+        orders: loadOrders()
       }, null, 2)], {type:"application/json"});
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -1169,7 +1552,8 @@
       populateSelects();
       initChart();
       renderActivity();
-      renderFavChips();
+      renderOpenOrders();
+
       if (loadEquity().length === 0){
         const s = loadState();
         const nlv0 = calcNLV(s);
