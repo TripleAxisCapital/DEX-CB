@@ -13,8 +13,13 @@
       --radius-2xl: 20px;
       --shadow-sm: 0 1px 2px rgba(0,0,0,.05), 0 1px 1px rgba(0,0,0,.04);
       --shadow-md: 0 6px 20px rgba(0,0,0,.08);
-      --brand: #0ea5e9;        /* sky-500 */
-      --brand-2: #10b981;      /* emerald-500 */
+
+      /* Brand (editable) */
+      --brand: #0ea5e9;        /* default sky-500 */
+      --brand-dark: #0284c7;   /* derived at runtime */
+      --brand-2: #06b6d4;      /* accent for gradients */
+      --brand-rgb: 14,165,233; /* computed at runtime "r,g,b" */
+
       --ink: #0f172a;          /* slate-900 */
       --muted: #64748b;        /* slate-500 */
       --surface: #ffffff;
@@ -56,28 +61,35 @@
     .app-shell{ padding-left: var(--app-x); padding-right: var(--app-x); max-width: var(--app-maxw); margin: 0 auto; }
     .header-blur{ backdrop-filter: saturate(140%) blur(10px); -webkit-backdrop-filter: saturate(140%) blur(10px); background: var(--surface-2) !important; }
     .card{ border-radius: var(--radius-2xl); border: 1px solid var(--border); background: var(--surface-2); box-shadow: var(--shadow-sm); }
+
     .btn{ border-radius: 12px; padding: 10px 14px; font-weight: 600; border: 1px solid var(--border); background: #f1f5f9; transition: .2s transform, .2s background, .2s box-shadow; }
     .btn:active{ transform: translateY(1px); }
-    .btn-primary{ background: linear-gradient(180deg, #0ea5e9, #0284c7); color: #fff; border-color: #0284c7; box-shadow: 0 6px 20px rgba(2,132,199,.25); }
+    .btn-primary{
+      background: linear-gradient(180deg, var(--brand), var(--brand-dark));
+      color: #fff; border-color: var(--brand-dark);
+      box-shadow: 0 6px 20px rgba(var(--brand-rgb), .25);
+    }
     .btn-primary:hover{ filter: brightness(1.02); }
     .btn-ghost{ background: transparent; }
+
     .chip{ display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .5rem; border-radius:999px; border:1px solid var(--border); font-size:.75rem; }
     .green{ color:#059669 } .red{ color:#dc2626 }
+
     .pill-tab{ padding: .5rem .75rem; border-radius: 12px; border: 1px solid var(--border); font-size:.75rem; }
-    .pill-tab.active{ background: #0f172a; color:#fff; border-color:#0f172a; }
-    [data-theme="dark"] .pill-tab.active{ background:#0ea5e9; border-color:#0284c7; }
+    .pill-tab.active{ background: var(--brand); color:#fff; border-color: var(--brand-dark); }
+
     .seg{ display:inline-flex; background:#e2e8f0; border-radius:10px; padding:4px; }
     .seg button{ padding:6px 10px; border-radius:8px; font-size:.8rem; }
-    .seg button.active{ background:#0f172a; color:#fff; }
+    .seg button.active{ background: var(--brand); color:#fff; border: 1px solid var(--brand-dark); }
     [data-theme="dark"] .seg{ background:#1f2937; }
-    [data-theme="dark"] .seg button.active{ background:#0ea5e9; }
+
     .card-pad{ padding: 20px; }
     .section-gap{ gap: 16px; }
     .kpi{ border-radius: 14px; background: #f8fafc; border:1px solid var(--border); padding: 14px; }
 
     /* Login progress */
     .progress-wrap{ margin-top:.75rem; width:100%; height:8px; border-radius:999px; background:#e2e8f0; overflow:hidden; }
-    .progress-bar{ height:100%; width:0%; background: linear-gradient(90deg,var(--brand),#06b6d4); transition: width .35s ease; }
+    .progress-bar{ height:100%; width:0%; background: linear-gradient(90deg,var(--brand),var(--brand-2)); transition: width .35s ease; }
 
     /* Modal */
     .modal{ position:fixed; inset:0; z-index:60; display:flex; align-items:flex-end; justify-content:center; }
@@ -87,13 +99,13 @@
 
     /* Bottom Nav (mobile) */
     .bottom-nav{ position:sticky; bottom:0; z-index:50; padding: 8px calc(var(--app-x)); background: var(--surface-2); border-top:1px solid var(--border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding-bottom: calc(8px + var(--safe-bottom)); }
-    .bottom-btn{ flex:1; display:flex; gap:6px; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:#f8fafc; font-size:.8rem; }
-    .bottom-btn.active{ background: #0ea5e9; color:#fff; border-color:#0284c7; }
+    .bottom-btn{ flex:1; display:flex; gap:6px; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:#f1f5f9; font-size:.8rem; }
+    .bottom-btn.active{ background: var(--brand); color:#fff; border-color: var(--brand-dark); }
     [data-theme="dark"] .bottom-btn{ background:#0b1220; color:#e5e7eb; border-color:#334155; }
 
     /* Inputs */
     .input{ width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; outline:none; background:#fff; }
-    .input:focus{ box-shadow:0 0 0 4px rgba(14,165,233,.15); }
+    .input:focus{ box-shadow:0 0 0 4px rgba(var(--brand-rgb), .15); }
     [data-theme="dark"] .input{ background:#0b1220; color:#e5e7eb; border-color:#334155; }
 
     /* Chart container */
@@ -121,13 +133,17 @@
     [data-theme="dark"] .btn-ghost{ background: transparent; color:#e5e7eb; }
     [data-theme="dark"] .modal-card{ background:#0b1220; border-color:#334155; }
     [data-theme="dark"] .header-blur{ background: rgba(2,6,23,.75)!important; }
+
+    /* Desktop top nav */
+    .top-nav .top-btn{ border-radius: 10px; }
+    .top-nav .top-btn.active{ background: var(--brand); color:#fff; border-color: var(--brand-dark); }
   </style>
 </head>
 <body class="min-h-screen">
 
   <!-- LOGIN -->
   <div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center"
-       style="background: radial-gradient(1200px 600px at 20% -10%, #0ea5e933, transparent), radial-gradient(1200px 600px at 120% 110%, #10b98133, transparent), linear-gradient(180deg,#0b1220, #0b1220);">
+       style="background: radial-gradient(1200px 600px at 20% -10%, var(--brand)/33, transparent), radial-gradient(1200px 600px at 120% 110%, var(--brand)/33, transparent), linear-gradient(180deg,#0b1220, #0b1220);">
     <div class="w-full max-w-sm card card-pad" style="background: var(--surface-2);">
       <div class="flex items-center gap-3 mb-2">
         <h1 class="text-xl font-semibold tracking-tight">Sign in</h1>
@@ -191,6 +207,13 @@
         <div class="h-14 md:h-16 flex items-center justify-between">
           <div class="flex items-center gap-3">
             <span class="text-lg font-semibold -tracking-tight">DEX</span>
+            <!-- Desktop top nav -->
+            <div class="hidden md:flex items-center gap-2 top-nav ml-3">
+              <button class="btn top-btn active" data-tab="dashboard"><i class="ph ph-house mr-1"></i>Home</button>
+              <button class="btn top-btn" data-tab="swap"><i class="ph ph-arrows-left-right mr-1"></i>Trade</button>
+              <button class="btn top-btn" data-tab="positions"><i class="ph ph-list-bullets mr-1"></i>Positions</button>
+              <button class="btn top-btn" data-tab="settings"><i class="ph ph-gear mr-1"></i>Settings</button>
+            </div>
           </div>
           <div class="hidden md:flex items-center gap-4">
             <button id="openAssetSearch" class="btn btn-ghost" title="Search & add assets">
@@ -254,14 +277,10 @@
             </div>
           </div>
 
-          <!-- Quick Swap -->
+          <!-- Quick Swap (simplified) -->
           <div class="card card-pad">
             <div class="flex items-center justify-between mb-3">
               <h2 class="text-lg font-semibold">Quick Swap</h2>
-              <div class="seg">
-                <button id="qsModeFrom" class="active" data-mode="FROM">Specify From</button>
-                <button id="qsModeTo" data-mode="TO">Specify To</button>
-              </div>
             </div>
             <div class="space-y-3">
               <div class="grid grid-cols-2 gap-2">
@@ -291,7 +310,7 @@
           </div>
         </div>
 
-        <!-- Activity / Trades -->
+        <!-- Activity / Trades (filtered to trading/order events only) -->
         <div class="card card-pad">
           <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold">Recent Activity & Trades</h2>
@@ -301,7 +320,7 @@
         </div>
       </section>
 
-      <!-- POSITIONS (moved to its own page) -->
+      <!-- POSITIONS (own page) -->
       <section id="page-positions" class="hidden space-y-4">
         <div class="card card-pad">
           <div class="flex items-center justify-between mb-3">
@@ -309,7 +328,6 @@
             <div class="text-xs text-slate-500">Market data via public API</div>
           </div>
 
-          <!-- Apple-like roomy header (desktop only) -->
           <div class="pos-header mb-2">
             <div>Asset</div>
             <div>Price / 24h</div>
@@ -442,7 +460,7 @@
             <h3 class="font-semibold">Advanced Controls</h3>
             <button id="unlockBtn" class="btn">Unlock</button>
           </div>
-          <div id="lockedNote" class="text-sm text-slate-500">Restricted section. Enter code to manage holdings and commission.</div>
+          <div id="lockedNote" class="text-sm text-slate-500">Restricted section. Enter code to manage holdings and commission. After unlock you’ll also see a debug panel.</div>
 
           <div id="advancedWrap" class="hidden space-y-6 mt-2">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -461,8 +479,23 @@
               <button id="advSaveHoldings" class="btn mt-3">Save Holdings</button>
             </div>
 
-            <div class="border-t border-slate-200 pt-4">
+            <div class="border-t border-slate-200 pt-4 flex items-center gap-3">
               <button id="advReset" class="btn">Reset to Defaults</button>
+            </div>
+
+            <!-- FULL DEBUG -->
+            <div class="border-t border-slate-200 pt-4">
+              <h4 class="font-medium mb-2">Debug • Full Activity & Trades</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="p-2 rounded-lg border" style="background: var(--surface); border-color: var(--border);">
+                  <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Activity (all)</div>
+                  <div id="adminActivity" class="text-xs max-h-64 overflow-auto"></div>
+                </div>
+                <div class="p-2 rounded-lg border" style="background: var(--surface); border-color: var(--border);">
+                  <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Trades (all)</div>
+                  <div id="adminTrades" class="text-xs max-h-64 overflow-auto"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -480,7 +513,7 @@
             <div class="flex items-end">
               <button id="saveUI" class="btn btn-primary w-full">Save Spacing</button>
             </div>
-            <div class="text-xs text-slate-500">This controls the left/right whitespace across the entire app on all pages.</div>
+            <div class="text-xs text-slate-500">Left/right whitespace across the entire app.</div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
@@ -494,7 +527,19 @@
             <div class="flex items-end">
               <button id="saveTheme" class="btn btn-primary w-full">Apply Theme</button>
             </div>
-            <div class="text-xs text-slate-500">Switch between light and dark modes. Saved to your device.</div>
+            <div class="text-xs text-slate-500">Switch between light and dark modes.</div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="text-xs text-slate-500">Accent / Brand Color</label>
+              <input id="brandColor" type="color" class="mt-1 w-20 h-10 p-0 border rounded-md" />
+              <div class="text-xs text-slate-500 mt-1">Applies to buttons, tabs, nav, chart, etc.</div>
+            </div>
+            <div class="flex items-end">
+              <button id="saveBrand" class="btn btn-primary w-full">Apply Brand</button>
+            </div>
+            <div class="text-xs text-slate-500">Saved on your device.</div>
           </div>
         </div>
       </section>
@@ -570,7 +615,7 @@
       TRADES: "dex_trades_v1",
       EQUITY: "dex_equity_v1",
       FAVS: "dex_favorites_v1",
-      UI: "dex_ui_v2",
+      UI: "dex_ui_v3",     // bumped to v3 for brand color
       ORDERS: "dex_orders_v1"
     };
 
@@ -599,6 +644,16 @@
     const now = () => Date.now();
     const uid = () => (Date.now().toString(36)+Math.random().toString(36).slice(2,7)).toUpperCase();
 
+    // Tiny color helpers
+    const hexToRgb = (hex) => {
+      const m = hex.replace('#','').match(/^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+      if(!m) return {r:14,g:165,b:233};
+      return { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) };
+    };
+    const rgbToHex = (r,g,b)=>"#"+[r,g,b].map(x=>x.toString(16).padStart(2,"0")).join("");
+    const darken = (hex, pct=20)=>{ const {r,g,b}=hexToRgb(hex); const f=(v)=>Math.max(0,Math.min(255,Math.round(v*(1-pct/100)))); return rgbToHex(f(r),f(g),f(b)); };
+    const mix = (hex1, hex2, t=0.5)=>{ const a=hexToRgb(hex1), b=hexToRgb(hex2); const lerp=(x,y)=>Math.round(x+(y-x)*t); return rgbToHex(lerp(a.r,b.r),lerp(a.g,b.g),lerp(a.b,b.b)); };
+
     // State & persistence
     function loadState(){ const raw=localStorage.getItem(K.STATE); return raw?JSON.parse(raw):defaultState(); }
     function saveState(s){ localStorage.setItem(K.STATE, JSON.stringify(s)); }
@@ -613,7 +668,7 @@
     function loadUI(){ 
       const raw=localStorage.getItem(K.UI); 
       const defPad = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-x')) || 16;
-      const base = { paddingPx: defPad, theme: "light" };
+      const base = { paddingPx: defPad, theme: "light", brandHex: "#0ea5e9" };
       return raw? { ...base, ...JSON.parse(raw) } : base;
     }
     function saveUI(u){ 
@@ -742,6 +797,7 @@
       const pages = ["dashboard","swap","positions","settings"];
       pages.forEach(p=>$("#page-"+p).classList.toggle("hidden", p!==id));
       document.querySelectorAll(".bottom-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===id));
+      document.querySelectorAll(".top-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===id));
       window.scrollTo({top:0, behavior:'smooth'});
     }
     $("#logoutBtn")?.addEventListener("click", ()=>{
@@ -749,6 +805,9 @@
       location.reload(); // always back to login
     });
     document.querySelectorAll(".bottom-btn").forEach(btn=>{
+      btn.addEventListener("click", ()=>showPage(btn.dataset.tab));
+    });
+    document.querySelectorAll(".top-btn").forEach(btn=>{
       btn.addEventListener("click", ()=>showPage(btn.dataset.tab));
     });
 
@@ -811,11 +870,15 @@
 
     /***** CHART *****/
     let chart; let currentRange = "7D";
+    function makeBrandGradient(ctx){
+      const g = ctx.createLinearGradient(0,0,0,260);
+      const {r,g:gg,b} = hexToRgb(loadUI().brandHex || "#0ea5e9");
+      g.addColorStop(0, `rgba(${r},${gg},${b},0.35)`);
+      g.addColorStop(1, `rgba(${r},${gg},${b},0.02)`);
+      return g;
+    }
     function initChart(){
       const ctx = $("#nlvChart").getContext("2d");
-      const gradient = ctx.createLinearGradient(0,0,0,260);
-      gradient.addColorStop(0, "rgba(14,165,233,0.35)");
-      gradient.addColorStop(1, "rgba(14,165,233,0.02)");
       chart = new Chart(ctx, {
         type: "line",
         data: {
@@ -824,8 +887,8 @@
             label: "Portfolio",
             data: [],
             tension: 0.3, borderWidth: 2, pointRadius: 0,
-            borderColor: "#0ea5e9",
-            fill: true, backgroundColor: gradient
+            borderColor: getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#0ea5e9",
+            fill: true, backgroundColor: makeBrandGradient(ctx)
           }]
         },
         options: {
@@ -836,17 +899,13 @@
       });
       refreshChart();
     }
-    function rangeToMs(range){ switch(range){ case "7D": return 7*24*3600*1000; case "1M": return 30*24*3600*1000; case "3M": return 90*24*3600*1000; case "1Y": return 365*24*3600*1000; default: return Infinity; } }
-    function resample(series, maxPoints=300){
-      if (series.length <= maxPoints) return series; const step = Math.ceil(series.length / maxPoints);
-      const out=[]; for(let i=0;i<series.length;i+=step) out.push(series[i]); return out;
-    }
     function refreshChart(){
       if (!chart) return;
       const series = loadEquity();
-      const cutoff = isFinite(rangeToMs(currentRange)) ? (now() - rangeToMs(currentRange)) : -Infinity;
+      const ranges = { "7D":7*24*3600e3, "1M":30*24*3600e3, "3M":90*24*3600e3, "1Y":365*24*3600e3, "ALL":Infinity };
+      const cutoff = isFinite(ranges[currentRange]) ? (now() - ranges[currentRange]) : -Infinity;
       const filtered = series.filter(p => p.t >= cutoff).slice().reverse();
-      const data = resample(filtered, 300);
+      const data = filtered.length<=300 ? filtered : filtered.filter((_,i)=>i%Math.ceil(filtered.length/300)===0);
 
       chart.data.labels = data.map(p => {
         const d=new Date(p.t);
@@ -976,10 +1035,13 @@
       });
     }
 
+    // Filtered activity for Home (trading/order only)
     function renderActivity(){
       const list = $("#activityList");
+      if (!list) return;
       const h = loadHistory();
       const trades = loadTrades();
+      const allowed = /^(SWAP|ORDER|FILL|MARKET BUY|TRIGGER|TRAIL)/i;
 
       const tradeBlocks = trades.slice(0,30).map(tr=>{
         const d = new Date(tr.t).toLocaleString();
@@ -992,24 +1054,24 @@
           <div class="text-xs text-slate-500">${d}</div>
         </div>`;
       }).join("");
-      const actBlocks = h.slice(0,50).map(e=>{
+
+      const actBlocks = h.filter(e=>allowed.test(e.msg)).slice(0,50).map(e=>{
         const d = new Date(e.t).toLocaleString();
         return `<div class="flex items-center justify-between">
           <div>${e.msg}</div>
           <div class="text-xs text-slate-500">${d}</div>
         </div>`;
       }).join("");
-      if (list) {
-        list.innerHTML = `
-          <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Trades</div>
-          <div class="space-y-2 mb-4">${tradeBlocks || '<div class="text-slate-500">No trades yet.</div>'}</div>
-          <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">System</div>
-          <div class="space-y-2">${actBlocks || '<div class="text-slate-500">No activity yet.</div>'}</div>
-        `;
-      }
+
+      list.innerHTML = `
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">Trades</div>
+        <div class="space-y-2 mb-4">${tradeBlocks || '<div class="text-slate-500">No trades yet.</div>'}</div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mb-1">System</div>
+        <div class="space-y-2">${actBlocks || '<div class="text-slate-500">No activity yet.</div>'}</div>
+      `;
     }
 
-    /***** QUICK SWAP *****/
+    /***** QUICK SWAP (simplified, no toggle) *****/
     function marketRate(fromId, toId){
       const fp = priceOf(fromId), tp = priceOf(toId);
       if (fp==null || tp==null) return null;
@@ -1036,15 +1098,7 @@
       return { ok:true, ...q };
     }
 
-    let qsMode = "FROM";
-    function setQsMode(m){
-      qsMode = m;
-      $("#qsModeFrom").classList.toggle("active", m==="FROM");
-      $("#qsModeTo").classList.toggle("active", m==="TO");
-    }
-    $("#qsModeFrom").addEventListener("click", ()=>{ setQsMode("FROM"); updateQuickQuote(); });
-    $("#qsModeTo").addEventListener("click", ()=>{ setQsMode("TO"); updateQuickQuote(); });
-
+    let lastEdited = "FROM"; // "FROM" or "TO"
     function updateQuickQuote(){
       const s = loadState();
       const from = $("#qsFrom")?.value, to = $("#qsTo")?.value;
@@ -1052,47 +1106,40 @@
       const r = marketRate(from,to);
       const fee = commissionPct();
 
-      const amtFrom = +($("#qsAmtFrom")?.value || 0);
-      const amtTo   = +($("#qsAmtTo")?.value   || 0);
-
       const el = $("#qsQuote");
       if (!el) return;
       if (!r){ el.textContent = "No market price."; return; }
 
-      let needFrom = 0, getTo = 0;
-      if (qsMode==="FROM"){
-        needFrom = amtFrom;
-        getTo = (needFrom * (1 - fee/100)) * r;
+      let needFrom = +($("#qsAmtFrom")?.value || 0);
+      let wantTo   = +($("#qsAmtTo")?.value   || 0);
+
+      if (lastEdited === "FROM"){
+        // compute To based on From
+        if (!(needFrom>0)){ el.textContent = "Enter an amount."; if($("#qsAmtTo")) $("#qsAmtTo").value=""; return; }
+        if ((s.holdings[from]||0) < needFrom){ el.textContent = "Insufficient balance."; return; }
+        const getTo = (needFrom * (1 - fee/100)) * r;
         if ($("#qsAmtTo")) $("#qsAmtTo").value = getTo ? getTo.toFixed(6) : "";
+        el.textContent = `Rate: 1 ${getSymbol(from)} = ${r.toFixed(6)} ${getSymbol(to)} • Fee ${fee.toFixed(2)}% • Receive ≈ ${getTo.toFixed(6)} ${getSymbol(to)}`;
       } else {
-        getTo = amtTo;
-        needFrom = getTo / r / (1 - fee/100);
-        if ($("#qsAmtFrom")) $("#qsAmtFrom").value = needFrom ? needFrom.toFixed(6) : "";
+        // compute From based on desired To
+        if (!(wantTo>0)){ el.textContent = "Enter an amount."; if($("#qsAmtFrom")) $("#qsAmtFrom").value=""; return; }
+        const needFromCalc = wantTo / r / (1 - fee/100);
+        if ($("#qsAmtFrom")) $("#qsAmtFrom").value = needFromCalc ? needFromCalc.toFixed(6) : "";
+        if ((s.holdings[from]||0) < needFromCalc){ el.textContent = "Insufficient balance."; return; }
+        el.textContent = `Rate: 1 ${getSymbol(from)} = ${r.toFixed(6)} ${getSymbol(to)} • Fee ${fee.toFixed(2)}% • Need ≈ ${needFromCalc.toFixed(6)} ${getSymbol(from)}`;
       }
-
-      if (!(needFrom>0)){ el.textContent = "Enter an amount."; return; }
-      if ((s.holdings[from]||0) < needFrom){ el.textContent = "Insufficient balance."; return; }
-
-      el.textContent = `Rate: 1 ${getSymbol(from)} = ${r.toFixed(6)} ${getSymbol(to)} • Fee ${fee.toFixed(2)}% • Receive ≈ ${getTo.toFixed(6)} ${getSymbol(to)}`;
     }
 
     $("#qsFrom")?.addEventListener("change", updateQuickQuote);
     $("#qsTo")?.addEventListener("change", updateQuickQuote);
-    $("#qsAmtFrom")?.addEventListener("input", ()=>{ setQsMode("FROM"); updateQuickQuote(); });
-    $("#qsAmtTo")?.addEventListener("input", ()=>{ setQsMode("TO"); updateQuickQuote(); });
+    $("#qsAmtFrom")?.addEventListener("input", ()=>{ lastEdited="FROM"; updateQuickQuote(); });
+    $("#qsAmtTo")?.addEventListener("input", ()=>{ lastEdited="TO"; updateQuickQuote(); });
 
     $("#qsSwap")?.addEventListener("click", ()=>{
       const s = loadState();
       const from = $("#qsFrom").value, to = $("#qsTo").value;
-      let fromAmt = 0;
-      if (qsMode==="FROM"){
-        fromAmt = +$("#qsAmtFrom").value;
-      } else {
-        const wantTo = +$("#qsAmtTo").value;
-        const r = marketRate(from,to);
-        const fee = commissionPct();
-        fromAmt = wantTo / r / (1 - fee/100);
-      }
+      const fromAmt = +$("#qsAmtFrom").value;
+      if (!(fromAmt>0)){ $("#qsMsg").textContent = "Enter an amount."; return; }
 
       const res = doSwap(s, from, to, fromAmt);
       const msg = $("#qsMsg");
@@ -1458,6 +1505,7 @@
         $("#lockedNote").classList.add("hidden");
         advWrap.classList.remove("hidden");
         loadAdvancedEditor();
+        renderAdminDebug();
       } else alert("Incorrect code.");
     });
     function loadAdvancedEditor(){
@@ -1485,7 +1533,6 @@
       const s = loadState();
       s.commissionPct = clamp(+$("#advCommission").value, 0, 100);
       saveState(s);
-      pushActivity(`ADMIN • Commission set to ${s.commissionPct}%`);
       updateUI(true);
       alert("Saved.");
     });
@@ -1496,7 +1543,6 @@
         s.holdings[id] = Math.max(0, +inp.value);
       });
       saveState(s);
-      pushActivity("ADMIN • Holdings updated.");
       updateUI(true);
       alert("Saved.");
     });
@@ -1504,10 +1550,26 @@
       if (!confirm("Reset commission and all holdings to defaults?")) return;
       const s = defaultState();
       saveState(s);
-      pushActivity("ADMIN • Reset to defaults.");
       loadAdvancedEditor();
       updateUI(true);
     });
+
+    // FULL DEBUG (admin)
+    function renderAdminDebug(){
+      const actBox = $("#adminActivity");
+      const trBox = $("#adminTrades");
+      if (!actBox || !trBox) return;
+      const activity = loadHistory();
+      const trades = loadTrades();
+      actBox.innerHTML = activity.map(e=>{
+        const d = new Date(e.t).toLocaleString();
+        return `<div class="flex items-center justify-between"><div>${e.msg}</div><div class="text-[10px] text-slate-500">${d}</div></div>`;
+      }).join("") || '<div class="text-slate-500">No activity.</div>';
+      trBox.innerHTML = trades.map(tr=>{
+        const d = new Date(tr.t).toLocaleString();
+        return `<div class="flex items-center justify-between"><div>${tr.fromAmt} ${getSymbol(tr.fromId)} → ${tr.toAmt} ${getSymbol(tr.toId)} • fee ${tr.feePct.toFixed(2)}% • px ${tr.rate}</div><div class="text-[10px] text-slate-500">${d}</div></div>`;
+      }).join("") || '<div class="text-slate-500">No trades.</div>';
+    }
 
     /***** FAVORITES & ASSET SEARCH *****/
     function addFavorite(asset){
@@ -1517,14 +1579,12 @@
         saveFavs(favs.slice(0,500));
         const s = loadState();
         if (s.holdings[asset.id] == null) { s.holdings[asset.id] = 0; saveState(s); }
-        pushActivity(`FAVORITE • Added ${asset.symbol.toUpperCase()} (${asset.name})`);
         refreshAfterUniverseChange();
       }
     }
     function removeFavorite(id){
       const favs = loadFavs().filter(f=>f.id!==id);
       saveFavs(favs);
-      pushActivity(`FAVORITE • Removed ${id}`);
       refreshAfterUniverseChange();
     }
     function toggleFavoriteById(id){
@@ -1653,9 +1713,10 @@
       renderSummary(s);
       renderPositions(s);
       if (pushPoint){ const nlv = calcNLV(s); pushChartPoint(nlv); } else { refreshChart(); }
+      renderAdminDebug(); // keep debug refreshed if open
     }
 
-    /***** APPEARANCE (Padding + Theme) *****/
+    /***** APPEARANCE (Padding + Theme + Brand) *****/
     function applyPadding(px){
       const val = Math.max(8, Math.min(56, +px || 16));
       document.documentElement.style.setProperty('--app-x', val+'px');
@@ -1668,15 +1729,32 @@
       const root = document.documentElement;
       if (mode === "dark") root.setAttribute("data-theme","dark");
       else root.setAttribute("data-theme","light");
-      // mark UI
       $("#themeBtnLight")?.classList.toggle("active", mode==="light");
       $("#themeBtnDark")?.classList.toggle("active", mode==="dark");
     }
+    function applyBrand(hex){
+      const root = document.documentElement;
+      const dark = darken(hex, 20);
+      const accent = mix(hex, "#22d3ee", 0.5); // blend for secondary
+      const {r,g,b} = hexToRgb(hex);
+      root.style.setProperty("--brand", hex);
+      root.style.setProperty("--brand-dark", dark);
+      root.style.setProperty("--brand-2", accent);
+      root.style.setProperty("--brand-rgb", `${r},${g},${b}`);
+
+      // update chart colors
+      if (chart){
+        const ctx = chart.ctx;
+        chart.data.datasets[0].borderColor = hex;
+        chart.data.datasets[0].backgroundColor = makeBrandGradient(ctx);
+        chart.update();
+      }
+    }
+
     $("#saveUI")?.addEventListener("click", ()=>{
       const px = +$("#uiPadding").value || 16;
       applyPadding(px);
       saveUI({ paddingPx: px });
-      pushActivity(`APPEARANCE • Global padding set to ${px}px`);
     });
 
     // Theme controls
@@ -1685,7 +1763,14 @@
     $("#saveTheme")?.addEventListener("click", ()=>{
       const mode = $("#themeBtnDark").classList.contains("active") ? "dark" : "light";
       saveUI({ theme: mode });
-      pushActivity(`APPEARANCE • Theme set to ${mode}`);
+    });
+
+    // Brand color controls
+    const brandInput = $("#brandColor");
+    $("#saveBrand")?.addEventListener("click", ()=>{
+      const hex = (brandInput?.value || "#0ea5e9").trim();
+      applyBrand(hex);
+      saveUI({ brandHex: hex });
     });
 
     /***** BOOT *****/
@@ -1696,10 +1781,12 @@
         return;
       }
 
-      // Apply saved UI & theme
+      // Apply saved UI, theme, brand
       const ui = loadUI(); 
       applyPadding(ui.paddingPx);
       applyTheme(ui.theme || "light");
+      applyBrand(ui.brandHex || "#0ea5e9");
+      if (brandInput) brandInput.value = ui.brandHex || "#0ea5e9";
 
       $("#app").style.opacity = 1;
       populateSelects();
