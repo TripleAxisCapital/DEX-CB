@@ -63,7 +63,7 @@
     .section-gap{ gap: 16px; }
     .kpi{ border-radius: 14px; background: #f8fafc; border:1px solid var(--border); padding: 14px; }
 
-    /* Login progress (one-time, JS-controlled) */
+    /* Login progress */
     .progress-wrap{ margin-top:.75rem; width:100%; height:8px; border-radius:999px; background:#e2e8f0; overflow:hidden; }
     .progress-bar{ height:100%; width:0%; background: linear-gradient(90deg,var(--brand),#06b6d4); transition: width .35s ease; }
 
@@ -99,22 +99,6 @@
       .pos-row{ grid-template-columns: 4fr 2fr 2fr 2fr 2fr; align-items:center; gap: 12px; }
     }
     .pos-row + .pos-row{ border-top: 1px solid var(--border); }
-
-    /* Chain status animation */
-    .chain{ display:flex; align-items:center; gap:8px; }
-    .chain-orb{
-      width:14px; height:14px; border-radius:50%;
-      background: radial-gradient(30% 30% at 30% 30%, #9ae6ff, transparent 70%), radial-gradient(30% 30% at 70% 70%, #a7f3d0, transparent 70%), #0ea5e9;
-      position:relative; box-shadow: 0 0 8px rgba(14,165,233,.6), inset 0 0 6px rgba(255,255,255,.6);
-      overflow: visible;
-    }
-    .chain-orb:before,.chain-orb:after{
-      content:""; position:absolute; inset:-8px; border-radius:50%;
-      border:1px dashed rgba(14,165,233,.5);
-      animation: spin 4s linear infinite;
-    }
-    .chain-orb:after{ inset:-14px; animation-duration: 7s; border-color: rgba(16,185,129,.4); }
-    @keyframes spin{ to{ transform: rotate(360deg); } }
   </style>
 </head>
 <body class="min-h-screen">
@@ -179,19 +163,14 @@
   <!-- APP -->
   <div id="app" class="opacity-0 transition-opacity duration-300">
 
-    <!-- Header -->
+    <!-- Header (connection animation removed) -->
     <header class="sticky top-0 z-40 border-b border-[color:var(--border)] header-blur bg-white/80">
       <div class="app-shell pt-safe">
         <div class="h-14 md:h-16 flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <!-- Removed logo square -->
             <span class="text-lg font-semibold -tracking-tight">DEX</span>
           </div>
           <div class="hidden md:flex items-center gap-4">
-            <div class="chain">
-              <div class="chain-orb"></div>
-              <span id="chainText" class="text-xs text-slate-600">Connecting…</span>
-            </div>
             <button id="openAssetSearch" class="btn btn-ghost" title="Search & add assets">
               <i class="ph ph-magnifying-glass"></i><span class="ml-2">Assets</span>
             </button>
@@ -200,9 +179,6 @@
           </div>
           <!-- Mobile actions -->
           <div class="md:hidden flex items-center gap-3">
-            <div class="chain">
-              <div class="chain-orb"></div>
-            </div>
             <button id="openAssetSearchMobile" class="btn btn-ghost p-2"><i class="ph ph-magnifying-glass"></i></button>
           </div>
         </div>
@@ -256,7 +232,7 @@
             </div>
           </div>
 
-          <!-- Quick Swap -->
+          <!-- Quick Swap (unchanged) -->
           <div class="card card-pad">
             <div class="flex items-center justify-between mb-3">
               <h2 class="text-lg font-semibold">Quick Swap</h2>
@@ -333,45 +309,33 @@
                 <button class="active" data-ordtype="MARKET" id="ordTypeMarket">Market</button>
                 <button data-ordtype="LIMIT" id="ordTypeLimit">Limit</button>
                 <button data-ordtype="STOP" id="ordTypeStop">Stop</button>
+                <button data-ordtype="TRAIL" id="ordTypeTrail">Trailing</button>
               </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label class="text-xs text-slate-500">From</label>
-                <select id="swFrom" class="input mt-1"></select>
+                <label class="text-xs text-slate-500">Pay With (Currency)</label>
+                <select id="payCurrency" class="input mt-1"></select>
               </div>
               <div>
-                <label class="text-xs text-slate-500">To</label>
-                <select id="swTo" class="input mt-1"></select>
-              </div>
-              <div class="md:col-span-2 flex items-end">
-                <div class="w-full flex items-center justify-between">
-                  <div class="seg">
-                    <button class="active" id="swModeFrom" data-mode="FROM">Specify From</button>
-                    <button id="swModeTo" data-mode="TO">Specify To</button>
-                  </div>
-                  <div class="text-xs text-slate-500 ml-2">Fee auto-applied</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-              <div>
-                <label class="text-xs text-slate-500">Amount (From)</label>
-                <input id="swAmtFrom" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 1.25" />
+                <label class="text-xs text-slate-500">Buy Asset</label>
+                <select id="buyAsset" class="input mt-1"></select>
               </div>
               <div>
-                <label class="text-xs text-slate-500">Amount (To)</label>
-                <input id="swAmtTo" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 25.0" />
+                <label class="text-xs text-slate-500">Quantity to Buy</label>
+                <input id="buyQty" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 1.25" />
+              </div>
+              <div class="flex items-end">
+                <div class="w-full text-xs text-slate-500 ml-2">Fee auto-applied (debited in currency)</div>
               </div>
             </div>
 
             <!-- Advanced price controls by order type -->
             <div id="limitWrap" class="hidden mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label class="text-xs text-slate-500">Limit Price (To / 1 From)</label>
-                <input id="limitPrice" type="number" min="0" step="0.0000001" class="input mt-1" placeholder="e.g., 15.5" />
+                <label class="text-xs text-slate-500">Limit Price (Currency / 1 Buy)</label>
+                <input id="limitPriceBuy" type="number" min="0" step="0.0000001" class="input mt-1" placeholder="e.g., 155.5" />
               </div>
               <div>
                 <label class="text-xs text-slate-500">Time in Force</label>
@@ -384,8 +348,8 @@
 
             <div id="stopWrap" class="hidden mt-3 grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label class="text-xs text-slate-500">Stop Trigger (To / 1 From)</label>
-                <input id="stopPrice" type="number" min="0" step="0.0000001" class="input mt-1" placeholder="e.g., 14.0" />
+                <label class="text-xs text-slate-500">Stop Trigger (Currency / 1 Buy)</label>
+                <input id="stopPriceBuy" type="number" min="0" step="0.0000001" class="input mt-1" placeholder="e.g., 140.0" />
               </div>
               <div>
                 <label class="text-xs text-slate-500">Trigger Direction</label>
@@ -402,8 +366,26 @@
                 </select>
               </div>
               <div id="stopLimitCell" class="hidden">
-                <label class="text-xs text-slate-500">Limit Price</label>
-                <input id="stopLimitPrice" type="number" min="0" step="0.0000001" class="input mt-1" placeholder="e.g., 14.2" />
+                <label class="text-xs text-slate-500">Stop-Limit Price</label>
+                <input id="stopLimitPriceBuy" type="number" min="0" step="0.0000001" class="input mt-1" placeholder="e.g., 142.2" />
+              </div>
+            </div>
+
+            <div id="trailWrap" class="hidden mt-3 grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label class="text-xs text-slate-500">Trail Type</label>
+                <select id="trailType" class="input mt-1">
+                  <option value="PCT">Percent from low</option>
+                  <option value="AMT">Amount from low</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs text-slate-500">Trail Value</label>
+                <input id="trailValue" type="number" min="0" step="0.0001" class="input mt-1" placeholder="e.g., 2 (or 15.5)" />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500">Activation Price (optional)</label>
+                <input id="trailActivation" type="number" min="0" step="0.0000001" class="input mt-1" placeholder="start trailing ≤ this" />
               </div>
             </div>
 
@@ -588,7 +570,7 @@
     function loadEquity(){ const raw=localStorage.getItem(K.EQUITY); return raw?JSON.parse(raw):[]; }
     function saveEquity(e){ localStorage.setItem(K.EQUITY, JSON.stringify(e)); }
     function loadFavs(){ const raw=localStorage.getItem(K.FAVS); return raw?JSON.parse(raw):[]; }
-    function saveFavs(arr){ localStorage.setItem(K.FAVS, JSON.stringify(arr)); /* header chips removed */ }
+    function saveFavs(arr){ localStorage.setItem(K.FAVS, JSON.stringify(arr)); }
     function loadUI(){ const raw=localStorage.getItem(K.UI); return raw?JSON.parse(raw):{ paddingPx: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-x')) || 16 }; }
     function saveUI(u){ localStorage.setItem(K.UI, JSON.stringify(u)); }
     function loadOrders(){ const raw=localStorage.getItem(K.ORDERS); return raw?JSON.parse(raw):[]; }
@@ -629,7 +611,7 @@
 
     /***** AUTH (Login + Boot) *****/
     const loginOverlay = $("#loginOverlay");
-    const loginForm = $("#loginForm");           // <form>
+    const loginForm = $("#loginForm");
     const loginLoading = $("#loginLoading");
     const bootLogsEl = $("#bootLogs");
     const progressBar = $("#progressBar");
@@ -653,7 +635,6 @@
       bootLogsEl.scrollTop = bootLogsEl.scrollHeight;
     }
 
-    // Exchange-like boot lines
     const BOOT_LINES = [
       "Verifying device posture",
       "Negotiating TLS 1.3 + ECDHE",
@@ -678,7 +659,7 @@
           appendLog(BOOT_LINES[idx] + "…");
           idx++;
           const pct = Math.round((idx/totalSteps)*100);
-          if (progressBar) progressBar.style.width = pct + "%";   // one pass, synced
+          if (progressBar) progressBar.style.width = pct + "%";
           if (idx >= totalSteps){
             clearInterval(intv);
             setTimeout(res, 350);
@@ -698,7 +679,7 @@
       if (ok) {
         $("#loginErr").classList.add("hidden");
         await runBootSequence();
-        localStorage.setItem(K.AUTH, "1"); // only store auth flag
+        localStorage.setItem(K.AUTH, "1");
         loginOverlay.classList.add("hidden");
         ["loginAccount","loginPass","loginKey"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
         boot();
@@ -706,7 +687,6 @@
         $("#loginErr").classList.remove("hidden");
       }
     });
-    // Extra safety: clicking the button triggers submit in all browsers
     const loginBtn = document.getElementById('loginBtn');
     if (loginBtn) loginBtn.addEventListener('click', (ev)=>{ ev.preventDefault(); if (loginForm) loginForm.requestSubmit(); });
 
@@ -749,16 +729,36 @@
       });
       market = out;
       lastUpdated = now();
-      const chainTextEl = document.getElementById("chainText");
-      if (chainTextEl) chainTextEl.textContent = "Connected";  // FIX: no optional-chaining assignment
       updateUI(true);
-      // process orders on each market refresh
       processOrders();
     }
     const priceOf = id => market[id]?.price ?? null;
     const imageOf = id => market[id]?.image ?? "";
 
-    /***** PORTFOLIO *****/
+    /***** PRICE HELPERS (Currency per 1 Buy) *****/
+    function priceCPB(currencyId, buyId){
+      const c = priceOf(currencyId), b = priceOf(buyId);
+      if (c==null || b==null) return null;
+      return b / c; // how many units of currency per 1 unit of buy asset
+    }
+    function commissionPct(){ return clamp(loadState().commissionPct, 0, 100); }
+    function calcFromForBuyQty(buyQty, px, feePct){
+      const gross = buyQty * px;
+      const fromAmt = gross / (1 - feePct/100); // pay fee in currency, keep buyQty exact
+      return { fromAmt, gross, feeAmt: fromAmt - gross };
+    }
+    function executeBuyAtPrice(state, currencyId, buyId, buyQty, px){
+      const feePct = commissionPct();
+      const { fromAmt, feeAmt } = calcFromForBuyQty(buyQty, px, feePct);
+      if ((state.holdings[currencyId]||0) < fromAmt) return { ok:false, msg:"Insufficient balance." };
+      state.holdings[currencyId] -= fromAmt;
+      state.holdings[buyId] = (state.holdings[buyId]||0) + buyQty;
+      return { ok:true, fromAmt, feePct, feeAmt, px };
+    }
+
+    /***** PORTFOLIO *****
+     * NLV is still computed in USD using CoinGecko prices
+     */
     function calcNLV(state){
       let total = 0;
       for (const a of getTradableAssets()){
@@ -835,11 +835,13 @@
     /***** RENDER *****/
     function populateSelects(){
       const opts = getTradableAssets().map(a => `<option value="${a.id}">${a.symbol} • ${a.name}</option>`).join("");
-      ["qsFrom","qsTo","swFrom","swTo"].forEach(id => { const el=$("#"+id); el.innerHTML = opts; });
+      ["qsFrom","qsTo"].forEach(id => { const el=$("#"+id); if (el) el.innerHTML = opts; });
+      // Trade ticket selects
+      ["payCurrency","buyAsset"].forEach(id => { const el=$("#"+id); if (el) el.innerHTML = opts; });
       if (!$("#qsFrom").value){ $("#qsFrom").value="bitcoin"; }
       if (!$("#qsTo").value){ $("#qsTo").value="ethereum"; }
-      if (!$("#swFrom").value){ $("#swFrom").value="bitcoin"; }
-      if (!$("#swTo").value){ $("#swTo").value="ethereum"; }
+      if (!$("#payCurrency").value){ $("#payCurrency").value="bitcoin"; }
+      if (!$("#buyAsset").value){ $("#buyAsset").value="ethereum"; }
     }
     function renderHeader(nlv){
       $("#headerNLV").textContent = fmtUsd(nlv);
@@ -943,9 +945,9 @@
         const d = new Date(tr.t).toLocaleString();
         return `<div class="flex items-center justify-between">
           <div>
-            <span class="font-medium">SWAP</span>
+            <span class="font-medium">TRADE</span>
             • ${tr.fromAmt} ${getSymbol(tr.fromId)} → ${tr.toAmt} ${getSymbol(tr.toId)}
-            <span class="text-slate-500"> (fee ${tr.feePct.toFixed(2)}%, rate ${tr.rate})</span>
+            <span class="text-slate-500"> (fee ${tr.feePct.toFixed(2)}%, price ${tr.rate})</span>
           </div>
           <div class="text-xs text-slate-500">${d}</div>
         </div>`;
@@ -965,15 +967,13 @@
       `;
     }
 
-    /***** PRICING HELPERS *****/
+    /***** QUICK SWAP (unchanged) *****/
     function marketRate(fromId, toId){
       const fp = priceOf(fromId), tp = priceOf(toId);
       if (fp==null || tp==null) return null;
       return fp / tp; // To per 1 From
     }
-    function commissionPct(){ return clamp(loadState().commissionPct, 0, 100); }
 
-    /***** QUOTES & SWAPS *****/
     function quoteSwap(state, fromId, toId, fromAmt){
       const fromPx = priceOf(fromId), toPx = priceOf(toId);
       if (fromId===toId) return { ok:false, msg:"Select different assets." };
@@ -994,8 +994,7 @@
       return { ok:true, ...q };
     }
 
-    /***** QUICK SWAP (dual-mode) *****/
-    let qsMode = "FROM"; // FROM or TO
+    let qsMode = "FROM";
     function setQsMode(m){
       qsMode = m;
       $("#qsModeFrom").classList.toggle("active", m==="FROM");
@@ -1020,7 +1019,6 @@
       let needFrom = 0, getTo = 0;
       if (qsMode==="FROM"){
         needFrom = amtFrom;
-        // apply fee on from side
         getTo = (needFrom * (1 - fee/100)) * r;
         $("#qsAmtTo").value = getTo ? getTo.toFixed(6) : "";
       } else {
@@ -1067,28 +1065,19 @@
       } else msg.textContent = res.msg;
     });
 
-    /***** TRADING TICKET (Market/Limit/Stop) *****/
-    let swOrderType = "MARKET"; // MARKET | LIMIT | STOP
-    let swMode = "FROM";
-    function setSwMode(m){
-      swMode = m;
-      $("#swModeFrom").classList.toggle("active", m==="FROM");
-      $("#swModeTo").classList.toggle("active", m==="TO");
-      updateTradeQuote();
-    }
-    $("#swModeFrom").addEventListener("click", ()=>setSwMode("FROM"));
-    $("#swModeTo").addEventListener("click", ()=>setSwMode("TO"));
+    /***** TRADING TICKET (BUY: Market/Limit/Stop/Trailing) *****/
+    let swOrderType = "MARKET"; // MARKET | LIMIT | STOP | TRAIL
 
     function setOrderType(t){
       swOrderType = t;
-      ["ordTypeMarket","ordTypeLimit","ordTypeStop"].forEach(id=>{
+      ["ordTypeMarket","ordTypeLimit","ordTypeStop","ordTypeTrail"].forEach(id=>{
         const btn = $("#"+id); if(!btn) return;
         const val = btn.dataset.ordtype;
         btn.classList.toggle("active", val===t);
       });
       $("#limitWrap").classList.toggle("hidden", t!=="LIMIT");
       $("#stopWrap").classList.toggle("hidden", t!=="STOP");
-      // stop exec mode toggle for limit price cell
+      $("#trailWrap").classList.toggle("hidden", t!=="TRAIL");
       const execSel = $("#stopExec");
       if (execSel) {
         const showLimit = (t==="STOP" && execSel.value==="LIMIT");
@@ -1099,138 +1088,183 @@
     $("#ordTypeMarket").addEventListener("click", ()=>setOrderType("MARKET"));
     $("#ordTypeLimit").addEventListener("click", ()=>setOrderType("LIMIT"));
     $("#ordTypeStop").addEventListener("click", ()=>setOrderType("STOP"));
+    $("#ordTypeTrail").addEventListener("click", ()=>setOrderType("TRAIL"));
     $("#stopExec").addEventListener("change", ()=>{
       $("#stopLimitCell").classList.toggle("hidden", $("#stopExec").value!=="LIMIT");
       updateTradeQuote();
     });
 
-    ["swFrom","swTo","swAmtFrom","swAmtTo","limitPrice","tif","stopPrice","stopSide","stopLimitPrice"].forEach(id=>{
+    ["payCurrency","buyAsset","buyQty","limitPriceBuy","tif","stopPriceBuy","stopSide","stopLimitPriceBuy","trailType","trailValue","trailActivation"].forEach(id=>{
       const el = document.getElementById(id);
       if (el) el.addEventListener("input", updateTradeQuote);
       if (el) el.addEventListener("change", updateTradeQuote);
     });
 
     function updateTradeQuote(){
-      const from = $("#swFrom").value, to = $("#swTo").value;
-      const r = marketRate(from,to);
+      const cur = $("#payCurrency").value, buy = $("#buyAsset").value;
+      const qty = +($("#buyQty").value || 0);
       const fee = commissionPct();
       const s = loadState();
       const el = $("#swQuote");
+      if (!cur || !buy || cur===buy){ el.textContent = "Choose different assets."; return; }
+      const mkt = priceCPB(cur,buy);
+      if (!mkt){ el.textContent = "No market price."; return; }
 
-      const amtFrom = +$("#swAmtFrom").value || 0;
-      const amtTo   = +$("#swAmtTo").value   || 0;
-
-      if (!r){ el.textContent = "No market price."; return; }
-
-      let needFrom = 0, getTo = 0;
-      if (swMode==="FROM"){
-        needFrom = amtFrom;
-        getTo = (needFrom * (1 - fee/100)) * r;
-        $("#swAmtTo").value = getTo ? getTo.toFixed(6) : "";
-      } else {
-        getTo = amtTo;
-        needFrom = getTo / r / (1 - fee/100);
-        $("#swAmtFrom").value = needFrom ? needFrom.toFixed(6) : "";
+      function needText(px){
+        const { fromAmt } = calcFromForBuyQty(qty, px, fee);
+        const bal = s.holdings[cur]||0;
+        const ok = bal >= fromAmt;
+        return `Price ${px.toFixed(6)} ${getSymbol(cur)}/1 ${getSymbol(buy)} • Need ${fromAmt.toFixed(6)} ${getSymbol(cur)} • ${ok?"Balance OK":"Insufficient ("+bal.toFixed(6)+")"}`;
       }
 
+      if (!(qty>0)){ el.textContent = "Enter a quantity to buy."; return; }
+
       if (swOrderType==="MARKET"){
-        if (!(needFrom>0)) { el.textContent = "Enter an amount."; return; }
-        const okBal = (s.holdings[from]||0) >= needFrom;
-        el.textContent = `Market • Rate ${r.toFixed(6)} • ${okBal?"Ready":"Insufficient balance"} • Est receive ${getTo.toFixed(6)} ${getSymbol(to)}`;
+        el.textContent = `Market • ${needText(mkt)}`;
         return;
       }
 
       if (swOrderType==="LIMIT"){
-        const L = +$("#limitPrice").value || 0;
-        if (!(needFrom>0) || !(L>0)) { el.textContent = "Enter amount and limit price."; return; }
-        const cond = r >= L ? "fillable now" : `waiting ≥ ${L}`;
-        el.textContent = `Limit • Desired ${L.toFixed(6)} ${getSymbol(to)}/1 ${getSymbol(from)} • ${cond}`;
+        const L = +$("#limitPriceBuy").value || 0;
+        if (!(L>0)){ el.textContent = "Enter a limit price."; return; }
+        const cond = mkt <= L ? "fillable now" : `waiting ≤ ${L}`;
+        el.textContent = `Limit • ${needText(L)} • ${cond}`;
         return;
       }
 
       if (swOrderType==="STOP"){
-        const S = +$("#stopPrice").value || 0;
+        const S = +$("#stopPriceBuy").value || 0;
         const dir = $("#stopSide").value || "ABOVE";
-        if (!(needFrom>0) || !(S>0)) { el.textContent = "Enter amount and stop trigger."; return; }
+        if (!(S>0)){ el.textContent = "Enter a stop trigger."; return; }
         const trig = dir==="ABOVE" ? `triggers when ≥ ${S}` : `triggers when ≤ ${S}`;
         if ($("#stopExec").value==="LIMIT"){
-          const SL = +$("#stopLimitPrice").value || 0;
+          const SL = +$("#stopLimitPriceBuy").value || 0;
           if (!(SL>0)) { el.textContent = "Enter stop & limit price."; return; }
-          el.textContent = `Stop-Limit • ${trig}, then place Limit @ ${SL}`;
+          el.textContent = `Stop-Limit • ${trig}, then place Limit @ ${SL} • ${needText(SL)}`;
         } else {
-          el.textContent = `Stop-Market • ${trig}, then execute at market`;
+          el.textContent = `Stop-Market • ${trig} • est ${needText(S)}`;
         }
+        return;
+      }
+
+      if (swOrderType==="TRAIL"){
+        const tType = $("#trailType").value || "PCT";
+        const tVal = +$("#trailValue").value || 0;
+        const act = +$("#trailActivation").value || null;
+        if (!(tVal>0)){ el.textContent = "Enter a trail value."; return; }
+        const label = tType==="PCT" ? `${tVal}%` : `${tVal} ${getSymbol(cur)}`;
+        el.textContent = `Trailing (buy) • trails the low by ${label}${act?`, activates ≤ ${act}`:""} • Current need (mkt): ${needText(mkt)}`;
       }
     }
 
     // Place order or execute
     $("#placeOrderBtn").addEventListener("click", ()=>{
-      const from = $("#swFrom").value, to = $("#swTo").value;
+      const cur = $("#payCurrency").value, buy = $("#buyAsset").value;
+      const qty = +($("#buyQty").value || 0);
       const s = loadState();
-      const amtFrom = +$("#swAmtFrom").value || 0;
-      const amtTo   = +$("#swAmtTo").value   || 0;
+      const mkt = priceCPB(cur,buy);
+      const fee = commissionPct();
+      const msg = $("#swMsg");
+      msg.textContent = "";
 
-      // Decide effective from amount based on mode (for market immediate)
-      const r = marketRate(from,to), fee = commissionPct();
-      let needFrom = swMode==="FROM" ? amtFrom : (amtTo / r / (1 - fee/100));
+      if (!cur || !buy || cur===buy){ msg.textContent = "Choose different assets."; return; }
+      if (!(qty>0)){ msg.textContent = "Enter a quantity to buy."; return; }
+      if (!mkt){ msg.textContent = "No market price."; return; }
 
       if (swOrderType==="MARKET"){
-        const res = doSwap(s, from, to, needFrom);
-        const msg = $("#swMsg");
+        const res = executeBuyAtPrice(s, cur, buy, qty, mkt);
         if (res.ok){
           saveState(s);
-          const trade = { t: now(), fromId: from, toId: to, fromAmt: +needFrom, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
+          const trade = { t: now(), fromId: cur, toId: buy, fromAmt: +res.fromAmt.toFixed(6), toAmt: +qty.toFixed(6), feePct: +res.feePct, rate: +mkt.toFixed(6) };
           recordTrade(trade);
-          pushActivity(`MARKET • ${needFrom} ${getSymbol(from)} → ${res.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${res.feePct.toFixed(2)}%)`);
+          pushActivity(`MARKET BUY • ${qty} ${getSymbol(buy)} using ${res.fromAmt.toFixed(6)} ${getSymbol(cur)} @ ${mkt.toFixed(6)}`);
           updateUI(true);
           msg.textContent = "Order filled.";
-          $("#swAmtFrom").value=""; $("#swAmtTo").value="";
+          $("#buyQty").value="";
           updateTradeQuote();
         } else { msg.textContent = res.msg; }
         return;
       }
 
       if (swOrderType==="LIMIT"){
-        const L = +$("#limitPrice").value || 0;
+        const L = +$("#limitPriceBuy").value || 0;
         const tif = $("#tif").value || "GTC";
-        if (!(L>0) || !(needFrom>0)){ $("#swMsg").textContent = "Enter amount and limit price."; return; }
+        if (!(L>0)){ msg.textContent = "Enter a limit price."; return; }
+
+        // Try immediate fill if market is equal/lower than limit (better price)
+        if (mkt <= L){
+          const res = executeBuyAtPrice(s, cur, buy, qty, L);
+          if (res.ok){
+            saveState(s);
+            const trade = { t: now(), fromId: cur, toId: buy, fromAmt: +res.fromAmt.toFixed(6), toAmt: +qty.toFixed(6), feePct: +res.feePct, rate: +L.toFixed(6) };
+            recordTrade(trade);
+            pushActivity(`FILL • LIMIT BUY @ ${L} (${qty} ${getSymbol(buy)})`);
+            updateUI(true);
+            msg.textContent = "Limit filled immediately.";
+            $("#buyQty").value="";
+            updateTradeQuote();
+            return;
+          } // if insufficient, fall through to place order
+        }
 
         const order = {
           id: uid(), t: now(), type: "LIMIT", tif,
-          fromId: from, toId: to, mode: swMode,
-          fromAmt: needFrom, toAmt: (needFrom * (1 - fee/100)) * r,
+          currencyId: cur, buyId: buy, buyQty: qty,
           limitPrice: L, status: "OPEN"
         };
         const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
-        pushActivity(`ORDER • LIMIT placed @ ${L} ${getSymbol(to)}/1 ${getSymbol(from)} (${needFrom} ${getSymbol(from)})`);
+        pushActivity(`ORDER • LIMIT BUY ${qty} ${getSymbol(buy)} @ ${L} ${getSymbol(cur)}/${getSymbol(buy)} (${tif})`);
         renderOpenOrders();
-        $("#swMsg").textContent = "Limit order placed.";
+        msg.textContent = "Limit order placed.";
         updateTradeQuote();
-        processOrders(); // try immediate fill
+        processOrders();
         return;
       }
 
       if (swOrderType==="STOP"){
-        const S = +$("#stopPrice").value || 0;
+        const S = +$("#stopPriceBuy").value || 0;
         const dir = $("#stopSide").value || "ABOVE";
         const exec = $("#stopExec").value || "MARKET";
-        const SL = +$("#stopLimitPrice").value || 0;
-        if (!(S>0) || !(needFrom>0)){ $("#swMsg").textContent = "Enter amount and stop trigger."; return; }
-        if (exec==="LIMIT" && !(SL>0)){ $("#swMsg").textContent = "Enter stop & limit price."; return; }
+        const SL = +$("#stopLimitPriceBuy").value || 0;
+        if (!(S>0)){ msg.textContent = "Enter a stop trigger."; return; }
+        if (exec==="LIMIT" && !(SL>0)){ msg.textContent = "Enter stop & limit price."; return; }
 
         const order = {
-          id: uid(), t: now(), type: "STOP", mode: swMode,
-          fromId: from, toId: to, fromAmt: needFrom,
+          id: uid(), t: now(), type: "STOP", status:"OPEN",
+          currencyId: cur, buyId: buy, buyQty: qty,
           stopPrice: S, stopSide: dir, onTrigger: exec,
           limitPrice: exec==="LIMIT" ? SL : null,
-          status: "OPEN"
+          triggered: false
         };
         const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
-        pushActivity(`ORDER • STOP ${dir} ${S} (${needFrom} ${getSymbol(from)}) ${exec==="LIMIT" ? "→ LIMIT @ "+SL : "→ MARKET"}`);
+        pushActivity(`ORDER • STOP BUY ${dir} ${S} ${exec==="LIMIT" ? "→ LIMIT @ "+SL : "→ MARKET"}`);
         renderOpenOrders();
-        $("#swMsg").textContent = "Stop order placed.";
+        msg.textContent = "Stop order placed.";
         updateTradeQuote();
-        processOrders(); // try immediate trigger
+        processOrders();
+        return;
+      }
+
+      if (swOrderType==="TRAIL"){
+        const tType = $("#trailType").value || "PCT";
+        const tVal = +$("#trailValue").value || 0;
+        const act = +$("#trailActivation").value || null;
+        if (!(tVal>0)){ msg.textContent = "Enter a trail value."; return; }
+
+        const order = {
+          id: uid(), t: now(), type: "TRAIL", status:"OPEN",
+          currencyId: cur, buyId: buy, buyQty: qty,
+          trailType: tType, trailValue: tVal,
+          activationPrice: isFinite(act) ? act : null,
+          activated: isFinite(act) ? false : true,
+          peg: mkt // lowest seen since activation
+        };
+        const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
+        pushActivity(`ORDER • TRAILING BUY by ${tType==="PCT"? tVal+"%": tVal+" "+getSymbol(cur)}${order.activationPrice? " (activates ≤ "+order.activationPrice+")":""}`);
+        renderOpenOrders();
+        msg.textContent = "Trailing order placed.";
+        updateTradeQuote();
+        processOrders();
       }
     });
 
@@ -1240,19 +1274,18 @@
       const orders = loadOrders().filter(o=>o.status==="OPEN");
       if (!orders.length){ box.innerHTML = `<div class="text-slate-500">No open orders.</div>`; return; }
       box.innerHTML = orders.map(o=>{
-        const pair = `${getSymbol(o.fromId)}/${getSymbol(o.toId)}`;
+        const pair = `${getSymbol(o.buyId)}/${getSymbol(o.currencyId)}`;
         let desc = "";
-        if (o.type==="LIMIT") desc = `LIMIT @ ${(+o.limitPrice).toFixed(6)}`;
-        if (o.type==="STOP")  desc = `STOP ${o.stopSide} ${(+o.stopPrice).toFixed(6)} ${o.onTrigger==="LIMIT"?"→ LIMIT @ "+(+o.limitPrice).toFixed(6):"→ MARKET"}`;
-        const amt = `${o.fromAmt} ${getSymbol(o.fromId)}`;
+        if (o.type==="LIMIT") desc = `LIMIT @ ${(+o.limitPrice).toFixed(6)} ${getSymbol(o.currencyId)}/1 ${getSymbol(o.buyId)} • ${o.buyQty} ${getSymbol(o.buyId)}`;
+        if (o.type==="STOP")  desc = `STOP ${o.stopSide} ${(+o.stopPrice).toFixed(6)} ${o.onTrigger==="LIMIT"?"→ LIMIT @ "+(+o.limitPrice).toFixed(6):"→ MARKET"} • ${o.buyQty} ${getSymbol(o.buyId)}`;
+        if (o.type==="TRAIL") desc = `TRAIL ${o.trailType==="PCT"?o.trailValue+"%":o.trailValue+" "+getSymbol(o.currencyId)}${o.activationPrice? " • activates ≤ "+o.activationPrice:""} • ${o.buyQty} ${getSymbol(o.buyId)}`;
         return `
         <div class="flex items-center justify-between p-2 rounded-lg border border-slate-200 bg-white">
           <div class="flex flex-col">
-            <div class="font-medium">${pair}</div>
+            <div class="font-medium">Buy ${pair}</div>
             <div class="text-xs text-slate-600">${o.type} • ${desc}</div>
           </div>
           <div class="flex items-center gap-3">
-            <div class="text-sm">${amt}</div>
             <button class="btn" data-cancel="${o.id}"><i class="ph ph-x"></i></button>
           </div>
         </div>`;
@@ -1274,57 +1307,104 @@
 
       for (const o of orders){
         if (o.status!=="OPEN") continue;
-        const r = marketRate(o.fromId, o.toId);
-        if (!r) continue;
+        const mkt = priceCPB(o.currencyId, o.buyId);
+        if (!mkt) continue;
 
-        // Ensure amount still valid
-        let fromAmt = o.fromAmt;
-        if (!(fromAmt>0)) continue;
-        if ((s.holdings[o.fromId]||0) < fromAmt) {
-          // Insufficient: IOC cancels, GTC stays
-          if (o.type==="LIMIT" && o.tif==="IOC"){ o.status="CANCELLED"; changed=true; pushActivity(`ORDER • IOC cancelled ${o.id} (insufficient)`); }
-          continue;
-        }
+        // Determine currency needed at a given price:
+        const needAt = (px)=> calcFromForBuyQty(o.buyQty, px, commissionPct()).fromAmt;
 
+        // LIMIT: fill when market ≤ limit
         if (o.type==="LIMIT"){
-          if (r >= o.limitPrice){ // fill
-            const res = doSwap(s, o.fromId, o.toId, fromAmt);
-            if (res.ok){
-              saveState(s);
-              const trade = { t: now(), fromId: o.fromId, toId: o.toId, fromAmt: +fromAmt, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
-              recordTrade(trade);
-              pushActivity(`FILL • LIMIT @ ${o.limitPrice} (${fromAmt} ${getSymbol(o.fromId)})`);
-              o.status="FILLED"; changed=true;
+          if (mkt <= o.limitPrice){
+            const fromAmt = needAt(o.limitPrice);
+            const bal = s.holdings[o.currencyId]||0;
+            if (bal >= fromAmt){
+              const res = executeBuyAtPrice(s, o.currencyId, o.buyId, o.buyQty, o.limitPrice);
+              if (res.ok){
+                saveState(s);
+                const trade = { t: now(), fromId: o.currencyId, toId: o.buyId, fromAmt: +res.fromAmt.toFixed(6), toAmt: +o.buyQty.toFixed(6), feePct: +res.feePct, rate: +o.limitPrice.toFixed(6) };
+                recordTrade(trade);
+                pushActivity(`FILL • LIMIT BUY @ ${o.limitPrice} (${o.buyQty} ${getSymbol(o.buyId)})`);
+                o.status="FILLED"; changed=true;
+              }
+            } else if (o.tif==="IOC"){
+              o.status="CANCELLED"; changed=true; pushActivity(`ORDER • IOC cancelled ${o.id} (insufficient)`);
             }
           }
           continue;
         }
 
+        // STOP: trigger condition; on trigger, market or convert to limit
         if (o.type==="STOP"){
-          const trig = (o.stopSide==="ABOVE") ? (r >= o.stopPrice) : (r <= o.stopPrice);
+          const trig = (o.stopSide==="ABOVE") ? (mkt >= o.stopPrice) : (mkt <= o.stopPrice);
           if (!trig) continue;
 
           if (o.onTrigger==="MARKET"){
-            const res = doSwap(s, o.fromId, o.toId, fromAmt);
-            if (res.ok){
-              saveState(s);
-              const trade = { t: now(), fromId: o.fromId, toId: o.toId, fromAmt: +fromAmt, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
-              recordTrade(trade);
-              pushActivity(`FILL • STOP-MARKET triggered @ ${r.toFixed(6)} (${fromAmt} ${getSymbol(o.fromId)})`);
-              o.status="FILLED"; changed=true;
-            }
-          } else { // LIMIT on trigger
-            if (r >= o.limitPrice){
-              const res = doSwap(s, o.fromId, o.toId, fromAmt);
+            const fromAmt = needAt(mkt);
+            if ((s.holdings[o.currencyId]||0) >= fromAmt){
+              const res = executeBuyAtPrice(s, o.currencyId, o.buyId, o.buyQty, mkt);
               if (res.ok){
                 saveState(s);
-                const trade = { t: now(), fromId: o.fromId, toId: o.toId, fromAmt: +fromAmt, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
+                const trade = { t: now(), fromId: o.currencyId, toId: o.buyId, fromAmt: +res.fromAmt.toFixed(6), toAmt: +o.buyQty.toFixed(6), feePct: +res.feePct, rate: +mkt.toFixed(6) };
                 recordTrade(trade);
-                pushActivity(`FILL • STOP-LIMIT @ ${o.limitPrice} (trigger ${o.stopSide} ${o.stopPrice})`);
+                pushActivity(`FILL • STOP-MARKET BUY @ ${mkt.toFixed(6)} (trigger ${o.stopSide} ${o.stopPrice})`);
                 o.status="FILLED"; changed=true;
               }
-            } // else wait for limit condition
+            } // if insufficient, keep waiting
+          } else { // LIMIT on trigger
+            // If at or better than stop-limit price, try fill, else convert to LIMIT (GTC)
+            if (mkt <= o.limitPrice){
+              const fromAmt = needAt(o.limitPrice);
+              if ((s.holdings[o.currencyId]||0) >= fromAmt){
+                const res = executeBuyAtPrice(s, o.currencyId, o.buyId, o.buyQty, o.limitPrice);
+                if (res.ok){
+                  saveState(s);
+                  const trade = { t: now(), fromId: o.currencyId, toId: o.buyId, fromAmt: +res.fromAmt.toFixed(6), toAmt: +o.buyQty.toFixed(6), feePct: +res.feePct, rate: +o.limitPrice.toFixed(6) };
+                  recordTrade(trade);
+                  pushActivity(`FILL • STOP-LIMIT BUY @ ${o.limitPrice} (trigger ${o.stopSide} ${o.stopPrice})`);
+                  o.status="FILLED"; changed=true;
+                }
+              }
+            } else {
+              // convert to plain LIMIT once triggered
+              if (!o.triggered){
+                o.type="LIMIT"; o.tif="GTC"; o.triggered=true;
+                pushActivity(`TRIGGER • STOP → LIMIT @ ${o.limitPrice}`);
+                changed=true;
+              }
+            }
           }
+          continue;
+        }
+
+        // TRAILING: activate then update peg (lowest), trigger when rises by trail
+        if (o.type==="TRAIL"){
+          if (o.activationPrice!=null && !o.activated){
+            if (mkt <= o.activationPrice){ o.activated = true; o.peg = mkt; pushActivity(`TRAIL • Activated @ ${mkt.toFixed(6)}`); changed=true; }
+            continue;
+          }
+          // update lowest seen
+          o.peg = Math.min(o.peg, mkt);
+          let trig = false;
+          if (o.trailType==="PCT"){
+            trig = mkt >= o.peg * (1 + o.trailValue/100);
+          } else { // AMT
+            trig = mkt >= o.peg + o.trailValue;
+          }
+          if (trig){
+            const fromAmt = needAt(mkt);
+            if ((s.holdings[o.currencyId]||0) >= fromAmt){
+              const res = executeBuyAtPrice(s, o.currencyId, o.buyId, o.buyQty, mkt);
+              if (res.ok){
+                saveState(s);
+                const trade = { t: now(), fromId: o.currencyId, toId: o.buyId, fromAmt: +res.fromAmt.toFixed(6), toAmt: +o.buyQty.toFixed(6), feePct: +res.feePct, rate: +mkt.toFixed(6) };
+                recordTrade(trade);
+                pushActivity(`FILL • TRAILING BUY @ ${mkt.toFixed(6)} (peg ${o.peg.toFixed(6)})`);
+                o.status="FILLED"; changed=true;
+              }
+            }
+          }
+          continue;
         }
       }
 
@@ -1549,7 +1629,6 @@
 
     /***** BOOT *****/
     async function boot(){
-      // Apply saved UI spacing
       const ui = loadUI(); applyPadding(ui.paddingPx);
 
       $("#app").style.opacity = 1;
