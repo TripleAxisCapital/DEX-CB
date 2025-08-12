@@ -191,11 +191,12 @@
           <label class="text-xs text-slate-500">Key</label>
           <input id="loginKey"
                  class="input mt-1"
-                 placeholder="One-time Key"
+                 placeholder="One-time Key or GitHub PAT"
                  inputmode="text"
                  name="key_field_unique"
                  autocomplete="off"
                  autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <div class="text-[11px] text-slate-500 mt-1">Tip: Use a fine-scoped GitHub token (contents:write) here to enable cross-device sync.</div>
         </div>
 
         <button id="loginBtn" class="btn btn-primary w-full" type="submit">Continue</button>
@@ -512,7 +513,7 @@
                 </div>
                 <div>
                   <label class="text-xs text-slate-500">New Key</label>
-                  <input id="secNewKey" type="text" class="input mt-1" placeholder="Set a new key" />
+                  <input id="secNewKey" type="text" class="input mt-1" placeholder="Set a new key (or PAT)" />
                 </div>
                 <div class="flex items-end">
                   <button id="saveSecurity" class="btn btn-primary w-full">Save Security</button>
@@ -531,6 +532,46 @@
                 </div>
                 <div class="text-xs text-slate-500">Controls how long the secure session boot takes.</div>
               </div>
+            </div>
+
+            <!-- GIT-BACKED SYNC -->
+            <div class="border-t border-slate-200 pt-4">
+              <h4 class="font-medium mb-2">Git Sync (optional, runs entirely on GitHub Pages)</h4>
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label class="text-xs text-slate-500">Owner</label>
+                  <input id="syncOwner" class="input mt-1" placeholder="e.g. your-username" />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">Repo</label>
+                  <input id="syncRepo" class="input mt-1" placeholder="e.g. your-repo" />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">Branch</label>
+                  <input id="syncBranch" class="input mt-1" placeholder="gh-pages or main" />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">Path</label>
+                  <input id="syncPath" class="input mt-1" placeholder="data/ACCOUNT.json.enc" />
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-3">
+                <div>
+                  <label class="text-xs text-slate-500">GitHub Token (PAT)</label>
+                  <input id="syncToken" type="password" class="input mt-1" placeholder="ghp_..." />
+                  <div class="text-[11px] text-slate-500 mt-1">Stored locally, encrypted with your login.</div>
+                </div>
+                <div class="flex items-end">
+                  <button id="syncSave" class="btn w-full">Save Sync Settings</button>
+                </div>
+                <div class="flex items-end">
+                  <button id="syncPullNow" class="btn w-full">Pull Now</button>
+                </div>
+                <div class="flex items-end">
+                  <button id="syncPushNow" class="btn btn-primary w-full">Push Now</button>
+                </div>
+              </div>
+              <div id="syncStatus" class="text-xs text-slate-500 mt-2">Status: —</div>
             </div>
 
             <!-- FULL DEBUG -->
@@ -685,7 +726,10 @@
       FAVS: "dex_favorites_v1",
       UI: "dex_ui_v5",     // bumped to v5 for loginBg
       ORDERS: "dex_orders_v1",
-      SEC: "dex_security_v1"
+      SEC: "dex_security_v1",
+      SYNC: "dex_sync_v1",
+      SYNC_TOKEN: "dex_sync_token_v1",
+      SYNC_META: "dex_sync_meta_v1"
     };
 
     // Default state
@@ -723,17 +767,17 @@
     const darken = (hex, pct=20)=>{ const {r,g,b}=hexToRgb(hex); const f=(v)=>Math.max(0,Math.min(255,Math.round(v*(1-pct/100)))); return rgbToHex(f(r),f(g),f(b)); };
     const mix = (hex1, hex2, t=0.5)=>{ const a=hexToRgb(hex1), b=hexToRgb(hex2); const lerp=(x,y)=>Math.round(x+(y-x)*t); return rgbToHex(lerp(a.r,b.r),lerp(a.g,b.g),lerp(a.b,b.b)); };
 
-    // State & persistence
+    /***** STATE & LOCAL PERSISTENCE *****/
     function loadState(){ const raw=localStorage.getItem(K.STATE); return raw?JSON.parse(raw):defaultState(); }
-    function saveState(s){ localStorage.setItem(K.STATE, JSON.stringify(s)); }
+    function saveState(s){ localStorage.setItem(K.STATE, JSON.stringify(s)); scheduleSync("state"); }
     function loadHistory(){ const raw=localStorage.getItem(K.HISTORY); return raw?JSON.parse(raw):[]; }
-    function saveHistory(h){ localStorage.setItem(K.HISTORY, JSON.stringify(h)); }
+    function saveHistory(h){ localStorage.setItem(K.HISTORY, JSON.stringify(h)); scheduleSync("history"); }
     function loadTrades(){ const raw=localStorage.getItem(K.TRADES); return raw?JSON.parse(raw):[]; }
-    function saveTrades(t){ localStorage.setItem(K.TRADES, JSON.stringify(t)); }
+    function saveTrades(t){ localStorage.setItem(K.TRADES, JSON.stringify(t)); scheduleSync("trades"); }
     function loadEquity(){ const raw=localStorage.getItem(K.EQUITY); return raw?JSON.parse(raw):[]; }
-    function saveEquity(e){ localStorage.setItem(K.EQUITY, JSON.stringify(e)); }
+    function saveEquity(e){ localStorage.setItem(K.EQUITY, JSON.stringify(e)); scheduleSync("equity"); }
     function loadFavs(){ const raw=localStorage.getItem(K.FAVS); return raw?JSON.parse(raw):[]; }
-    function saveFavs(arr){ localStorage.setItem(K.FAVS, JSON.stringify(arr)); }
+    function saveFavs(arr){ localStorage.setItem(K.FAVS, JSON.stringify(arr)); scheduleSync("favs"); }
     function loadUI(){ 
       const raw=localStorage.getItem(K.UI); 
       const defPad = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-x')) || 16;
@@ -743,9 +787,10 @@
     function saveUI(u){ 
       const cur = loadUI();
       localStorage.setItem(K.UI, JSON.stringify({ ...cur, ...u })); 
+      scheduleSync("ui");
     }
     function loadOrders(){ const raw=localStorage.getItem(K.ORDERS); return raw?JSON.parse(raw):[]; }
-    function saveOrders(o){ localStorage.setItem(K.ORDERS, JSON.stringify(o)); }
+    function saveOrders(o){ localStorage.setItem(K.ORDERS, JSON.stringify(o)); scheduleSync("orders"); }
 
     // Security (password/key)
     function loadSec(){
@@ -753,7 +798,7 @@
       if (raw) return JSON.parse(raw);
       return { account: "DCEBF009", password: "#ONYX5", key: "336664" };
     }
-    function saveSec(s){ localStorage.setItem(K.SEC, JSON.stringify(s)); }
+    function saveSec(s){ localStorage.setItem(K.SEC, JSON.stringify(s)); scheduleSync("sec"); }
 
     // Activity & trades
     function pushActivity(msg){
@@ -787,6 +832,216 @@
       const a = getTradableAssets().find(x=>x.id===id);
       return a?.symbol || id.toUpperCase();
     };
+
+    /***** CRYPTO (WebCrypto for encrypted sync) *****/
+    const te = new TextEncoder(); const td = new TextDecoder();
+    async function deriveAesKey(account, password, keyStr){
+      const salt = te.encode("dex-sync-v1|" + account);
+      const raw = await crypto.subtle.importKey("raw", te.encode(password + "|" + keyStr), "PBKDF2", false, ["deriveKey"]);
+      return crypto.subtle.deriveKey(
+        { name:"PBKDF2", salt, iterations: 100000, hash:"SHA-256" },
+        raw,
+        { name:"AES-GCM", length:256 },
+        true, ["encrypt","decrypt"]
+      );
+    }
+    async function aesEncrypt(jkey, obj){
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const pt = te.encode(JSON.stringify(obj));
+      const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, jkey, pt);
+      return { iv: Array.from(iv), ct: btoa(String.fromCharCode(...new Uint8Array(ct))) };
+    }
+    async function aesDecrypt(jkey, pack){
+      const iv = new Uint8Array(pack.iv);
+      const ct = Uint8Array.from(atob(pack.ct), c=>c.charCodeAt(0));
+      const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv}, jkey, ct);
+      return JSON.parse(td.decode(pt));
+    }
+
+    /***** GITHUB PAGES – CLIENT-SIDE BACKEND (Contents API) *****/
+    function detectPagesRepo(){
+      const host = location.hostname;
+      let owner=null, repo=null, branch="gh-pages";
+      if (host.endsWith(".github.io")){
+        owner = host.split(".github.io")[0];
+        const parts = location.pathname.split("/").filter(Boolean);
+        if (parts.length >= 1) { repo = parts[0]; branch = "gh-pages"; }
+        else { repo = owner + ".github.io"; branch = "main"; }
+      }
+      return {owner, repo, branch};
+    }
+    function loadSyncCfg(){
+      const raw = localStorage.getItem(K.SYNC);
+      let cfg = raw ? JSON.parse(raw) : {};
+      // Seed defaults if missing
+      const d = detectPagesRepo();
+      if (!cfg.owner) cfg.owner = d.owner || "";
+      if (!cfg.repo) cfg.repo = d.repo || "";
+      if (!cfg.branch) cfg.branch = d.branch || "gh-pages";
+      if (!cfg.path) {
+        const sec = loadSec();
+        cfg.path = `data/${(sec.account||"ACCOUNT")}.json.enc`;
+      }
+      if (cfg.enabled == null) cfg.enabled = true;
+      return cfg;
+    }
+    function saveSyncCfg(cfg){ localStorage.setItem(K.SYNC, JSON.stringify(cfg)); }
+    function setSyncStatus(s){ const el=$("#syncStatus"); if(el) el.textContent = "Status: " + s; }
+
+    function loadSyncMeta(){ const raw = localStorage.getItem(K.SYNC_META); return raw?JSON.parse(raw):{rev:0,lastPush:0,lastPull:0,sha:null}; }
+    function saveSyncMeta(m){ localStorage.setItem(K.SYNC_META, JSON.stringify(m)); }
+
+    async function getTokenDerived(jkey){
+      // Try decrypt saved token
+      const packRaw = localStorage.getItem(K.SYNC_TOKEN);
+      if (packRaw){
+        try { const pack = JSON.parse(packRaw); const val = await aesDecrypt(jkey, pack); return val.token || ""; }
+        catch(_) {}
+      }
+      return "";
+    }
+    async function saveTokenDerived(jkey, token){
+      if (!token) { localStorage.removeItem(K.SYNC_TOKEN); return; }
+      const pack = await aesEncrypt(jkey, {token});
+      localStorage.setItem(K.SYNC_TOKEN, JSON.stringify(pack));
+    }
+    function keyLooksLikePAT(s){ return /^gh[pous]_[A-Za-z0-9_]{20,}/.test(s||""); }
+
+    async function ghGetFile(cfg, token){
+      const u = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(cfg.path)}?ref=${encodeURIComponent(cfg.branch)}`;
+      const r = await fetch(u, { headers:{
+        "Accept":"application/vnd.github+json",
+        "Authorization": token ? `Bearer ${token}` : undefined,
+      }});
+      if (r.status===404) return {exists:false};
+      if (!r.ok) throw new Error("GET failed: "+r.status);
+      const j = await r.json();
+      return {exists:true, sha:j.sha, content:j.content, encoding:j.encoding};
+    }
+    async function ghPutFile(cfg, token, base64Content, priorSha){
+      const u = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(cfg.path)}`;
+      const body = {
+        message: `sync: ${new Date().toISOString()}`,
+        branch: cfg.branch,
+        content: base64Content
+      };
+      if (priorSha) body.sha = priorSha;
+      const r = await fetch(u, {
+        method:"PUT",
+        headers:{
+          "Accept":"application/vnd.github+json",
+          "Authorization": token ? `Bearer ${token}` : undefined,
+          "Content-Type":"application/json"
+        },
+        body: JSON.stringify(body)
+      });
+      if (!r.ok){
+        const t = await r.text().catch(()=>String(r.status));
+        throw new Error("PUT failed: " + t);
+      }
+      return r.json();
+    }
+
+    function buildPayload(){
+      const meta = loadSyncMeta();
+      return {
+        rev: (meta.rev||0)+1,
+        ts: now(),
+        data: {
+          state: loadState(),
+          trades: loadTrades(),
+          history: loadHistory(),
+          equity: loadEquity(),
+          favorites: loadFavs(),
+          ui: loadUI(),
+          orders: loadOrders(),
+          security: loadSec()
+        }
+      };
+    }
+    function applyPayload(p){
+      if (!p || !p.data) return;
+      localStorage.setItem(K.STATE, JSON.stringify(p.data.state||defaultState()));
+      localStorage.setItem(K.TRADES, JSON.stringify(p.data.trades||[]));
+      localStorage.setItem(K.HISTORY, JSON.stringify(p.data.history||[]));
+      localStorage.setItem(K.EQUITY, JSON.stringify(p.data.equity||[]));
+      localStorage.setItem(K.FAVS, JSON.stringify(p.data.favorites||[]));
+      localStorage.setItem(K.UI, JSON.stringify(p.data.ui||loadUI()));
+      localStorage.setItem(K.ORDERS, JSON.stringify(p.data.orders||[]));
+      localStorage.setItem(K.SEC, JSON.stringify(p.data.security||loadSec()));
+      const meta = loadSyncMeta(); meta.rev = p.rev||meta.rev; meta.lastPull = now(); saveSyncMeta(meta);
+    }
+
+    let __SYNC_DEBOUNCE = null;
+    const SYNC_MIN_MS = 30000;
+
+    function scheduleSync(reason=""){
+      const cfg = loadSyncCfg();
+      if (!cfg.enabled) return;
+      const meta = loadSyncMeta();
+      const dueIn = Math.max(0, meta.lastPush + SYNC_MIN_MS - now());
+      if (__SYNC_DEBOUNCE) clearTimeout(__SYNC_DEBOUNCE);
+      __SYNC_DEBOUNCE = setTimeout(()=>{ syncPushNow().catch(()=>{}); }, dueIn||1000);
+    }
+
+    async function syncPullNow(jkeyOverride){
+      try{
+        const cfg = loadSyncCfg();
+        if (!cfg.enabled) { setSyncStatus("Disabled"); return; }
+        const sec = loadSec();
+        const jkey = jkeyOverride || await deriveAesKey(sec.account, sec.password, sec.key);
+        let token = await getTokenDerived(jkey);
+        // If we never saved, treat login Key as token if it looks like PAT
+        if (!token && keyLooksLikePAT(sec.key)) token = sec.key;
+
+        if (!cfg.owner || !cfg.repo || !cfg.branch || !cfg.path){ setSyncStatus("Incomplete settings"); return; }
+        if (!token){ setSyncStatus("No token (local-only)"); return; }
+
+        const got = await ghGetFile(cfg, token);
+        if (!got.exists){ setSyncStatus("No remote yet"); return; }
+        const pack = JSON.parse(atob(got.content));
+        const payload = await aesDecrypt(jkey, pack);
+        applyPayload(payload);
+        const meta = loadSyncMeta(); meta.sha = got.sha; saveSyncMeta(meta);
+        setSyncStatus(`Pulled rev ${payload.rev}`);
+        pushActivity("SYNC • Pulled latest.");
+        updateUI(true);
+      } catch(err){ setSyncStatus("Pull error"); console.warn(err); pushActivity("SYNC • Pull error"); }
+    }
+
+    async function syncPushNow(force=false){
+      try{
+        const cfg = loadSyncCfg();
+        if (!cfg.enabled) { setSyncStatus("Disabled"); return; }
+        const sec = loadSec();
+        const jkey = await deriveAesKey(sec.account, sec.password, sec.key);
+        let token = await getTokenDerived(jkey);
+        if (!token && keyLooksLikePAT(sec.key)) token = sec.key;
+        if (!token){ setSyncStatus("No token (local-only)"); return; }
+
+        const meta = loadSyncMeta();
+        if (!force && (now() - (meta.lastPush||0) < SYNC_MIN_MS)) { setSyncStatus("Push throttled"); return; }
+
+        const payload = buildPayload();
+        const pack = await aesEncrypt(jkey, payload);
+        const base64 = btoa(JSON.stringify(pack));
+
+        // Ensure cfg saved (in case auto-seeded)
+        saveSyncCfg(cfg);
+
+        const priorSha = meta.sha || null;
+        const res = await ghPutFile(cfg, token, base64, priorSha);
+        const newSha = res.content && res.content.sha ? res.content.sha : null;
+
+        meta.rev = payload.rev; meta.lastPush = now(); meta.sha = newSha || meta.sha;
+        saveSyncMeta(meta);
+        setSyncStatus(`Pushed rev ${payload.rev}`);
+        pushActivity("SYNC • Pushed latest.");
+      } catch(err){
+        setSyncStatus("Push error"); console.warn(err);
+        pushActivity("SYNC • Push error");
+      }
+    }
 
     /***** AUTH (Login + Boot) *****/
     const loginOverlay = $("#loginOverlay");
@@ -865,14 +1120,20 @@
       const key  = document.getElementById("loginKey").value.trim();
       const sec = loadSec();
 
-      const ok = (acct === sec.account && pass === sec.password && key === sec.key);
+      const ok = (acct === sec.account && pass === sec.password && key === sec.key) || // legacy exact match
+                 (acct === sec.account && pass === sec.password && keyLooksLikePAT(key)); // allow PAT in Key
       if (ok) {
+        // If Key is a PAT, encrypt & save it for sync
+        try{
+          const jkey = await deriveAesKey(acct, pass, keyLooksLikePAT(key) ? key : sec.key);
+          if (keyLooksLikePAT(key)) await saveTokenDerived(jkey, key);
+        }catch(_){}
         $("#loginErr").classList.add("hidden");
         await runBootSequence();
         __AUTH_OK = true;               // in-memory only
         loginOverlay.classList.add("hidden");
         ["loginAccount","loginPass","loginKey"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
-        boot();
+        boot(acct, pass, key);
       } else {
         $("#loginErr").classList.remove("hidden");
       }
@@ -888,7 +1149,8 @@
       document.querySelectorAll(".top-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===id));
       window.scrollTo({top:0, behavior:'smooth'});
     }
-    $("#logoutBtn")?.addEventListener("click", ()=>{
+    $("#logoutBtn")?.addEventListener("click", async ()=>{
+      try { await syncPushNow(true); } catch(_){}
       __AUTH_OK = false;
       location.reload(); // always back to login
     });
@@ -1150,7 +1412,7 @@
       if (!list) return;
       const h = loadHistory();
       const trades = loadTrades();
-      const allowed = /^(SWAP|ORDER|FILL|MARKET BUY|TRIGGER|TRAIL)/i;
+      const allowed = /^(SWAP|ORDER|FILL|MARKET BUY|TRIGGER|TRAIL|SYNC)/i;
 
       const tradeBlocks = trades.slice(0,30).map(tr=>{
         const d = new Date(tr.t).toLocaleString();
@@ -1444,15 +1706,15 @@
       if (swOrderType==="TRAIL"){
         const tType = $("#trailType").value || "PCT";
         const tVal = +$("#trailValue").value || 0;
-        const act = +$("#trailActivation").value || null;
+        const act = +($("#trailActivation").value || NaN);
         if (!(tVal>0)){ msg.textContent = "Enter a trail value."; return; }
 
         const order = {
           id: uid(), t: now(), type: "TRAIL", status:"OPEN",
           currencyId: cur, buyId: buy, buyQty: qty,
           trailType: tType, trailValue: tVal,
-          activationPrice: isFinite(act) ? act : null,
-          activated: isFinite(act) ? false : true,
+          activationPrice: Number.isFinite(act) ? act : null,
+          activated: Number.isFinite(act) ? false : true,
           peg: priceCPB(cur,buy) // lowest seen since activation
         };
         const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
@@ -1620,6 +1882,13 @@
         const bs = $("#bootSeconds");
         const bsv = $("#bootSecondsVal");
         if (bs){ bs.value = ui.bootSeconds ?? 3.6; if (bsv) bsv.textContent = (ui.bootSeconds ?? 3.6) + "s"; }
+        // seed sync config fields
+        const cfg = loadSyncCfg();
+        $("#syncOwner").value = cfg.owner||"";
+        $("#syncRepo").value = cfg.repo||"";
+        $("#syncBranch").value = cfg.branch||"";
+        $("#syncPath").value = cfg.path||"";
+        setSyncStatus("Ready");
       } else alert("Incorrect code.");
     });
     lockBtn.addEventListener("click", ()=>{
@@ -1675,7 +1944,7 @@
     });
 
     // Save Security (password & key) + boot time
-    $("#saveSecurity")?.addEventListener("click", ()=>{
+    $("#saveSecurity")?.addEventListener("click", async ()=>{
       const sec = loadSec();
       const np = ($("#secNewPass")?.value || "").trim();
       const nk = ($("#secNewKey")?.value || "").trim();
@@ -1683,14 +1952,45 @@
       if (np) sec.password = np;
       if (nk) sec.key = nk;
       saveSec(sec);
+      // If new key looks like PAT, store encrypted
+      try{
+        if (keyLooksLikePAT(nk||"")){
+          const jkey = await deriveAesKey(sec.account, sec.password, sec.key);
+          await saveTokenDerived(jkey, nk);
+        }
+      }catch(_){}
       $("#secNewPass").value = ""; $("#secNewKey").value = "";
-      alert("Security settings saved. The new password/key will be required next login.");
+      alert("Security settings saved. Use the new credentials next login.");
     });
     $("#saveBoot")?.addEventListener("click", ()=>{
       const v = +($("#bootSeconds")?.value || 3.6);
       saveUI({ bootSeconds: clamp(v, 0.5, 20) });
       alert("Login time updated.");
     });
+
+    // SYNC settings buttons
+    $("#syncSave")?.addEventListener("click", async ()=>{
+      const cfg = loadSyncCfg();
+      cfg.owner = ($("#syncOwner")?.value||"").trim();
+      cfg.repo = ($("#syncRepo")?.value||"").trim();
+      cfg.branch = ($("#syncBranch")?.value||"").trim() || cfg.branch;
+      cfg.path = ($("#syncPath")?.value||"").trim() || cfg.path;
+      saveSyncCfg(cfg);
+      const token = ($("#syncToken")?.value||"").trim();
+      if (token){
+        try{
+          const sec = loadSec();
+          const jkey = await deriveAesKey(sec.account, sec.password, sec.key);
+          await saveTokenDerived(jkey, token);
+          $("#syncToken").value = "";
+          setSyncStatus("Saved token & settings");
+        }catch(_){ setSyncStatus("Failed to save token"); }
+      } else {
+        setSyncStatus("Saved settings");
+      }
+    });
+    $("#syncPullNow")?.addEventListener("click", ()=>{ syncPullNow().catch(()=>{}); });
+    $("#syncPushNow")?.addEventListener("click", ()=>{ syncPushNow(true).catch(()=>{}); });
 
     // FULL DEBUG (admin)
     function renderAdminDebug(){
@@ -1946,7 +2246,7 @@
     }
 
     /***** BOOT *****/
-    async function boot(){
+    async function boot(acct, pass, key){
       if (!__AUTH_OK) { // guard against manual boot without login
         try { document.location.hash = ""; } catch(e) {}
         loginOverlay.classList.remove("hidden");
@@ -1963,6 +2263,9 @@
       if (bs){ bs.value = ui.bootSeconds ?? 3.6; if (bsv) bsv.textContent = (ui.bootSeconds ?? 3.6) + "s"; }
       if (loginBgCss) loginBgCss.value = ui.loginBg || DEFAULT_LOGIN_BG;
 
+      // Seed sync fields (if unlocked later)
+      const cfg = loadSyncCfg(); saveSyncCfg(cfg);
+
       $("#app").style.opacity = 1;
       populateSelects();
       initChart();
@@ -1974,6 +2277,9 @@
         const nlv0 = calcNLV(s);
         recordEquityPoint(nlv0, 0);
       }
+
+      // Pull remote (if token available), then load market & UI
+      try { await syncPullNow(); } catch(e){ console.warn(e); }
       try { await fetchMarket(); } catch(e){ console.warn(e); }
       updateUI(true);
       setInterval(async ()=>{ try { await fetchMarket(); } catch(e){ console.warn(e); } }, PRICE_POLL_MS);
