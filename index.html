@@ -87,12 +87,12 @@
     .section-gap{ gap: 16px; }
     .kpi{ border-radius: 14px; background: #f8fafc; border:1px solid var(--border); padding: 14px; }
 
-    /* Make NLV always fit the box */
+    /* NLV: always one line, auto-fit */
     #nlvValue{
-      font-size: clamp(1.25rem, 3.5vw, 1.875rem);
-      line-height: 1.1;
-      word-break: break-word;
-      overflow-wrap: anywhere;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       font-variant-numeric: tabular-nums;
     }
     #headerNLV{
@@ -282,7 +282,7 @@
               <div class="w-full lg:w-64 space-y-3">
                 <div class="kpi">
                   <div class="text-xs text-slate-500">Net Liquidation Value</div>
-                  <div id="nlvValue" class="font-semibold mt-1">$—</div>
+                  <div id="nlvValue" class="mt-1">$—</div>
                   <div id="nlvDelta" class="text-sm mt-1">—</div>
                 </div>
                 <div class="kpi">
@@ -591,6 +591,24 @@
             </div>
             <div class="text-xs text-slate-500">Saved on your device.</div>
           </div>
+
+          <!-- LOGIN SCREEN BACKGROUND -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+            <div>
+              <label class="text-xs text-slate-500">Login Background (color or CSS gradient)</label>
+              <textarea id="loginBgCss" class="input mt-1" rows="3" placeholder="e.g. linear-gradient(135deg,#0ea5e9,#9333ea) or #111827"></textarea>
+              <div class="text-xs text-slate-500 mt-1">Tip: paste any valid CSS background value.</div>
+            </div>
+            <div>
+              <label class="text-xs text-slate-500">Quick Color</label>
+              <input id="loginBgColor" type="color" class="mt-1 w-20 h-10 p-0 border rounded-md" />
+              <div class="text-xs text-slate-500 mt-1">Updates the field on the left.</div>
+            </div>
+            <div class="flex items-end gap-2">
+              <button id="saveLoginBg" class="btn btn-primary w-full">Save Login Background</button>
+              <button id="resetLoginBg" class="btn w-full">Reset</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -665,7 +683,7 @@
       TRADES: "dex_trades_v1",
       EQUITY: "dex_equity_v1",
       FAVS: "dex_favorites_v1",
-      UI: "dex_ui_v4",     // bumped to v4 for bootSeconds
+      UI: "dex_ui_v5",     // bumped to v5 for loginBg
       ORDERS: "dex_orders_v1",
       SEC: "dex_security_v1"
     };
@@ -719,7 +737,7 @@
     function loadUI(){ 
       const raw=localStorage.getItem(K.UI); 
       const defPad = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-x')) || 16;
-      const base = { paddingPx: defPad, theme: "light", brandHex: "#0ea5e9", bootSeconds: 3.6 };
+      const base = { paddingPx: defPad, theme: "light", brandHex: "#0ea5e9", bootSeconds: 3.6, loginBg: null };
       return raw? { ...base, ...JSON.parse(raw) } : base;
     }
     function saveUI(u){ 
@@ -776,6 +794,18 @@
     const loginLoading = $("#loginLoading");
     const bootLogsEl = $("#bootLogs");
     const progressBar = $("#progressBar");
+
+    // Default login background equals the inline value on #loginOverlay
+    const DEFAULT_LOGIN_BG = "radial-gradient(1200px 600px at 20% -10%, #0ea5e933, transparent), radial-gradient(1200px 600px at 120% 110%, #06b6d433, transparent), linear-gradient(180deg,#0b1220, #0b1220)";
+    function applyLoginBg(bg){
+      if (!loginOverlay) return;
+      loginOverlay.style.background = bg || DEFAULT_LOGIN_BG;
+    }
+    // Apply saved login background immediately (affects the login screen before auth)
+    (function initLoginBg(){
+      const ui = loadUI();
+      applyLoginBg(ui.loginBg || DEFAULT_LOGIN_BG);
+    })();
 
     // Prevent autofill memory (extra safeguards)
     ["loginAccount","loginPass","loginKey"].forEach(id=>{
@@ -990,6 +1020,23 @@
       tab.classList.add("active"); currentRange = tab.dataset.range; refreshChart();
     });
 
+    /***** NLV AUTOFIT (one-line) *****/
+    function autoFitNLV(){
+      const el = $("#nlvValue");
+      if (!el) return;
+      const max = 32;   // max font size in px
+      const min = 14;   // min font size in px
+      el.style.fontSize = max + "px";
+      // shrink until it fits
+      let size = max;
+      while (el.scrollWidth > el.clientWidth && size > min){
+        size -= 1;
+        el.style.fontSize = size + "px";
+      }
+    }
+    // Refit on resize
+    window.addEventListener("resize", ()=>{ autoFitNLV(); });
+
     /***** RENDER *****/
     function populateSelects(){
       const opts = getTradableAssets().map(a => `<option value="${a.id}">${a.symbol} • ${a.name}</option>`).join("");
@@ -1006,7 +1053,11 @@
     }
     function renderSummary(state){
       const nlv = calcNLV(state);
-      $("#nlvValue").textContent = fmtUsd(nlv);
+      const el = $("#nlvValue");
+      if (el) { el.textContent = fmtUsd(nlv); }
+      // Fit the NLV text after it changes
+      requestAnimationFrame(autoFitNLV);
+
       const series = loadEquity();
       const prev = series[1]?.nlv;
       const delta = prev!=null ? ((nlv - prev)/prev)*100 : 0;
@@ -1804,7 +1855,7 @@
       renderAdminDebug(); // keep debug refreshed if open
     }
 
-    /***** APPEARANCE (Padding + Theme + Brand) *****/
+    /***** APPEARANCE (Padding + Theme + Brand + Login BG) *****/
     function applyPadding(px){
       const val = Math.max(8, Math.min(56, +px || 16));
       document.documentElement.style.setProperty('--app-x', val+'px');
@@ -1861,6 +1912,39 @@
       saveUI({ brandHex: hex });
     });
 
+    // Login background controls
+    const loginBgColor = $("#loginBgColor");
+    const loginBgCss = $("#loginBgCss");
+    const saveLoginBgBtn = $("#saveLoginBg");
+    const resetLoginBgBtn = $("#resetLoginBg");
+
+    if (loginBgCss){
+      const ui = loadUI();
+      loginBgCss.value = ui.loginBg || DEFAULT_LOGIN_BG;
+    }
+    if (loginBgColor){
+      loginBgColor.addEventListener("input", ()=>{
+        if (loginBgCss) loginBgCss.value = loginBgColor.value;
+      });
+    }
+    if (saveLoginBgBtn){
+      saveLoginBgBtn.addEventListener("click", ()=>{
+        const v = (loginBgCss?.value || "").trim();
+        if (!v){ alert("Enter a color or gradient."); return; }
+        applyLoginBg(v);
+        saveUI({ loginBg: v });
+        alert("Login background saved. It applies on the next login screen too.");
+      });
+    }
+    if (resetLoginBgBtn){
+      resetLoginBgBtn.addEventListener("click", ()=>{
+        applyLoginBg(DEFAULT_LOGIN_BG);
+        saveUI({ loginBg: DEFAULT_LOGIN_BG });
+        if (loginBgCss) loginBgCss.value = DEFAULT_LOGIN_BG;
+        alert("Login background reset.");
+      });
+    }
+
     /***** BOOT *****/
     async function boot(){
       if (!__AUTH_OK) { // guard against manual boot without login
@@ -1877,6 +1961,7 @@
       if (brandInput) brandInput.value = ui.brandHex || "#0ea5e9";
       const bs = $("#bootSeconds"); const bsv = $("#bootSecondsVal");
       if (bs){ bs.value = ui.bootSeconds ?? 3.6; if (bsv) bsv.textContent = (ui.bootSeconds ?? 3.6) + "s"; }
+      if (loginBgCss) loginBgCss.value = ui.loginBg || DEFAULT_LOGIN_BG;
 
       $("#app").style.opacity = 1;
       populateSelects();
@@ -1893,12 +1978,12 @@
       updateUI(true);
       setInterval(async ()=>{ try { await fetchMarket(); } catch(e){ console.warn(e); } }, PRICE_POLL_MS);
       showPage("dashboard");
+      // Ensure NLV fits once content is visible
+      requestAnimationFrame(autoFitNLV);
     }
 
     // NOTE: No auto-boot. Login is always required on reload.
 
-    /***** EVENTS for Asset Modal *****/
-    function openAssetModal(){ $("#assetModal").classList.remove("hidden"); $("#assetSearchInput").focus(); renderFavoritesPanel(); $("#assetResults").innerHTML = `<div class="text-slate-500 text-sm">Try searching for “pepe”, “aptos”, “litecoin”…</div>`; }
   </script>
 </body>
 </html>
