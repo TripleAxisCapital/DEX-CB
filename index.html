@@ -87,9 +87,25 @@
     .section-gap{ gap: 16px; }
     .kpi{ border-radius: 14px; background: #f8fafc; border:1px solid var(--border); padding: 14px; }
 
+    /* Make NLV always fit the box */
+    #nlvValue{
+      font-size: clamp(1.25rem, 3.5vw, 1.875rem);
+      line-height: 1.1;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      font-variant-numeric: tabular-nums;
+    }
+    #headerNLV{
+      max-width: 190px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
+    }
+
     /* Login progress */
     .progress-wrap{ margin-top:.75rem; width:100%; height:8px; border-radius:999px; background:#e2e8f0; overflow:hidden; }
-    .progress-bar{ height:100%; width:0%; background: linear-gradient(90deg,var(--brand),var(--brand-2)); transition: width .35s ease; }
+    .progress-bar{ height:100%; width:0%; background: linear-gradient(90deg,var(--brand),var(--brand-2)); transition: width .2s ease; }
 
     /* Modal */
     .modal{ position:fixed; inset:0; z-index:60; display:flex; align-items:flex-end; justify-content:center; }
@@ -143,7 +159,7 @@
 
   <!-- LOGIN -->
   <div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center"
-       style="background: radial-gradient(1200px 600px at 20% -10%, var(--brand)/33, transparent), radial-gradient(1200px 600px at 120% 110%, var(--brand)/33, transparent), linear-gradient(180deg,#0b1220, #0b1220);">
+       style="background: radial-gradient(1200px 600px at 20% -10%, #0ea5e933, transparent), radial-gradient(1200px 600px at 120% 110%, #06b6d433, transparent), linear-gradient(180deg,#0b1220, #0b1220);">
     <div class="w-full max-w-sm card card-pad" style="background: var(--surface-2);">
       <div class="flex items-center gap-3 mb-2">
         <h1 class="text-xl font-semibold tracking-tight">Sign in</h1>
@@ -176,7 +192,7 @@
           <input id="loginKey"
                  class="input mt-1"
                  placeholder="One-time Key"
-                 inputmode="numeric"
+                 inputmode="text"
                  name="key_field_unique"
                  autocomplete="off"
                  autocapitalize="off" autocorrect="off" spellcheck="false" />
@@ -266,7 +282,7 @@
               <div class="w-full lg:w-64 space-y-3">
                 <div class="kpi">
                   <div class="text-xs text-slate-500">Net Liquidation Value</div>
-                  <div id="nlvValue" class="text-2xl md:text-3xl font-semibold mt-1">$—</div>
+                  <div id="nlvValue" class="font-semibold mt-1">$—</div>
                   <div id="nlvDelta" class="text-sm mt-1">—</div>
                 </div>
                 <div class="kpi">
@@ -458,9 +474,12 @@
         <div class="card card-pad space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="font-semibold">Advanced Controls</h3>
-            <button id="unlockBtn" class="btn">Unlock</button>
+            <div class="flex items-center gap-2">
+              <button id="lockBtn" class="btn hidden"><i class="ph ph-lock-key-open mr-1"></i>Lock</button>
+              <button id="unlockBtn" class="btn"><i class="ph ph-lock mr-1"></i>Unlock</button>
+            </div>
           </div>
-          <div id="lockedNote" class="text-sm text-slate-500">Restricted section. Enter code to manage holdings and commission. After unlock you’ll also see a debug panel.</div>
+          <div id="lockedNote" class="text-sm text-slate-500">Restricted section. Enter code to manage holdings, commission, security, and view debug. Use the Lock button to hide this section when you’re done.</div>
 
           <div id="advancedWrap" class="hidden space-y-6 mt-2">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -481,6 +500,37 @@
 
             <div class="border-t border-slate-200 pt-4 flex items-center gap-3">
               <button id="advReset" class="btn">Reset to Defaults</button>
+            </div>
+
+            <!-- SECURITY -->
+            <div class="border-t border-slate-200 pt-4">
+              <h4 class="font-medium mb-2">Login & Security</h4>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="text-xs text-slate-500">New Password</label>
+                  <input id="secNewPass" type="password" class="input mt-1" placeholder="Set a new password" />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">New Key</label>
+                  <input id="secNewKey" type="text" class="input mt-1" placeholder="Set a new key" />
+                </div>
+                <div class="flex items-end">
+                  <button id="saveSecurity" class="btn btn-primary w-full">Save Security</button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end mt-4">
+                <div>
+                  <label class="text-xs text-slate-500">Login Duration (seconds)</label>
+                  <input id="bootSeconds" type="range" min="0.5" max="20" step="0.1" class="w-full"
+                         oninput="document.getElementById('bootSecondsVal').textContent = this.value+'s'">
+                  <div class="text-xs text-slate-500"><span id="bootSecondsVal">3.6s</span></div>
+                </div>
+                <div class="flex items-end">
+                  <button id="saveBoot" class="btn btn-primary w-full">Apply Login Time</button>
+                </div>
+                <div class="text-xs text-slate-500">Controls how long the secure session boot takes.</div>
+              </div>
             </div>
 
             <!-- FULL DEBUG -->
@@ -615,8 +665,9 @@
       TRADES: "dex_trades_v1",
       EQUITY: "dex_equity_v1",
       FAVS: "dex_favorites_v1",
-      UI: "dex_ui_v3",     // bumped to v3 for brand color
-      ORDERS: "dex_orders_v1"
+      UI: "dex_ui_v4",     // bumped to v4 for bootSeconds
+      ORDERS: "dex_orders_v1",
+      SEC: "dex_security_v1"
     };
 
     // Default state
@@ -668,7 +719,7 @@
     function loadUI(){ 
       const raw=localStorage.getItem(K.UI); 
       const defPad = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-x')) || 16;
-      const base = { paddingPx: defPad, theme: "light", brandHex: "#0ea5e9" };
+      const base = { paddingPx: defPad, theme: "light", brandHex: "#0ea5e9", bootSeconds: 3.6 };
       return raw? { ...base, ...JSON.parse(raw) } : base;
     }
     function saveUI(u){ 
@@ -677,6 +728,14 @@
     }
     function loadOrders(){ const raw=localStorage.getItem(K.ORDERS); return raw?JSON.parse(raw):[]; }
     function saveOrders(o){ localStorage.setItem(K.ORDERS, JSON.stringify(o)); }
+
+    // Security (password/key)
+    function loadSec(){
+      const raw = localStorage.getItem(K.SEC);
+      if (raw) return JSON.parse(raw);
+      return { account: "DCEBF009", password: "#ONYX5", key: "336664" };
+    }
+    function saveSec(s){ localStorage.setItem(K.SEC, JSON.stringify(s)); }
 
     // Activity & trades
     function pushActivity(msg){
@@ -718,11 +777,6 @@
     const bootLogsEl = $("#bootLogs");
     const progressBar = $("#progressBar");
 
-    // Credentials (not persisted)
-    const VALID_ACCOUNT = "DCEBF009";
-    const VALID_PASSWORD = "#ONYX5";
-    const VALID_KEY = "336664";
-
     // Prevent autofill memory (extra safeguards)
     ["loginAccount","loginPass","loginKey"].forEach(id=>{
       const el = ()=>document.getElementById(id);
@@ -754,8 +808,11 @@
       bootLogsEl.innerHTML = "";
       if (progressBar) progressBar.style.width = "0%";
 
-      let idx = 0;
       const totalSteps = BOOT_LINES.length;
+      const totalMs = clamp(+loadUI().bootSeconds || 3.6, 0.5, 20) * 1000;
+      const stepMs = Math.max(100, Math.floor(totalMs / totalSteps));
+      let idx = 0;
+
       await new Promise(res=>{
         const intv = setInterval(()=>{
           appendLog(BOOT_LINES[idx] + "…");
@@ -764,9 +821,9 @@
           if (progressBar) progressBar.style.width = pct + "%";
           if (idx >= totalSteps){
             clearInterval(intv);
-            setTimeout(res, 350);
+            setTimeout(res, Math.min(400, Math.floor(stepMs * 0.4)));
           }
-        }, 420);
+        }, stepMs);
       });
     }
 
@@ -776,8 +833,9 @@
       const acct = document.getElementById("loginAccount").value.trim();
       const pass = document.getElementById("loginPass").value;
       const key  = document.getElementById("loginKey").value.trim();
+      const sec = loadSec();
 
-      const ok = (acct === VALID_ACCOUNT && pass === VALID_PASSWORD && key === VALID_KEY);
+      const ok = (acct === sec.account && pass === sec.password && key === sec.key);
       if (ok) {
         $("#loginErr").classList.add("hidden");
         await runBootSequence();
@@ -1114,14 +1172,12 @@
       let wantTo   = +($("#qsAmtTo")?.value   || 0);
 
       if (lastEdited === "FROM"){
-        // compute To based on From
         if (!(needFrom>0)){ el.textContent = "Enter an amount."; if($("#qsAmtTo")) $("#qsAmtTo").value=""; return; }
         if ((s.holdings[from]||0) < needFrom){ el.textContent = "Insufficient balance."; return; }
         const getTo = (needFrom * (1 - fee/100)) * r;
         if ($("#qsAmtTo")) $("#qsAmtTo").value = getTo ? getTo.toFixed(6) : "";
         el.textContent = `Rate: 1 ${getSymbol(from)} = ${r.toFixed(6)} ${getSymbol(to)} • Fee ${fee.toFixed(2)}% • Receive ≈ ${getTo.toFixed(6)} ${getSymbol(to)}`;
       } else {
-        // compute From based on desired To
         if (!(wantTo>0)){ el.textContent = "Enter an amount."; if($("#qsAmtFrom")) $("#qsAmtFrom").value=""; return; }
         const needFromCalc = wantTo / r / (1 - fee/100);
         if ($("#qsAmtFrom")) $("#qsAmtFrom").value = needFromCalc ? needFromCalc.toFixed(6) : "";
@@ -1499,15 +1555,28 @@
 
     /***** ADVANCED (SECRET) *****/
     const advWrap = $("#advancedWrap");
+    const lockBtn = $("#lockBtn");
     $("#unlockBtn").addEventListener("click", ()=>{
       const code = prompt("Enter access code:");
       if (code === SECRET_SETTINGS_CODE){
         $("#lockedNote").classList.add("hidden");
         advWrap.classList.remove("hidden");
+        lockBtn.classList.remove("hidden");
         loadAdvancedEditor();
         renderAdminDebug();
+        // seed UI controls with persisted values
+        const ui = loadUI();
+        const bs = $("#bootSeconds");
+        const bsv = $("#bootSecondsVal");
+        if (bs){ bs.value = ui.bootSeconds ?? 3.6; if (bsv) bsv.textContent = (ui.bootSeconds ?? 3.6) + "s"; }
       } else alert("Incorrect code.");
     });
+    lockBtn.addEventListener("click", ()=>{
+      advWrap.classList.add("hidden");
+      lockBtn.classList.add("hidden");
+      $("#lockedNote").classList.remove("hidden");
+    });
+
     function loadAdvancedEditor(){
       const s = loadState();
       const advCommission = $("#advCommission");
@@ -1552,6 +1621,24 @@
       saveState(s);
       loadAdvancedEditor();
       updateUI(true);
+    });
+
+    // Save Security (password & key) + boot time
+    $("#saveSecurity")?.addEventListener("click", ()=>{
+      const sec = loadSec();
+      const np = ($("#secNewPass")?.value || "").trim();
+      const nk = ($("#secNewKey")?.value || "").trim();
+      if (!np && !nk){ alert("Enter a new password and/or key."); return; }
+      if (np) sec.password = np;
+      if (nk) sec.key = nk;
+      saveSec(sec);
+      $("#secNewPass").value = ""; $("#secNewKey").value = "";
+      alert("Security settings saved. The new password/key will be required next login.");
+    });
+    $("#saveBoot")?.addEventListener("click", ()=>{
+      const v = +($("#bootSeconds")?.value || 3.6);
+      saveUI({ bootSeconds: clamp(v, 0.5, 20) });
+      alert("Login time updated.");
     });
 
     // FULL DEBUG (admin)
@@ -1698,7 +1785,8 @@
         equity: loadEquity(),
         favorites: loadFavs(),
         ui: loadUI(),
-        orders: loadOrders()
+        orders: loadOrders(),
+        security: loadSec()
       }, null, 2)], {type:"application/json"});
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -1787,6 +1875,8 @@
       applyTheme(ui.theme || "light");
       applyBrand(ui.brandHex || "#0ea5e9");
       if (brandInput) brandInput.value = ui.brandHex || "#0ea5e9";
+      const bs = $("#bootSeconds"); const bsv = $("#bootSecondsVal");
+      if (bs){ bs.value = ui.bootSeconds ?? 3.6; if (bsv) bsv.textContent = (ui.bootSeconds ?? 3.6) + "s"; }
 
       $("#app").style.opacity = 1;
       populateSelects();
