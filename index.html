@@ -605,12 +605,11 @@
     let __AUTH_OK = false;
 
     // --- Git-backed Sync configuration ---
-    // Fill these with your repo info. Use a *fine-grained* PAT scoped ONLY to this single repo with "Contents: Read & Write".
-    // Example: OWNER: "TripleAxisCapital", REPO: "DEX-CB"
+    // Use a fine-grained PAT with "Contents: Read & Write" for this repo.
     const GH = {
       OWNER: "TripleAxisCapital",
       REPO:  "DEX-CB",
-      BRANCH: "main",
+      BRANCH: "main", // used as a hint; we auto-detect the default below
       PATH:  "data/dex.sync.bin",
       TOKEN: "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" // leave empty to disable cloud sync
     };
@@ -744,21 +743,48 @@
     }
     const getSymbol = id => { const a = getTradableAssets().find(x=>x.id===id); return a?.symbol || id.toUpperCase(); };
 
-    /***** GIT-BACKED SYNC (PAT-derived key, no per-device creds, SEC not synced) *****/
+    /***** GIT-BACKED SYNC *****/
     const Sync = (()=>{
       let derivedKey = null;   // CryptoKey (AES-GCM)
       let lastSha = null;      // remote file sha
       let pauseSaves = false;  // avoid echo while applying remote
       let debounceId = 0;
+      let activeBranch = GH.BRANCH || null; // we’ll resolve to default, if needed
+      let repoChecked = false;
 
       const enabled = ()=> !!(GH.TOKEN && GH.TOKEN !== "YOUR_FINEGRAINED_PAT_HERE" && GH.OWNER && GH.REPO && GH.PATH);
 
-      function on(){
+      const baseHeaders = () => ({
+        // IMPORTANT: PATs use "token", not "Bearer"
+        "Authorization": `token ${GH.TOKEN}`,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      });
+
+      function endpoints(){
         return {
-          auth: `Bearer ${GH.TOKEN}`,
-          base: `https://api.github.com/repos/${GH.OWNER}/${GH.REPO}/contents/${encodeURIComponent(GH.PATH)}`,
-          ref:  `?ref=${encodeURIComponent(GH.BRANCH)}`
+          contentBase: `https://api.github.com/repos/${GH.OWNER}/${GH.REPO}/contents/${encodeURIComponent(GH.PATH)}`,
+          repoMeta:    `https://api.github.com/repos/${GH.OWNER}/${GH.REPO}`
         };
+      }
+
+      async function ensureRepo(){
+        if (!enabled() || repoChecked) return;
+        try{
+          const { repoMeta } = endpoints();
+          const res = await fetch(repoMeta, { headers: baseHeaders() });
+          if (!res.ok){
+            console.error("Sync • repo meta failed", res.status);
+            appendLog?.(`Sync • Repo access failed (status ${res.status}). Check token & repo.`);
+            return;
+          }
+          const js = await res.json();
+          if (!activeBranch) activeBranch = js.default_branch || "main";
+          repoChecked = true;
+          appendLog?.(`Sync • Using branch: ${activeBranch}`);
+        }catch(e){
+          console.error("Sync • ensureRepo error", e);
+        }
       }
 
       // derive AES key from PAT (+ stable salt)
@@ -802,7 +828,7 @@
             if (pkg.items[K.FAVS]    != null) saveFavs(pkg.items[K.FAVS]);
             if (pkg.items[K.UI]      != null) saveUI(pkg.items[K.UI]);
             if (pkg.items[K.ORDERS]  != null) saveOrders(pkg.items[K.ORDERS]);
-            // INTENTIONALLY DO NOT APPLY K.SEC FROM CLOUD
+            // Never sync SEC from cloud
           }
         } finally { pauseSaves = false; }
       }
@@ -831,11 +857,15 @@
 
       async function pull(){
         if (!enabled()) return { ok:false, reason:"disabled" };
-        const { auth, base, ref } = on();
-        const res = await fetch(base + ref, { headers: { "Authorization": auth, "Accept": "application/vnd.github+json" }});
+        await ensureRepo();
+        const { contentBase } = endpoints();
+        const url = contentBase + (activeBranch ? `?ref=${encodeURIComponent(activeBranch)}` : "");
+        const res = await fetch(url, { headers: baseHeaders() });
         if (res.status === 404) { lastSha = null; return { ok:true, exist:false }; }
-        if (!res.ok)
-          { return { ok:false, reason:"fetch_failed", status:res.status }; }
+        if (!res.ok){
+          console.error("Sync • pull failed", res.status);
+          return { ok:false, reason:"fetch_failed", status:res.status };
+        }
         const js = await res.json();
         lastSha = js.sha;
         const content = js.content || "";
@@ -852,24 +882,41 @@
 
       async function pushEncrypted(encryptedBlob){
         if (!enabled()) return { ok:false, reason:"disabled" };
-        const { auth, base } = on();
+        await ensureRepo();
+        const { contentBase } = endpoints();
         const contentB64 = btoa(JSON.stringify(encryptedBlob));
-        const body = {
+
+        // attempt 1 — include branch (if known)
+        let body = {
           message: `sync: ${new Date().toISOString()}`,
           content: contentB64,
-          branch:  GH.BRANCH,
           ...(lastSha ? { sha: lastSha } : {})
         };
-        const res = await fetch(base, {
+        if (activeBranch) body.branch = activeBranch;
+
+        let res = await fetch(contentBase, {
           method: "PUT",
-          headers: {
-            "Authorization": auth,
-            "Accept": "application/vnd.github+json",
-            "Content-Type": "application/json"
-          },
+          headers: { ...baseHeaders(), "Content-Type": "application/json" },
           body: JSON.stringify(body)
         });
-        if (!res.ok) return { ok:false, reason:"push_failed", status: res.status };
+
+        // attempt 2 — retry without explicit branch (defaults to repo default branch)
+        if (!res.ok){
+          console.warn("Sync • push attempt 1 failed", res.status);
+          const fallbackBody = { ...body };
+          delete fallbackBody.branch;
+          res = await fetch(contentBase, {
+            method: "PUT",
+            headers: { ...baseHeaders(), "Content-Type": "application/json" },
+            body: JSON.stringify(fallbackBody)
+          });
+        }
+
+        if (!res.ok){
+          console.error("Sync • push failed", res.status);
+          appendLog?.(`Sync • Push failed (status ${res.status}). Check token & repo access.`);
+          return { ok:false, reason:"push_failed", status: res.status };
+        }
         const js = await res.json();
         lastSha = js.content?.sha || lastSha;
         return { ok:true };
@@ -888,14 +935,15 @@
           } else if (result.ok && !result.exist){
             appendLog?.("Sync • No cloud file. Seeding repo…");
             const encBlob = await encryptPackage();
-            await pushEncrypted(encBlob);
-            appendLog?.("Sync • Seeded encrypted state to Git.");
+            const pushed = await pushEncrypted(encBlob);
+            if (pushed.ok) appendLog?.("Sync • Seeded encrypted state to Git.");
           } else if (result.reason === "decrypt_failed"){
             appendLog?.("Sync • Decryption failed (token changed?). Using local.");
           } else {
-            appendLog?.("Sync • Skipped (offline or config).");
+            appendLog?.("Sync • Pull skipped (offline or config).");
           }
         }catch(err){
+          console.error("Sync • init error", err);
           appendLog?.("Sync • Error: " + (err?.message||"unknown"));
         }
       }
@@ -905,8 +953,11 @@
         try{
           if (!derivedKey) await deriveFromToken();
           const encBlob = await encryptPackage();
-          await pushEncrypted(encBlob);
-        } catch(e){ /* ignore transient errors */ }
+          const r = await pushEncrypted(encBlob);
+          if (r.ok) appendLog?.("Sync • Pushed.");
+        } catch(e){
+          console.error("Sync • uploadNow error", e);
+        }
       }
 
       function scheduleUpload(){
@@ -915,18 +966,19 @@
         debounceId = setTimeout(uploadNow, 1200);
       }
 
-      // --- EXPORT uploadNow (CHANGE #1) ---
+      // Export API (includes uploadNow)
       return { enabled, initialOrUpdate, scheduleUpload, uploadNow };
     })();
 
     function onLocalChange(){ Sync.scheduleUpload(); }
 
-    // Flush on tab hide to avoid races when switching pages/tabs
+    // Flush on tab hide & pagehide to avoid races on close/switch
     document.addEventListener("visibilitychange", async ()=>{
       if (document.visibilityState === "hidden"){
         try { await Sync.uploadNow(); } catch(e) {}
       }
     });
+    window.addEventListener("pagehide", async ()=>{ try { await Sync.uploadNow(); } catch(e) {} });
 
     /***** AUTH *****/
     const loginOverlay = $("#loginOverlay");
@@ -950,6 +1002,7 @@
       el.textContent = `> ${line}`;
       bootLogsEl.appendChild(el);
       bootLogsEl.scrollTop = bootLogsEl.scrollHeight;
+      try{ console.log(line); }catch(_){}
     }
 
     const BOOT_LINES = [
@@ -1001,7 +1054,7 @@
           $("#loginErr").classList.add("hidden");
           await runBootSequence();
 
-          // === Git-backed sync (no user creds needed) ===
+          // === Git-backed sync ===
           await Sync.initialOrUpdate();
 
           __AUTH_OK = true;
@@ -1012,7 +1065,6 @@
           $("#loginErr").classList.remove("hidden");
         }
       }catch(err){
-        // If anything throws, show error visibly so it never "does nothing"
         $("#loginErr").textContent = "Login error: " + (err?.message || err || "unknown");
         $("#loginErr").classList.remove("hidden");
         loginForm.classList.remove("hidden");
@@ -1030,7 +1082,7 @@
       document.querySelectorAll(".top-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===id));
       window.scrollTo({top:0, behavior:'smooth'});
     }
-    // --- Flush sync on logout (CHANGE #3) ---
+    // Flush sync on logout
     $("#logoutBtn")?.addEventListener("click", async ()=>{
       try { await Sync.uploadNow(); } catch(e) {}
       __AUTH_OK = false;
@@ -1239,9 +1291,10 @@
         list.appendChild(row);
       }
       list.querySelectorAll("[data-toggle-fav]").forEach(btn=>{
-        btn.addEventListener("click", ()=>{
+        btn.addEventListener("click", async ()=>{
           const id = btn.getAttribute("data-toggle-fav");
           toggleFavoriteById(id);
+          try { await Sync.uploadNow(); } catch(e) {}
         });
       });
     }
@@ -1428,7 +1481,7 @@
       }
       if (swOrderType==="TRAIL"){
         const tType = $("#trailType").value || "PCT";
-        const tVal = +$("#trailValue").value || 0;
+        const tVal = +($("#trailValue").value || 0);
         const act = +($("#trailActivation").value || 0) || null;
         if (!(tVal>0)){ el.textContent = "Enter a trail value."; return; }
         const label = tType==="PCT" ? `${tVal}%` : `${tVal} ${getSymbol(cur)}`;
@@ -1491,7 +1544,7 @@
       }
 
       if (swOrderType==="STOP"){
-        const S = +$("#stopPriceBuy").value || 0;
+        const S = +($("#stopPriceBuy").value || 0);
         const dir = $("#stopSide").value || "ABOVE";
         const exec = $("#stopExec").value || "MARKET";
         const SL = +($("#stopLimitPriceBuy").value || 0);
@@ -1909,7 +1962,7 @@
         try { await Sync.uploadNow(); } catch(e) {}
       });
 
-      // --- BRAND — save & push immediately (CHANGE #2) ---
+      // BRAND — save & push immediately
       const brandInput = $("#brandColor");
       async function saveBrandNow(hex){
         saveUI({ brandHex: hex });
@@ -1921,7 +1974,6 @@
         await saveBrandNow(hex);
         alert("Brand color saved & synced.");
       });
-      // Optional: autosave on picker change (no button needed)
       brandInput?.addEventListener("change", async (e)=>{
         await saveBrandNow(e.target.value || "#0ea5e9");
       });
