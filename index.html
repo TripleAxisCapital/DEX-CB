@@ -745,6 +745,51 @@
 
     /***** GIT-BACKED SYNC *****/
     const Sync = (()=>{
+
+      // ===== NEW: merge helpers for conflict-safe sync =====
+      function uniqBy(arr, keyFn){
+        const seen = new Set(); const out=[];
+        for (const it of arr){
+          const k = keyFn(it);
+          if (!seen.has(k)){ seen.add(k); out.push(it); }
+        }
+        return out;
+      }
+      function mergePackages(localPkg, remotePkg){
+        // If remote missing, just return local
+        if (!remotePkg || !remotePkg.items) return localPkg;
+        const L = localPkg.items, R = remotePkg.items;
+
+        // Settings/UI/state prefer local (you're pushing now)
+        const items = {
+          [K.STATE]:   L[K.STATE]  ?? R[K.STATE],
+          [K.UI]:      L[K.UI]     ?? R[K.UI],
+          // Arrays => union by sensible key then cap lengths
+          [K.TRADES]:  uniqBy([...(L[K.TRADES]||[]), ...(R[K.TRADES]||[])], x=>x.t).sort((a,b)=>b.t-a.t).slice(0,500),
+          [K.HISTORY]: uniqBy([...(L[K.HISTORY]||[]),...(R[K.HISTORY]||[])], x=>x.t).sort((a,b)=>b.t-a.t).slice(0,200),
+          [K.EQUITY]:  uniqBy([...(L[K.EQUITY]||[]), ...(R[K.EQUITY]||[])], x=>x.t).sort((a,b)=>b.t-a.t).slice(0,20000),
+          [K.FAVS]:    uniqBy([...(L[K.FAVS]||[]),  ...(R[K.FAVS]||[])],  x=>x.id),
+          [K.ORDERS]:  (()=>{ // prefer filled/cancelled status if present
+            const map = new Map();
+            [...(R[K.ORDERS]||[]), ...(L[K.ORDERS]||[])].forEach(o=>{
+              const prev = map.get(o.id);
+              if (!prev) map.set(o.id, o);
+              else {
+                // If either says FILLED/CANCELLED, keep that; otherwise keep the newer t
+                if ((prev.status!=="OPEN") || (o.status!=="OPEN")){
+                  map.set(o.status!=="OPEN" ? o : prev);
+                } else {
+                  map.set((o.t||0) >= (prev.t||0) ? o : prev);
+                }
+              }
+            });
+            return Array.from(map.values()).sort((a,b)=>b.t-a.t).slice(0,1000);
+          })()
+        };
+
+        return { v: 1, ts: Math.max(localPkg.ts||0, remotePkg.ts||0), items };
+      }
+
       let derivedKey = null;   // CryptoKey (AES-GCM)
       let lastSha = null;      // remote file sha
       let pauseSaves = false;  // avoid echo while applying remote
@@ -833,10 +878,10 @@
         } finally { pauseSaves = false; }
       }
 
-      async function encryptPackage(){
+      async function encryptPackage(pkg){
         if (!derivedKey) await deriveFromToken();
         const iv = crypto.getRandomValues(new Uint8Array(12));
-        const data = enc.encode(JSON.stringify(gatherAll()));
+        const data = enc.encode(JSON.stringify(pkg));
         const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, derivedKey, data);
         return {
           v: 1,
@@ -880,36 +925,62 @@
         }
       }
 
-      async function pushEncrypted(encryptedBlob){
-        if (!enabled()) return { ok:false, reason:"disabled" };
-        await ensureRepo();
-        const { contentBase } = endpoints();
-        const contentB64 = btoa(JSON.stringify(encryptedBlob));
-
-        // attempt 1 — include branch (if known)
-        let body = {
-          message: `sync: ${new Date().toISOString()}`,
-          content: contentB64,
-          ...(lastSha ? { sha: lastSha } : {})
-        };
-        if (activeBranch) body.branch = activeBranch;
-
-        let res = await fetch(contentBase, {
+      async function tryPut(contentBase, body){
+        return fetch(contentBase, {
           method: "PUT",
           headers: { ...baseHeaders(), "Content-Type": "application/json" },
           body: JSON.stringify(body)
         });
+      }
+
+      // push with conflict handling/merge
+      async function pushMerged(encBlob){
+        if (!enabled()) return { ok:false, reason:"disabled" };
+        await ensureRepo();
+        const { contentBase } = endpoints();
+
+        // attempt 1 — include branch (if known)
+        let body = {
+          message: `sync: ${new Date().toISOString()}`,
+          content: btoa(JSON.stringify(encBlob)),
+          ...(lastSha ? { sha: lastSha } : {})
+        };
+        if (activeBranch) body.branch = activeBranch;
+
+        let res = await tryPut(contentBase, body);
 
         // attempt 2 — retry without explicit branch (defaults to repo default branch)
         if (!res.ok){
-          console.warn("Sync • push attempt 1 failed", res.status);
-          const fallbackBody = { ...body };
-          delete fallbackBody.branch;
-          res = await fetch(contentBase, {
-            method: "PUT",
-            headers: { ...baseHeaders(), "Content-Type": "application/json" },
-            body: JSON.stringify(fallbackBody)
-          });
+          const fallbackBody = { ...body }; delete fallbackBody.branch;
+          res = await tryPut(contentBase, fallbackBody);
+        }
+
+        // attempt 3 — conflict detected: pull, merge, re-encrypt, push again
+        if (!res.ok && (res.status===409 || res.status===422)){
+          appendLog?.("Sync • Conflict (409). Merging…");
+          const pulled = await pull(); // updates lastSha
+          const remotePkg = (pulled.ok && pulled.exist) ? pulled.pkg : null;
+          const localPkg  = gatherAll();
+          const merged    = mergePackages(localPkg, remotePkg);
+          const mergedEnc = await encryptPackage(merged);
+
+          // build new body with latest sha
+          const body2 = {
+            message: `sync: merge ${new Date().toISOString()}`,
+            content: btoa(JSON.stringify(mergedEnc)),
+            ...(lastSha ? { sha: lastSha } : {})
+          };
+          const res2 = await tryPut(contentBase, body2);
+          if (!res2.ok){
+            console.error("Sync • merge push failed", res2.status);
+            return { ok:false, reason:"push_failed_after_merge", status: res2.status };
+          }
+          // apply merged locally to stay consistent
+          applyAll(merged);
+          const js2 = await res2.json();
+          lastSha = js2.content?.sha || lastSha;
+          appendLog?.("Sync • Merged & pushed.");
+          return { ok:true };
         }
 
         if (!res.ok){
@@ -934,8 +1005,8 @@
             appendLog?.("Sync • Applied latest state from Git.");
           } else if (result.ok && !result.exist){
             appendLog?.("Sync • No cloud file. Seeding repo…");
-            const encBlob = await encryptPackage();
-            const pushed = await pushEncrypted(encBlob);
+            const encBlob = await encryptPackage(gatherAll());
+            const pushed = await pushMerged(encBlob);
             if (pushed.ok) appendLog?.("Sync • Seeded encrypted state to Git.");
           } else if (result.reason === "decrypt_failed"){
             appendLog?.("Sync • Decryption failed (token changed?). Using local.");
@@ -952,8 +1023,8 @@
         if (!enabled() || pauseSaves) return;
         try{
           if (!derivedKey) await deriveFromToken();
-          const encBlob = await encryptPackage();
-          const r = await pushEncrypted(encBlob);
+          const encBlob = await encryptPackage(gatherAll());
+          const r = await pushMerged(encBlob);
           if (r.ok) appendLog?.("Sync • Pushed.");
         } catch(e){
           console.error("Sync • uploadNow error", e);
@@ -979,6 +1050,7 @@
       }
     });
     window.addEventListener("pagehide", async ()=>{ try { await Sync.uploadNow(); } catch(e) {} });
+    window.addEventListener("beforeunload", ()=>{ /* best-effort fire & forget */ Sync.uploadNow(); });
 
     /***** AUTH *****/
     const loginOverlay = $("#loginOverlay");
