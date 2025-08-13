@@ -744,31 +744,37 @@
     }
     const getSymbol = id => { const a = getTradableAssets().find(x=>x.id===id); return a?.symbol || id.toUpperCase(); };
 
-    /***** GIT-BACKED SYNC *****/
+    /***** GIT-BACKED SYNC (PAT-derived key, no per-device creds, SEC not synced) *****/
     const Sync = (()=>{
-      let derivedKey = null;
-      let lastSha = null;
-      let pauseSaves = false;
+      let derivedKey = null;   // CryptoKey (AES-GCM)
+      let lastSha = null;      // remote file sha
+      let pauseSaves = false;  // avoid echo while applying remote
       let debounceId = 0;
+
       const enabled = ()=> !!(GH.TOKEN && GH.TOKEN !== "YOUR_FINEGRAINED_PAT_HERE" && GH.OWNER && GH.REPO && GH.PATH);
 
-      function on(){ return { 
-        auth: `Bearer ${GH.TOKEN}`,
-        base: `https://api.github.com/repos/${GH.OWNER}/${GH.REPO}/contents/${encodeURIComponent(GH.PATH)}`
-      };}
-
-      async function derive(account, password, key, saltBytes){
-        const material = enc.encode(`${account}:${password}:${key}`);
-        const baseKey = await crypto.subtle.importKey("raw", material, "PBKDF2", false, ["deriveKey"]);
-        return crypto.subtle.deriveKey(
-          { name: "PBKDF2", salt: saltBytes, iterations: 200000, hash: "SHA-256" },
-          baseKey,
-          { name: "AES-GCM", length: 256 },
-          false,
-          ["encrypt","decrypt"]
-        );
+      function on(){ 
+        return { 
+          auth: `Bearer ${GH.TOKEN}`,
+          base: `https://api.github.com/repos/${GH.OWNER}/${GH.REPO}/contents/${encodeURIComponent(GH.PATH)}`,
+          ref:  `?ref=${encodeURIComponent(GH.BRANCH)}`
+        };
       }
 
+      // derive AES key from PAT (+ stable salt)
+      async function deriveFromToken(){
+        const material = enc.encode(GH.TOKEN);
+        const baseKey  = await crypto.subtle.importKey("raw", material, "PBKDF2", false, ["deriveKey"]);
+        const salt     = enc.encode(`DEX|${GH.OWNER}/${GH.REPO}|${GH.PATH}|v1`);
+        const key = await crypto.subtle.deriveKey(
+          { name:"PBKDF2", salt, iterations: 150000, hash:"SHA-256" },
+          baseKey, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]
+        );
+        derivedKey = key;
+        return { key, salt };
+      }
+
+      // what we sync (NOTE: SEC/login NOT synced)
       function gatherAll(){
         return {
           v: 1,
@@ -780,8 +786,7 @@
             [K.EQUITY]:   loadEquity(),
             [K.FAVS]:     loadFavs(),
             [K.UI]:       loadUI(),
-            [K.ORDERS]:   loadOrders(),
-            [K.SEC]:      loadSec()
+            [K.ORDERS]:   loadOrders()
           }
         };
       }
@@ -797,54 +802,49 @@
             if (pkg.items[K.FAVS]    != null) saveFavs(pkg.items[K.FAVS]);
             if (pkg.items[K.UI]      != null) saveUI(pkg.items[K.UI]);
             if (pkg.items[K.ORDERS]  != null) saveOrders(pkg.items[K.ORDERS]);
-            if (pkg.items[K.SEC]     != null) saveSec(pkg.items[K.SEC]);
+            // INTENTIONALLY DO NOT APPLY K.SEC FROM CLOUD
           }
         } finally { pauseSaves = false; }
       }
 
-      async function encryptPackage(account, password, key){
-        const salt = enc.encode(`DEX|${account}|v1`);
-        derivedKey = await derive(account, password, key, salt);
+      async function encryptPackage(){
+        if (!derivedKey) await deriveFromToken();
         const iv = crypto.getRandomValues(new Uint8Array(12));
         const data = enc.encode(JSON.stringify(gatherAll()));
         const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, derivedKey, data);
         return {
           v: 1,
           algo: "AES-GCM",
-          pbkdf2: { iters: 200000, hash: "SHA-256", salt_b64: b64.fromBytes(salt) },
           iv_b64: b64.fromBytes(iv),
           ct_b64: b64.fromBytes(ct),
           ts: Date.now()
         };
       }
 
-      async function decryptPackage(blob, account, password, key){
-        const salt = b64.toBytes(blob.pbkdf2?.salt_b64 || "");
-        derivedKey = await derive(account, password, key, salt);
+      async function decryptPackage(blob){
+        if (!derivedKey) await deriveFromToken();
         const iv = b64.toBytes(blob.iv_b64);
         const ct = b64.toBytes(blob.ct_b64);
         const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv}, derivedKey, ct);
-        const obj = JSON.parse(dec.decode(new Uint8Array(pt)));
-        return obj;
+        return JSON.parse(dec.decode(new Uint8Array(pt)));
       }
 
-      async function pull(account, password, key){
+      async function pull(){
         if (!enabled()) return { ok:false, reason:"disabled" };
-        const { auth, base } = on();
-        const res = await fetch(base + `?ref=${encodeURIComponent(GH.BRANCH)}`, {
-          headers: { "Authorization": auth, "Accept": "application/vnd.github+json" }
-        });
+        const { auth, base, ref } = on();
+        const res = await fetch(base + ref, { headers: { "Authorization": auth, "Accept": "application/vnd.github+json" }});
         if (res.status === 404) { lastSha = null; return { ok:true, exist:false }; }
-        if (!res.ok) { return { ok:false, reason:"fetch_failed" }; }
+        if (!res.ok)           { return { ok:false, reason:"fetch_failed", status:res.status }; }
         const js = await res.json();
         lastSha = js.sha;
         const content = js.content || "";
         const text = atob(content.replace(/\n/g,""));
-        const blob = JSON.parse(text);
+        let blob;
+        try { blob = JSON.parse(text); } catch { return { ok:false, reason:"parse_failed" }; }
         try{
-          const pkg = await decryptPackage(blob, account, password, key);
+          const pkg = await decryptPackage(blob);
           return { ok:true, exist:true, pkg };
-        } catch(e){
+        } catch{
           return { ok:false, reason:"decrypt_failed" };
         }
       }
@@ -852,14 +852,13 @@
       async function pushEncrypted(encryptedBlob){
         if (!enabled()) return { ok:false, reason:"disabled" };
         const { auth, base } = on();
-        const contentB64 = btoa(JSON.stringify(encryptedBlob, null, 0));
+        const contentB64 = btoa(JSON.stringify(encryptedBlob));
         const body = {
           message: `sync: ${new Date().toISOString()}`,
           content: contentB64,
-          branch: GH.BRANCH
+          branch:  GH.BRANCH,
+          ...(lastSha ? { sha: lastSha } : {})
         };
-        if (lastSha) body.sha = lastSha;
-
         const res = await fetch(base, {
           method: "PUT",
           headers: {
@@ -875,43 +874,46 @@
         return { ok:true };
       }
 
-      async function initialOrUpdate(account, password, key){
-        if (!enabled()) { appendLog("Sync • Skipped (disabled)."); return; }
-        appendLog("Sync • Connecting to GitHub…");
+      async function initialOrUpdate(){
+        if (!enabled()) { appendLog?.("Sync • Skipped (disabled)."); return; }
+        appendLog?.("Sync • Connecting to GitHub…");
         try{
-          const result = await pull(account, password, key);
+          await deriveFromToken();
+          const result = await pull();
           if (result.ok && result.exist && result.pkg){
-            appendLog("Sync • Decrypting cloud state…");
+            appendLog?.("Sync • Decrypting cloud state…");
             applyAll(result.pkg);
-            appendLog("Sync • Applied latest state from Git.");
+            appendLog?.("Sync • Applied latest state from Git.");
           } else if (result.ok && !result.exist){
-            appendLog("Sync • No cloud file. Seeding repo…");
-            const encBlob = await encryptPackage(account, password, key);
+            appendLog?.("Sync • No cloud file. Seeding repo…");
+            const encBlob = await encryptPackage();
             await pushEncrypted(encBlob);
-            appendLog("Sync • Seeded encrypted state to Git.");
+            appendLog?.("Sync • Seeded encrypted state to Git.");
           } else if (result.reason === "decrypt_failed"){
-            appendLog("Sync • Decryption failed (wrong credentials?). Using local.");
+            appendLog?.("Sync • Decryption failed (token changed?). Using local.");
           } else {
-            appendLog("Sync • Fetch failed. Using local.");
+            appendLog?.("Sync • Skipped (offline or config).");
           }
         }catch(err){
-          appendLog("Sync • Error: " + (err?.message||"unknown"));
+          appendLog?.("Sync • Error: " + (err?.message||"unknown"));
         }
       }
 
       async function uploadNow(){
-        if (!enabled() || pauseSaves || !derivedKey) return;
+        if (!enabled() || pauseSaves) return;
         try{
-          const sec = loadSec();
-          const encBlob = await encryptPackage(sec.account, sec.password, sec.key);
+          if (!derivedKey) await deriveFromToken();
+          const encBlob = await encryptPackage();
           await pushEncrypted(encBlob);
         } catch(e){ /* ignore transient errors */ }
       }
+
       function scheduleUpload(){
-        if (!enabled() || pauseSaves || !derivedKey) return;
+        if (!enabled() || pauseSaves) return;
         clearTimeout(debounceId);
         debounceId = setTimeout(uploadNow, 1200);
       }
+
       return { enabled, initialOrUpdate, scheduleUpload };
     })();
 
@@ -990,7 +992,8 @@
           $("#loginErr").classList.add("hidden");
           await runBootSequence();
 
-          await Sync.initialOrUpdate(acct, pass, key);
+          // === Git-backed sync (no user creds needed) ===
+          await Sync.initialOrUpdate();
 
           __AUTH_OK = true;
           loginOverlay.classList.add("hidden");
@@ -1487,7 +1490,7 @@
 
       if (swOrderType==="TRAIL"){
         const tType = $("#trailType").value || "PCT";
-        const tVal = +$("#trailValue").value || 0;
+        const tVal = +($("#trailValue").value || 0);
         const act = +($("#trailActivation").value || 0) || null;
         if (!(tVal>0)){ msg.textContent = "Enter a trail value."; return; }
         const order = { id: uid(), t: now(), type: "TRAIL", status:"OPEN", currencyId: cur, buyId: buy, buyQty: qty, trailType: tType, trailValue: tVal, activationPrice: isFinite(act) ? act : null, activated: isFinite(act) ? false : true, peg: priceCPB(cur,buy) };
