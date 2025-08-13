@@ -1,35 +1,29 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
-  <!-- =========================
-       GLOBAL VARIABLES (UI)
-       ========================= -->
   <style>
     :root{
-      /* Global horizontal padding — change this or use Settings → Appearance */
-      --app-x: 16px;           /* left/right padding on all pages */
-      --app-maxw: 1200px;      /* content max width */
-      --radius-xl: 16px;       /* card rounding */
+      --app-x: 16px;
+      --app-maxw: 1200px;
+      --radius-xl: 16px;
       --radius-2xl: 20px;
       --shadow-sm: 0 1px 2px rgba(0,0,0,.05), 0 1px 1px rgba(0,0,0,.04);
       --shadow-md: 0 6px 20px rgba(0,0,0,.08);
 
-      /* Brand (editable) */
-      --brand: #0ea5e9;        /* default sky-500 */
-      --brand-dark: #0284c7;   /* derived at runtime */
-      --brand-2: #06b6d4;      /* accent for gradients */
-      --brand-rgb: 14,165,233; /* computed at runtime "r,g,b" */
+      --brand: #0ea5e9;
+      --brand-dark: #0284c7;
+      --brand-2: #06b6d4;
+      --brand-rgb: 14,165,233;
 
-      --ink: #0f172a;          /* slate-900 */
-      --muted: #64748b;        /* slate-500 */
+      --ink: #0f172a;
+      --muted: #64748b;
       --surface: #ffffff;
       --surface-2: rgba(255,255,255,.85);
-      --bg: #f8fafc;           /* slate-50 */
+      --bg: #f8fafc;
       --border: rgba(15,23,42,.08);
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
-    /* Dark theme variable overrides */
     [data-theme="dark"]{
       --ink: #e5e7eb; 
       --muted: #94a3b8; 
@@ -46,17 +40,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>DEX</title>
 
-  <!-- Tailwind (CDN for single-file MVP) -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Icons -->
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
-
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
-    /* -------- Framework-y utilities -------- */
     html,body{ background: var(--bg); color: var(--ink); }
     .app-shell{ padding-left: var(--app-x); padding-right: var(--app-x); max-width: var(--app-maxw); margin: 0 auto; }
     .header-blur{ backdrop-filter: saturate(140%) blur(10px); -webkit-backdrop-filter: saturate(140%) blur(10px); background: var(--surface-2) !important; }
@@ -87,7 +75,6 @@
     .section-gap{ gap: 16px; }
     .kpi{ border-radius: 14px; background: #f8fafc; border:1px solid var(--border); padding: 14px; }
 
-    /* NLV: always one line, auto-fit */
     #nlvValue{
       font-weight: 600;
       white-space: nowrap;
@@ -103,35 +90,28 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* Login progress */
     .progress-wrap{ margin-top:.75rem; width:100%; height:8px; border-radius:999px; background:#e2e8f0; overflow:hidden; }
     .progress-bar{ height:100%; width:0%; background: linear-gradient(90deg,var(--brand),var(--brand-2)); transition: width .2s ease; }
 
-    /* Modal */
     .modal{ position:fixed; inset:0; z-index:60; display:flex; align-items:flex-end; justify-content:center; }
     @media (min-width:768px){ .modal{ align-items:center; } }
     .modal-bg{ position:absolute; inset:0; background:rgba(0,0,0,.45); backdrop-filter: blur(4px); }
     .modal-card{ position:relative; width:100%; max-width:760px; border-radius:20px; border:1px solid var(--border); background: var(--surface); padding:20px; }
 
-    /* Bottom Nav (mobile) */
     .bottom-nav{ position:sticky; bottom:0; z-index:50; padding: 8px calc(var(--app-x)); background: var(--surface-2); border-top:1px solid var(--border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding-bottom: calc(8px + var(--safe-bottom)); }
     .bottom-btn{ flex:1; display:flex; gap:6px; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:#f1f5f9; font-size:.8rem; }
     .bottom-btn.active{ background: var(--brand); color:#fff; border-color: var(--brand-dark); }
     [data-theme="dark"] .bottom-btn{ background:#0b1220; color:#e5e7eb; border-color:#334155; }
 
-    /* Inputs */
     .input{ width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; outline:none; background:#fff; }
     .input:focus{ box-shadow:0 0 0 4px rgba(var(--brand-rgb), .15); }
     [data-theme="dark"] .input{ background:#0b1220; color:#e5e7eb; border-color:#334155; }
 
-    /* Chart container */
     .chart-box{ height: 240px; }
     @media (min-width:1024px){ .chart-box{ height: 280px; } }
 
-    /* Safe top for header */
     .pt-safe{ padding-top: calc(8px + var(--safe-top)); }
 
-    /* Positions: Apple-like spacious list */
     .pos-header{ display:none; }
     @media (min-width:768px){
       .pos-header{ display:grid; grid-template-columns: 4fr 2fr 2fr 2fr 2fr; gap: 12px; font-size:.75rem; text-transform:uppercase; color:#64748b; letter-spacing:.03em; }
@@ -142,7 +122,6 @@
     }
     .pos-row + .pos-row{ border-top: 1px solid var(--border); }
 
-    /* Dark-specific surface tweaks */
     [data-theme="dark"] .card{ background: rgba(2,6,23,.85); border-color:#334155; }
     [data-theme="dark"] .kpi{ background:#0b1220; border-color:#334155; }
     [data-theme="dark"] .btn{ background:#1f2937; color:#e5e7eb; border-color:#334155; }
@@ -150,7 +129,6 @@
     [data-theme="dark"] .modal-card{ background:#0b1220; border-color:#334155; }
     [data-theme="dark"] .header-blur{ background: rgba(2,6,23,.75)!important; }
 
-    /* Desktop top nav */
     .top-nav .top-btn{ border-radius: 10px; }
     .top-nav .top-btn.active{ background: var(--brand); color:#fff; border-color: var(--brand-dark); }
   </style>
@@ -165,44 +143,24 @@
         <h1 class="text-xl font-semibold tracking-tight">Sign in</h1>
       </div>
 
-      <!-- Use a real <form> to better control autofill behavior -->
       <form id="loginForm" class="space-y-3" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
         <div>
           <label class="text-xs text-slate-500">Account</label>
-          <input id="loginAccount"
-                 class="input mt-1"
-                 placeholder="Account ID"
-                 inputmode="text"
-                 name="account_field_unique"
-                 autocomplete="off"
-                 autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <input id="loginAccount" class="input mt-1" placeholder="Account ID" inputmode="text" name="account_field_unique" autocomplete="off" />
         </div>
         <div>
           <label class="text-xs text-slate-500">Password</label>
-          <input id="loginPass"
-                 type="password"
-                 class="input mt-1"
-                 placeholder="Password"
-                 name="password_field_unique"
-                 autocomplete="new-password"
-                 autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <input id="loginPass" type="password" class="input mt-1" placeholder="Password" name="password_field_unique" autocomplete="new-password" />
         </div>
         <div>
           <label class="text-xs text-slate-500">Key</label>
-          <input id="loginKey"
-                 class="input mt-1"
-                 placeholder="One-time Key"
-                 inputmode="text"
-                 name="key_field_unique"
-                 autocomplete="off"
-                 autocapitalize="off" autocorrect="off" spellcheck="false" />
+          <input id="loginKey" class="input mt-1" placeholder="One-time Key" inputmode="text" name="key_field_unique" autocomplete="off" />
         </div>
 
         <button id="loginBtn" class="btn btn-primary w-full" type="submit">Continue</button>
         <p id="loginErr" class="hidden text-sm text-rose-600">Invalid credentials.</p>
       </form>
 
-      <!-- Post-auth loading state -->
       <div id="loginLoading" class="hidden">
         <div class="flex items-center gap-2 text-slate-700">
           <i class="ph ph-shield-check"></i>
@@ -217,13 +175,11 @@
   <!-- APP -->
   <div id="app" class="opacity-0 transition-opacity duration-300">
 
-    <!-- Header -->
     <header class="sticky top-0 z-40 border-b border-[color:var(--border)] header-blur">
       <div class="app-shell pt-safe">
         <div class="h-14 md:h-16 flex items-center justify-between">
           <div class="flex items-center gap-3">
             <span class="text-lg font-semibold -tracking-tight">DEX</span>
-            <!-- Desktop top nav -->
             <div class="hidden md:flex items-center gap-2 top-nav ml-3">
               <button class="btn top-btn active" data-tab="dashboard"><i class="ph ph-house mr-1"></i>Home</button>
               <button class="btn top-btn" data-tab="swap"><i class="ph ph-arrows-left-right mr-1"></i>Trade</button>
@@ -238,7 +194,6 @@
             <span id="headerNLV" class="hidden md:inline text-sm font-medium px-2.5 py-1 rounded-lg" style="background:#e2e8f0;"></span>
             <button id="logoutBtn" class="btn">Log out</button>
           </div>
-          <!-- Mobile actions -->
           <div class="md:hidden flex items-center gap-3">
             <button id="openAssetSearchMobile" class="btn btn-ghost p-2"><i class="ph ph-magnifying-glass"></i></button>
           </div>
@@ -246,10 +201,9 @@
       </div>
     </header>
 
-    <!-- Content -->
     <main class="app-shell py-4 md:py-6 space-y-6">
 
-      <!-- DASHBOARD (no Positions here) -->
+      <!-- DASHBOARD -->
       <section id="page-dashboard" class="space-y-4 md:space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-3 section-gap">
           <div class="card card-pad col-span-2">
@@ -258,7 +212,6 @@
               <div class="text-xs md:text-sm text-slate-500">Updated <span id="lastUpdated">—</span></div>
             </div>
 
-            <!-- Range Tabs -->
             <div class="mb-3 flex items-center justify-between gap-3">
               <div class="flex items-center gap-2">
                 <button class="pill-tab active" data-range="7D">7D</button>
@@ -293,7 +246,7 @@
             </div>
           </div>
 
-          <!-- Quick Swap (simplified) -->
+          <!-- Quick Swap -->
           <div class="card card-pad">
             <div class="flex items-center justify-between mb-3">
               <h2 class="text-lg font-semibold">Quick Swap</h2>
@@ -326,7 +279,6 @@
           </div>
         </div>
 
-        <!-- Activity / Trades (filtered to trading/order events only) -->
         <div class="card card-pad">
           <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold">Recent Activity & Trades</h2>
@@ -336,7 +288,7 @@
         </div>
       </section>
 
-      <!-- POSITIONS (own page) -->
+      <!-- POSITIONS -->
       <section id="page-positions" class="hidden space-y-4">
         <div class="card card-pad">
           <div class="flex items-center justify-between mb-3">
@@ -356,10 +308,9 @@
         </div>
       </section>
 
-      <!-- SWAP / TRADING PAGE -->
+      <!-- SWAP -->
       <section id="page-swap" class="hidden space-y-4">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <!-- Order ticket -->
           <div class="card card-pad lg:col-span-2">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-lg font-semibold">Trade</h2>
@@ -389,7 +340,6 @@
               </div>
             </div>
 
-            <!-- Advanced price controls by order type -->
             <div id="limitWrap" class="hidden mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label class="text-xs text-slate-500">Limit Price (Currency / 1 Buy)</label>
@@ -454,7 +404,6 @@
             </div>
           </div>
 
-          <!-- Orders/Status -->
           <div class="card card-pad">
             <h3 class="font-semibold mb-3">Open Orders</h3>
             <div id="openOrders" class="space-y-2 text-sm">
@@ -479,7 +428,7 @@
               <button id="unlockBtn" class="btn"><i class="ph ph-lock mr-1"></i>Unlock</button>
             </div>
           </div>
-          <div id="lockedNote" class="text-sm text-slate-500">Restricted section. Enter code to manage holdings, commission, security, and view debug. Use the Lock button to hide this section when you’re done.</div>
+          <div id="lockedNote" class="text-sm text-slate-500">Restricted section. Enter code to manage holdings, commission, security, and view debug.</div>
 
           <div id="advancedWrap" class="hidden space-y-6 mt-2">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -502,7 +451,6 @@
               <button id="advReset" class="btn">Reset to Defaults</button>
             </div>
 
-            <!-- SECURITY -->
             <div class="border-t border-slate-200 pt-4">
               <h4 class="font-medium mb-2">Login & Security</h4>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -533,7 +481,6 @@
               </div>
             </div>
 
-            <!-- FULL DEBUG -->
             <div class="border-t border-slate-200 pt-4">
               <h4 class="font-medium mb-2">Debug • Full Activity & Trades</h4>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -592,7 +539,6 @@
             <div class="text-xs text-slate-500">Saved on your device.</div>
           </div>
 
-          <!-- LOGIN SCREEN BACKGROUND -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
             <div>
               <label class="text-xs text-slate-500">Login Background (color or CSS gradient)</label>
@@ -614,7 +560,6 @@
 
     </main>
 
-    <!-- Bottom Nav (mobile) -->
     <nav class="bottom-nav md:hidden">
       <div class="flex items-center gap-2">
         <button class="bottom-btn active" data-tab="dashboard"><i class="ph ph-house"></i><span>Home</span></button>
@@ -657,21 +602,20 @@
   <script>
     /***** CONFIG *****/
     const SECRET_SETTINGS_CODE = "admin123";
-    let __AUTH_OK = false; // in-memory only (lost on reload)
+    let __AUTH_OK = false;
 
     // --- Git-backed Sync configuration ---
-    // Fill these with your repo info (the same repo this HTML lives in).
-    // Use a *fine-grained* PAT scoped ONLY to this single repo with "Contents: Read and Write".
-    // If TOKEN is left empty, sync is disabled and the app behaves as before.
+    // Fill these with your repo info. Use a *fine-grained* PAT scoped ONLY to this single repo with "Contents: Read & Write".
+    // Example: OWNER: "TripleAxisCapital", REPO: "DEX-CB"
     const GH = {
       OWNER: "TripleAxisCapital",
       REPO:  "DEX-CB",
       BRANCH: "main",
-      PATH:  "data/dex.sync.bin",   // where the encrypted blob will live in the repo
-      TOKEN: "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" // ← optional: hard-code once
+      PATH:  "data/dex.sync.bin",
+      TOKEN: "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" // leave empty to disable cloud sync
     };
 
-    // Core asset universe (ships by default)
+    // Core assets
     const CORE_ASSETS = [
       { id: "bitcoin",       symbol: "BTC", name: "Bitcoin" },
       { id: "ethereum",      symbol: "ETH", name: "Ethereum" },
@@ -685,22 +629,19 @@
       { id: "tron",          symbol: "TRX", name: "TRON" },
     ];
 
-    // Polling
     const PRICE_POLL_MS = 10000;
 
-    // Storage keys
     const K = {
       STATE: "dex_state_v1",
       HISTORY: "dex_history_v1",
       TRADES: "dex_trades_v1",
       EQUITY: "dex_equity_v1",
       FAVS: "dex_favorites_v1",
-      UI: "dex_ui_v5",     // bumped to v5 for loginBg
+      UI: "dex_ui_v5",
       ORDERS: "dex_orders_v1",
       SEC: "dex_security_v1"
     };
 
-    // Default state
     const defaultState = () => ({
       commissionPct: 0.30,
       holdings: {
@@ -726,7 +667,6 @@
     const uid = () => (Date.now().toString(36)+Math.random().toString(36).slice(2,7)).toUpperCase();
     const enc = new TextEncoder(); const dec = new TextDecoder();
 
-    // Tiny color helpers
     const hexToRgb = (hex) => {
       const m = hex.replace('#','').match(/^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
       if(!m) return {r:14,g:165,b:233};
@@ -734,9 +674,7 @@
     };
     const rgbToHex = (r,g,b)=>"#"+[r,g,b].map(x=>x.toString(16).padStart(2,"0")).join("");
     const darken = (hex, pct=20)=>{ const {r,g,b}=hexToRgb(hex); const f=(v)=>Math.max(0,Math.min(255,Math.round(v*(1-pct/100)))); return rgbToHex(f(r),f(g),f(b)); };
-    const mix = (hex1, hex2, t=0.5)=>{ const a=hexToRgb(hex1), b=hexToRgb(hex2); const lerp=(x,y)=>Math.round(x+(y-x)*t); return rgbToHex(lerp(a.r,b.r),lerp(a.g,b.g),lerp(a.b,b.b)); };
 
-    // Helper: base64 <-> bytes
     const b64 = {
       fromBytes: (buf) => {
         let binary = ""; const bytes = new Uint8Array(buf);
@@ -752,8 +690,6 @@
       }
     };
 
-    // State & persistence
-    // (save* functions now also inform the sync engine)
     function loadState(){ const raw=localStorage.getItem(K.STATE); return raw?JSON.parse(raw):defaultState(); }
     function saveState(s){ localStorage.setItem(K.STATE, JSON.stringify(s)); onLocalChange(); }
     function loadHistory(){ const raw=localStorage.getItem(K.HISTORY); return raw?JSON.parse(raw):[]; }
@@ -770,15 +706,10 @@
       const base = { paddingPx: defPad, theme: "light", brandHex: "#0ea5e9", bootSeconds: 3.6, loginBg: null };
       return raw? { ...base, ...JSON.parse(raw) } : base;
     }
-    function saveUI(u){ 
-      const cur = loadUI();
-      localStorage.setItem(K.UI, JSON.stringify({ ...cur, ...u })); 
-      onLocalChange();
-    }
+    function saveUI(u){ const cur = loadUI(); localStorage.setItem(K.UI, JSON.stringify({ ...cur, ...u })); onLocalChange(); }
     function loadOrders(){ const raw=localStorage.getItem(K.ORDERS); return raw?JSON.parse(raw):[]; }
     function saveOrders(o){ localStorage.setItem(K.ORDERS, JSON.stringify(o)); onLocalChange(); }
 
-    // Security (password/key)
     function loadSec(){
       const raw = localStorage.getItem(K.SEC);
       if (raw) return JSON.parse(raw);
@@ -786,7 +717,6 @@
     }
     function saveSec(s){ localStorage.setItem(K.SEC, JSON.stringify(s)); onLocalChange(); }
 
-    // Activity & trades
     function pushActivity(msg){
       const h=loadHistory(); h.unshift({t:now(),msg}); saveHistory(h.slice(0,200)); renderActivity();
     }
@@ -794,7 +724,6 @@
       const list = loadTrades(); list.unshift(trade); saveTrades(list.slice(0,500));
     }
 
-    // Equity series (persisted)
     function recordEquityPoint(nlv, minGapMs=60_000){
       if (!isFinite(nlv)) return;
       const series = loadEquity();
@@ -806,7 +735,6 @@
       }
     }
 
-    // Tradable assets = CORE + FAVS
     function getTradableAssets(){
       const favs = loadFavs();
       const map = new Map();
@@ -814,18 +742,14 @@
       favs.forEach(a=>map.set(a.id,a));
       return Array.from(map.values());
     }
-    const getSymbol = id => {
-      const a = getTradableAssets().find(x=>x.id===id);
-      return a?.symbol || id.toUpperCase();
-    };
+    const getSymbol = id => { const a = getTradableAssets().find(x=>x.id===id); return a?.symbol || id.toUpperCase(); };
 
-    /***** GIT-BACKED SYNC (single-file, client-side) *****/
+    /***** GIT-BACKED SYNC *****/
     const Sync = (()=>{
-      let derivedKey = null;   // CryptoKey (AES-GCM)
-      let lastSha = null;      // remote file sha (for updates)
-      let pauseSaves = false;  // to avoid echo upload while applying remote
-      let debounceId = 0;      // debounced uploader
-
+      let derivedKey = null;
+      let lastSha = null;
+      let pauseSaves = false;
+      let debounceId = 0;
       const enabled = ()=> !!(GH.TOKEN && GH.TOKEN !== "YOUR_FINEGRAINED_PAT_HERE" && GH.OWNER && GH.REPO && GH.PATH);
 
       function on(){ return { 
@@ -833,7 +757,6 @@
         base: `https://api.github.com/repos/${GH.OWNER}/${GH.REPO}/contents/${encodeURIComponent(GH.PATH)}`
       };}
 
-      // Derive a 256-bit AES-GCM key from Account+Password+Key and a salt
       async function derive(account, password, key, saltBytes){
         const material = enc.encode(`${account}:${password}:${key}`);
         const baseKey = await crypto.subtle.importKey("raw", material, "PBKDF2", false, ["deriveKey"]);
@@ -874,11 +797,9 @@
             if (pkg.items[K.FAVS]    != null) saveFavs(pkg.items[K.FAVS]);
             if (pkg.items[K.UI]      != null) saveUI(pkg.items[K.UI]);
             if (pkg.items[K.ORDERS]  != null) saveOrders(pkg.items[K.ORDERS]);
-            if (pkg.items[K.SEC]     != null) saveSec(pkg.items[K.SEC]); // propagates password/key changes
+            if (pkg.items[K.SEC]     != null) saveSec(pkg.items[K.SEC]);
           }
-        } finally {
-          pauseSaves = false;
-        }
+        } finally { pauseSaves = false; }
       }
 
       async function encryptPackage(account, password, key){
@@ -955,22 +876,26 @@
       }
 
       async function initialOrUpdate(account, password, key){
-        if (!enabled()) return;
+        if (!enabled()) { appendLog("Sync • Skipped (disabled)."); return; }
         appendLog("Sync • Connecting to GitHub…");
-        const result = await pull(account, password, key);
-        if (result.ok && result.exist && result.pkg){
-          appendLog("Sync • Decrypting cloud state…");
-          applyAll(result.pkg);
-          appendLog("Sync • Applied latest state from Git.");
-        } else if (result.ok && !result.exist){
-          appendLog("Sync • No cloud file. Seeding repo…");
-          const encBlob = await encryptPackage(account, password, key);
-          await pushEncrypted(encBlob);
-          appendLog("Sync • Seeded encrypted state to Git.");
-        } else if (result.reason === "decrypt_failed"){
-          appendLog("Sync • Decryption failed (wrong credentials?). Using local.");
-        } else {
-          appendLog("Sync • Skipped (offline or config).");
+        try{
+          const result = await pull(account, password, key);
+          if (result.ok && result.exist && result.pkg){
+            appendLog("Sync • Decrypting cloud state…");
+            applyAll(result.pkg);
+            appendLog("Sync • Applied latest state from Git.");
+          } else if (result.ok && !result.exist){
+            appendLog("Sync • No cloud file. Seeding repo…");
+            const encBlob = await encryptPackage(account, password, key);
+            await pushEncrypted(encBlob);
+            appendLog("Sync • Seeded encrypted state to Git.");
+          } else if (result.reason === "decrypt_failed"){
+            appendLog("Sync • Decryption failed (wrong credentials?). Using local.");
+          } else {
+            appendLog("Sync • Fetch failed. Using local.");
+          }
+        }catch(err){
+          appendLog("Sync • Error: " + (err?.message||"unknown"));
         }
       }
 
@@ -978,50 +903,31 @@
         if (!enabled() || pauseSaves || !derivedKey) return;
         try{
           const sec = loadSec();
-          // Re-encrypt with current credentials; this also ensures new password/key immediately re-keys the blob
           const encBlob = await encryptPackage(sec.account, sec.password, sec.key);
           await pushEncrypted(encBlob);
         } catch(e){ /* ignore transient errors */ }
       }
-
       function scheduleUpload(){
         if (!enabled() || pauseSaves || !derivedKey) return;
         clearTimeout(debounceId);
-        debounceId = setTimeout(uploadNow, 1200); // debounce multiple local writes
+        debounceId = setTimeout(uploadNow, 1200);
       }
-
-      return {
-        enabled,
-        initialOrUpdate,
-        scheduleUpload
-      };
+      return { enabled, initialOrUpdate, scheduleUpload };
     })();
 
-    // Called by save* helpers whenever data changes
-    function onLocalChange(){
-      Sync.scheduleUpload();
-    }
+    function onLocalChange(){ Sync.scheduleUpload(); }
 
-    /***** AUTH (Login + Boot) *****/
+    /***** AUTH *****/
     const loginOverlay = $("#loginOverlay");
     const loginForm = $("#loginForm");
     const loginLoading = $("#loginLoading");
     const bootLogsEl = $("#bootLogs");
     const progressBar = $("#progressBar");
 
-    // Default login background equals the inline value on #loginOverlay
     const DEFAULT_LOGIN_BG = "radial-gradient(1200px 600px at 20% -10%, #0ea5e933, transparent), radial-gradient(1200px 600px at 120% 110%, #06b6d433, transparent), linear-gradient(180deg,#0b1220, #0b1220)";
-    function applyLoginBg(bg){
-      if (!loginOverlay) return;
-      loginOverlay.style.background = bg || DEFAULT_LOGIN_BG;
-    }
-    // Apply saved login background immediately (affects the login screen before auth)
-    (function initLoginBg(){
-      const ui = loadUI();
-      applyLoginBg(ui.loginBg || DEFAULT_LOGIN_BG);
-    })();
+    function applyLoginBg(bg){ if (loginOverlay) loginOverlay.style.background = bg || DEFAULT_LOGIN_BG; }
+    (function initLoginBg(){ const ui = loadUI(); applyLoginBg(ui.loginBg || DEFAULT_LOGIN_BG); })();
 
-    // Prevent autofill memory (extra safeguards)
     ["loginAccount","loginPass","loginKey"].forEach(id=>{
       const el = ()=>document.getElementById(id);
       document.addEventListener("DOMContentLoaded", ()=>{ if(el()) el().value=""; });
@@ -1071,28 +977,34 @@
       });
     }
 
-    // Handle login (ALWAYS required; no persisted auth)
     loginForm.addEventListener("submit", async (e)=>{
       e.preventDefault();
-      const acct = document.getElementById("loginAccount").value.trim();
-      const pass = document.getElementById("loginPass").value;
-      const key  = document.getElementById("loginKey").value.trim();
-      const sec = loadSec();
+      try{
+        const acct = document.getElementById("loginAccount").value.trim();
+        const pass = document.getElementById("loginPass").value;
+        const key  = document.getElementById("loginKey").value.trim();
+        const sec = loadSec();
 
-      const ok = (acct === sec.account && pass === sec.password && key === sec.key);
-      if (ok) {
-        $("#loginErr").classList.add("hidden");
-        await runBootSequence();
+        const ok = (acct === sec.account && pass === sec.password && key === sec.key);
+        if (ok) {
+          $("#loginErr").classList.add("hidden");
+          await runBootSequence();
 
-        // === Git-backed sync happens here (before UI boot) ===
-        await Sync.initialOrUpdate(acct, pass, key);
+          await Sync.initialOrUpdate(acct, pass, key);
 
-        __AUTH_OK = true;               // in-memory only
-        loginOverlay.classList.add("hidden");
-        ["loginAccount","loginPass","loginKey"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
-        boot();
-      } else {
+          __AUTH_OK = true;
+          loginOverlay.classList.add("hidden");
+          ["loginAccount","loginPass","loginKey"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
+          boot();
+        } else {
+          $("#loginErr").classList.remove("hidden");
+        }
+      }catch(err){
+        // If anything throws, show error visibly so it never "does nothing"
+        $("#loginErr").textContent = "Login error: " + (err?.message || err || "unknown");
         $("#loginErr").classList.remove("hidden");
+        loginForm.classList.remove("hidden");
+        loginLoading.classList.add("hidden");
       }
     });
     const loginBtn = document.getElementById('loginBtn');
@@ -1108,16 +1020,10 @@
     }
     $("#logoutBtn")?.addEventListener("click", ()=>{
       __AUTH_OK = false;
-      location.reload(); // always back to login
+      location.reload();
     });
-    document.querySelectorAll(".bottom-btn").forEach(btn=>{
-      btn.addEventListener("click", ()=>showPage(btn.dataset.tab));
-    });
-    document.querySelectorAll(".top-btn").forEach(btn=>{
-      btn.addEventListener("click", ()=>showPage(btn.dataset.tab));
-    });
-
-    // Mobile header search
+    document.querySelectorAll(".bottom-btn").forEach(btn=>btn.addEventListener("click", ()=>showPage(btn.dataset.tab)));
+    document.querySelectorAll(".top-btn").forEach(btn=>btn.addEventListener("click", ()=>showPage(btn.dataset.tab)));
     $("#openAssetSearchMobile")?.addEventListener("click", ()=>openAssetModal());
     $("#openAssetSearch")?.addEventListener("click", ()=>openAssetModal());
 
@@ -1132,9 +1038,7 @@
       if (!res.ok) throw new Error("Market API error");
       const data = await res.json();
       const out = {};
-      data.forEach(row => {
-        out[row.id] = { price: +row.current_price, chg24: row.price_change_percentage_24h_in_currency ?? row.price_change_percentage_24h ?? 0, image: row.image };
-      });
+      data.forEach(row => { out[row.id] = { price: +row.current_price, chg24: row.price_change_percentage_24h_in_currency ?? row.price_change_percentage_24h ?? 0, image: row.image }; });
       market = out;
       lastUpdated = now();
       updateUI(true);
@@ -1143,16 +1047,15 @@
     const priceOf = id => market[id]?.price ?? null;
     const imageOf = id => market[id]?.image ?? "";
 
-    /***** PRICE HELPERS (Currency per 1 Buy) *****/
     function priceCPB(currencyId, buyId){
       const c = priceOf(currencyId), b = priceOf(buyId);
       if (c==null || b==null) return null;
-      return b / c; // currency units per 1 unit of buy asset
+      return b / c;
     }
     function commissionPct(){ return clamp(loadState().commissionPct, 0, 100); }
     function calcFromForBuyQty(buyQty, px, feePct){
       const gross = buyQty * px;
-      const fromAmt = gross / (1 - feePct/100); // pay fee in currency, keep buyQty exact
+      const fromAmt = gross / (1 - feePct/100);
       return { fromAmt, gross, feeAmt: fromAmt - gross };
     }
     function executeBuyAtPrice(state, currencyId, buyId, buyQty, px){
@@ -1164,7 +1067,6 @@
       return { ok:true, fromAmt, feePct, px };
     }
 
-    /***** PORTFOLIO *****/
     function calcNLV(state){
       let total = 0;
       for (const a of getTradableAssets()){
@@ -1178,25 +1080,19 @@
     let chart; let currentRange = "7D";
     function makeBrandGradient(ctx){
       const g = ctx.createLinearGradient(0,0,0,260);
-      const {r,g:gg,b} = hexToRgb(loadUI().brandHex || "#0ea5e9");
+      const rgb = getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#0ea5e9";
+      const {r,g:gg,b} = hexToRgb(rgb);
       g.addColorStop(0, `rgba(${r},${gg},${b},0.35)`);
       g.addColorStop(1, `rgba(${r},${gg},${b},0.02)`);
       return g;
     }
     function initChart(){
-      const ctx = $("#nlvChart").getContext("2d");
+      const canvas = $("#nlvChart");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
       chart = new Chart(ctx, {
         type: "line",
-        data: {
-          labels: [],
-          datasets: [{
-            label: "Portfolio",
-            data: [],
-            tension: 0.3, borderWidth: 2, pointRadius: 0,
-            borderColor: getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#0ea5e9",
-            fill: true, backgroundColor: makeBrandGradient(ctx)
-          }]
-        },
+        data: { labels: [], datasets: [{ label: "Portfolio", data: [], tension: 0.3, borderWidth: 2, pointRadius: 0, borderColor: getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#0ea5e9", fill: true, backgroundColor: makeBrandGradient(ctx) }] },
         options: {
           responsive:true, maintainAspectRatio:false, animation:false,
           plugins:{ legend:{display:false}, tooltip:{mode:'index',intersect:false, callbacks:{ label: ctx => fmtUsd(ctx.parsed.y) }}},
@@ -1238,21 +1134,17 @@
       tab.classList.add("active"); currentRange = tab.dataset.range; refreshChart();
     });
 
-    /***** NLV AUTOFIT (one-line) *****/
     function autoFitNLV(){
       const el = $("#nlvValue");
       if (!el) return;
-      const max = 32;   // max font size in px
-      const min = 14;   // min font size in px
+      const max = 32; const min = 14;
       el.style.fontSize = max + "px";
-      // shrink until it fits
       let size = max;
       while (el.scrollWidth > el.clientWidth && size > min){
         size -= 1;
         el.style.fontSize = size + "px";
       }
     }
-    // Refit on resize
     window.addEventListener("resize", ()=>{ autoFitNLV(); });
 
     /***** RENDER *****/
@@ -1267,15 +1159,12 @@
     function renderHeader(nlv){
       $("#headerNLV").textContent = fmtUsd(nlv);
       $("#headerNLV").classList.remove("hidden");
-      $("#lastUpdated").textContent = new Date(lastUpdated).toLocaleTimeString();
+      $("#lastUpdated").textContent = lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : "—";
     }
     function renderSummary(state){
       const nlv = calcNLV(state);
       const el = $("#nlvValue");
-      if (el) { el.textContent = fmtUsd(nlv); }
-      // Fit the NLV text after it changes
-      requestAnimationFrame(autoFitNLV);
-
+      if (el) { el.textContent = fmtUsd(nlv); requestAnimationFrame(autoFitNLV); }
       const series = loadEquity();
       const prev = series[1]?.nlv;
       const delta = prev!=null ? ((nlv - prev)/prev)*100 : 0;
@@ -1295,7 +1184,6 @@
     }
     function isFav(id){ return loadFavs().some(f=>f.id===id); }
 
-    // Positions list
     function renderPositions(state){
       const list = $("#positionsList");
       if (!list) return;
@@ -1313,7 +1201,6 @@
         row.className = "pos-row";
 
         row.innerHTML = `
-          <!-- ASSET -->
           <div class="flex items-center gap-3">
             <img src="${imageOf(a.id) || 'https://cryptoicons.org/api/icon/btc/32'}" alt="${a.symbol}" class="w-8 h-8 rounded-lg border border-slate-200"/>
             <div class="flex-1">
@@ -1326,34 +1213,17 @@
             </button>
           </div>
 
-          <!-- PRICE / 24H -->
           <div class="flex items-baseline justify-between md:block">
             <div class="font-medium">${px!=null?fmtUsd(px):"—"}</div>
             <div class="text-xs ${chg>=0?"green":"red"} md:mt-1">${fmtPct(chg)}</div>
           </div>
 
-          <!-- HOLDING -->
-          <div>
-            <div class="font-medium">${qty.toFixed(6)}</div>
-            <div class="text-xs text-slate-500 md:mt-1">Holding</div>
-          </div>
-
-          <!-- VALUE -->
-          <div>
-            <div class="font-medium">${fmtUsd(v)}</div>
-            <div class="text-xs text-slate-500 md:mt-1">Value</div>
-          </div>
-
-          <!-- WEIGHT -->
-          <div class="md:text-right">
-            <div class="font-medium">${weight.toFixed(2)}%</div>
-            <div class="text-xs text-slate-500 md:mt-1">Weight</div>
-          </div>
+          <div><div class="font-medium">${qty.toFixed(6)}</div><div class="text-xs text-slate-500 md:mt-1">Holding</div></div>
+          <div><div class="font-medium">${fmtUsd(v)}</div><div class="text-xs text-slate-500 md:mt-1">Value</div></div>
+          <div class="md:text-right"><div class="font-medium">${weight.toFixed(2)}%</div><div class="text-xs text-slate-500 md:mt-1">Weight</div></div>
         `;
         list.appendChild(row);
       }
-
-      // Fav toggle handlers
       list.querySelectorAll("[data-toggle-fav]").forEach(btn=>{
         btn.addEventListener("click", ()=>{
           const id = btn.getAttribute("data-toggle-fav");
@@ -1362,7 +1232,6 @@
       });
     }
 
-    // Filtered activity for Home (trading/order only)
     function renderActivity(){
       const list = $("#activityList");
       if (!list) return;
@@ -1373,21 +1242,15 @@
       const tradeBlocks = trades.slice(0,30).map(tr=>{
         const d = new Date(tr.t).toLocaleString();
         return `<div class="flex items-center justify-between">
-          <div>
-            <span class="font-medium">TRADE</span>
-            • ${tr.fromAmt} ${getSymbol(tr.fromId)} → ${tr.toAmt} ${getSymbol(tr.toId)}
-            <span class="text-slate-500"> (fee ${tr.feePct.toFixed(2)}%, price ${tr.rate})</span>
-          </div>
-          <div class="text-xs text-slate-500">${d}</div>
-        </div>`;
+          <div><span class="font-medium">TRADE</span>
+          • ${tr.fromAmt} ${getSymbol(tr.fromId)} → ${tr.toAmt} ${getSymbol(tr.toId)}
+          <span class="text-slate-500"> (fee ${tr.feePct.toFixed(2)}%, price ${tr.rate})</span></div>
+          <div class="text-xs text-slate-500">${d}</div></div>`;
       }).join("");
 
       const actBlocks = h.filter(e=>allowed.test(e.msg)).slice(0,50).map(e=>{
         const d = new Date(e.t).toLocaleString();
-        return `<div class="flex items-center justify-between">
-          <div>${e.msg}</div>
-          <div class="text-xs text-slate-500">${d}</div>
-        </div>`;
+        return `<div class="flex items-center justify-between"><div>${e.msg}</div><div class="text-xs text-slate-500">${d}</div></div>`;
       }).join("");
 
       list.innerHTML = `
@@ -1398,11 +1261,11 @@
       `;
     }
 
-    /***** QUICK SWAP (simplified, no toggle) *****/
+    /***** QUICK SWAP *****/
     function marketRate(fromId, toId){
       const fp = priceOf(fromId), tp = priceOf(toId);
       if (fp==null || tp==null) return null;
-      return fp / tp; // To per 1 From
+      return fp / tp;
     }
 
     function quoteSwap(state, fromId, toId, fromAmt){
@@ -1425,14 +1288,13 @@
       return { ok:true, ...q };
     }
 
-    let lastEdited = "FROM"; // "FROM" or "TO"
+    let lastEdited = "FROM";
     function updateQuickQuote(){
       const s = loadState();
       const from = $("#qsFrom")?.value, to = $("#qsTo")?.value;
       if (!from || !to) return;
       const r = marketRate(from,to);
       const fee = commissionPct();
-
       const el = $("#qsQuote");
       if (!el) return;
       if (!r){ el.textContent = "No market price."; return; }
@@ -1465,7 +1327,6 @@
       const from = $("#qsFrom").value, to = $("#qsTo").value;
       const fromAmt = +$("#qsAmtFrom").value;
       if (!(fromAmt>0)){ $("#qsMsg").textContent = "Enter an amount."; return; }
-
       const res = doSwap(s, from, to, fromAmt);
       const msg = $("#qsMsg");
       if (res.ok){
@@ -1480,9 +1341,8 @@
       } else msg.textContent = res.msg;
     });
 
-    /***** TRADING TICKET (BUY: Market/Limit/Stop/Trailing) *****/
-    let swOrderType = "MARKET"; // MARKET | LIMIT | STOP | TRAIL
-
+    /***** TRADING TICKET *****/
+    let swOrderType = "MARKET";
     function setOrderType(t){
       swOrderType = t;
       ["ordTypeMarket","ordTypeLimit","ordTypeStop","ordTypeTrail"].forEach(id=>{
@@ -1494,10 +1354,7 @@
       $("#stopWrap").classList.toggle("hidden", t!=="STOP");
       $("#trailWrap").classList.toggle("hidden", t!=="TRAIL");
       const execSel = $("#stopExec");
-      if (execSel) {
-        const showLimit = (t==="STOP" && execSel.value==="LIMIT");
-        $("#stopLimitCell").classList.toggle("hidden", !showLimit);
-      }
+      if (execSel) $("#stopLimitCell").classList.toggle("hidden", !(t==="STOP" && execSel.value==="LIMIT"));
       updateTradeQuote();
     }
     $("#ordTypeMarket").addEventListener("click", ()=>setOrderType("MARKET"));
@@ -1535,19 +1392,13 @@
 
       if (!(qty>0)){ el.textContent = "Enter a quantity to buy."; return; }
 
-      if (swOrderType==="MARKET"){
-        el.textContent = `Market • ${needText(mkt)}`;
-        return;
-      }
-
+      if (swOrderType==="MARKET"){ el.textContent = `Market • ${needText(mkt)}`; return; }
       if (swOrderType==="LIMIT"){
         const L = +$("#limitPriceBuy").value || 0;
         if (!(L>0)){ el.textContent = "Enter a limit price."; return; }
         const cond = mkt <= L ? "fillable now" : `waiting ≤ ${L}`;
-        el.textContent = `Limit • ${needText(L)} • ${cond}`;
-        return;
+        el.textContent = `Limit • ${needText(L)} • ${cond}`; return;
       }
-
       if (swOrderType==="STOP"){
         const S = +$("#stopPriceBuy").value || 0;
         const dir = $("#stopSide").value || "ABOVE";
@@ -1557,12 +1408,9 @@
           const SL = +$("#stopLimitPriceBuy").value || 0;
           if (!(SL>0)) { el.textContent = "Enter stop & limit price."; return; }
           el.textContent = `Stop-Limit • ${trig}, then place Limit @ ${SL} • ${needText(SL)}`;
-        } else {
-          el.textContent = `Stop-Market • ${trig} • est ${needText(S)}`;
-        }
+        } else { el.textContent = `Stop-Market • ${trig} • est ${needText(S)}`; }
         return;
       }
-
       if (swOrderType==="TRAIL"){
         const tType = $("#trailType").value || "PCT";
         const tVal = +$("#trailValue").value || 0;
@@ -1573,15 +1421,12 @@
       }
     }
 
-    // Place order or execute
     $("#placeOrderBtn").addEventListener("click", ()=>{
       const cur = $("#payCurrency").value, buy = $("#buyAsset").value;
       const qty = +($("#buyQty").value || 0);
       const s = loadState();
       const mkt = priceCPB(cur,buy);
-      const msg = $("#swMsg");
-      msg.textContent = "";
-
+      const msg = $("#swMsg"); msg.textContent = "";
       if (!cur || !buy || cur===buy){ msg.textContent = "Choose different assets."; return; }
       if (!(qty>0)){ msg.textContent = "Enter a quantity to buy."; return; }
       if (!mkt){ msg.textContent = "No market price."; return; }
@@ -1605,7 +1450,6 @@
         const L = +$("#limitPriceBuy").value || 0;
         const tif = $("#tif").value || "GTC";
         if (!(L>0)){ msg.textContent = "Enter a limit price."; return; }
-
         if (mkt <= L){
           const res = executeBuyAtPrice(s, cur, buy, qty, L);
           if (res.ok){
@@ -1620,43 +1464,25 @@
             return;
           }
         }
-
-        const order = {
-          id: uid(), t: now(), type: "LIMIT", tif,
-          currencyId: cur, buyId: buy, buyQty: qty,
-          limitPrice: L, status: "OPEN"
-        };
+        const order = { id: uid(), t: now(), type: "LIMIT", tif, currencyId: cur, buyId: buy, buyQty: qty, limitPrice: L, status: "OPEN" };
         const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
         pushActivity(`ORDER • LIMIT BUY ${qty} ${getSymbol(buy)} @ ${L} ${getSymbol(cur)}/${getSymbol(buy)} (${tif})`);
         renderOpenOrders();
-        msg.textContent = "Limit order placed.";
-        updateTradeQuote();
-        processOrders();
-        return;
+        msg.textContent = "Limit order placed."; updateTradeQuote(); processOrders(); return;
       }
 
       if (swOrderType==="STOP"){
         const S = +$("#stopPriceBuy").value || 0;
         const dir = $("#stopSide").value || "ABOVE";
         const exec = $("#stopExec").value || "MARKET";
-        const SL = +$("#stopLimitPriceBuy").value || 0;
+        const SL = +($("#stopLimitPriceBuy").value || 0);
         if (!(S>0)){ msg.textContent = "Enter a stop trigger."; return; }
         if (exec==="LIMIT" && !(SL>0)){ msg.textContent = "Enter stop & limit price."; return; }
-
-        const order = {
-          id: uid(), t: now(), type: "STOP", status:"OPEN",
-          currencyId: cur, buyId: buy, buyQty: qty,
-          stopPrice: S, stopSide: dir, onTrigger: exec,
-          limitPrice: exec==="LIMIT" ? SL : null,
-          triggered: false
-        };
+        const order = { id: uid(), t: now(), type: "STOP", status:"OPEN", currencyId: cur, buyId: buy, buyQty: qty, stopPrice: S, stopSide: dir, onTrigger: exec, limitPrice: exec==="LIMIT" ? SL : null, triggered: false };
         const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
         pushActivity(`ORDER • STOP BUY ${dir} ${S} ${exec==="LIMIT" ? "→ LIMIT @ "+SL : "→ MARKET"}`);
         renderOpenOrders();
-        msg.textContent = "Stop order placed.";
-        updateTradeQuote();
-        processOrders();
-        return;
+        msg.textContent = "Stop order placed."; updateTradeQuote(); processOrders(); return;
       }
 
       if (swOrderType==="TRAIL"){
@@ -1664,25 +1490,14 @@
         const tVal = +$("#trailValue").value || 0;
         const act = +($("#trailActivation").value || 0) || null;
         if (!(tVal>0)){ msg.textContent = "Enter a trail value."; return; }
-
-        const order = {
-          id: uid(), t: now(), type: "TRAIL", status:"OPEN",
-          currencyId: cur, buyId: buy, buyQty: qty,
-          trailType: tType, trailValue: tVal,
-          activationPrice: isFinite(act) ? act : null,
-          activated: isFinite(act) ? false : true,
-          peg: priceCPB(cur,buy) // lowest seen since activation
-        };
+        const order = { id: uid(), t: now(), type: "TRAIL", status:"OPEN", currencyId: cur, buyId: buy, buyQty: qty, trailType: tType, trailValue: tVal, activationPrice: isFinite(act) ? act : null, activated: isFinite(act) ? false : true, peg: priceCPB(cur,buy) };
         const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
         pushActivity(`ORDER • TRAILING BUY by ${tType==="PCT"? tVal+"%": tVal+" "+getSymbol(cur)}${order.activationPrice? " (activates ≤ "+order.activationPrice+")":""}`);
         renderOpenOrders();
-        msg.textContent = "Trailing order placed.";
-        updateTradeQuote();
-        processOrders();
+        msg.textContent = "Trailing order placed."; updateTradeQuote(); processOrders();
       }
     });
 
-    /***** ORDER ENGINE *****/
     function renderOpenOrders(){
       const box = $("#openOrders");
       const orders = loadOrders().filter(o=>o.status==="OPEN");
@@ -1696,13 +1511,8 @@
         if (o.type==="TRAIL") desc = `TRAIL ${o.trailType==="PCT"?o.trailValue+"%":o.trailValue+" "+getSymbol(o.currencyId)}${o.activationPrice? " • activates ≤ "+o.activationPrice:""} • ${o.buyQty} ${getSymbol(o.buyId)}`;
         return `
         <div class="flex items-center justify-between p-2 rounded-lg border border-slate-200" style="background: var(--surface);">
-          <div class="flex flex-col">
-            <div class="font-medium">Buy ${pair}</div>
-            <div class="text-xs text-slate-600">${o.type} • ${desc}</div>
-          </div>
-          <div class="flex items-center gap-3">
-            <button class="btn" data-cancel="${o.id}"><i class="ph ph-x"></i></button>
-          </div>
+          <div class="flex flex-col"><div class="font-medium">Buy ${pair}</div><div class="text-xs text-slate-600">${o.type} • ${desc}</div></div>
+          <div class="flex items-center gap-3"><button class="btn" data-cancel="${o.id}"><i class="ph ph-x"></i></button></div>
         </div>`;
       }).join("");
       box.querySelectorAll("[data-cancel]").forEach(b=>{
@@ -1724,10 +1534,8 @@
         if (o.status!=="OPEN") continue;
         const mkt = priceCPB(o.currencyId, o.buyId);
         if (!mkt) continue;
-
         const needAt = (px)=> calcFromForBuyQty(o.buyQty, px, commissionPct()).fromAmt;
 
-        // LIMIT: fill when market ≤ limit
         if (o.type==="LIMIT"){
           if (mkt <= o.limitPrice){
             const fromAmt = needAt(o.limitPrice);
@@ -1748,11 +1556,9 @@
           continue;
         }
 
-        // STOP: trigger condition
         if (o.type==="STOP"){
           const trig = (o.stopSide==="ABOVE") ? (mkt >= o.stopPrice) : (mkt <= o.stopPrice);
           if (!trig) continue;
-
           if (o.onTrigger==="MARKET"){
             const fromAmt = needAt(mkt);
             if ((s.holdings[o.currencyId]||0) >= fromAmt){
@@ -1765,7 +1571,7 @@
                 o.status="FILLED"; changed=true;
               }
             }
-          } else { // LIMIT on trigger
+          } else {
             if (mkt <= o.limitPrice){
               const fromAmt = needAt(o.limitPrice);
               if ((s.holdings[o.currencyId]||0) >= fromAmt){
@@ -1789,7 +1595,6 @@
           continue;
         }
 
-        // TRAILING: activate then update peg (lowest), trigger when rises by trail
         if (o.type==="TRAIL"){
           if (o.activationPrice!=null && !o.activated){
             if (mkt <= o.activationPrice){ o.activated = true; o.peg = mkt; pushActivity(`TRAIL • Activated @ ${mkt.toFixed(6)}`); changed=true; }
@@ -1797,11 +1602,8 @@
           }
           o.peg = Math.min(o.peg, mkt);
           let trig = false;
-          if (o.trailType==="PCT"){
-            trig = mkt >= o.peg * (1 + o.trailValue/100);
-          } else {
-            trig = mkt >= o.peg + o.trailValue;
-          }
+          if (o.trailType==="PCT") trig = mkt >= o.peg * (1 + o.trailValue/100);
+          else trig = mkt >= o.peg + o.trailValue;
           if (trig){
             const fromAmt = needAt(mkt);
             if ((s.holdings[o.currencyId]||0) >= fromAmt){
@@ -1818,11 +1620,10 @@
           continue;
         }
       }
-
       if (changed){ saveOrders(orders); renderOpenOrders(); updateUI(true); }
     }
 
-    /***** ADVANCED (SECRET) *****/
+    /***** ADVANCED *****/
     const advWrap = $("#advancedWrap");
     const lockBtn = $("#lockBtn");
     $("#unlockBtn").addEventListener("click", ()=>{
@@ -1833,10 +1634,8 @@
         lockBtn.classList.remove("hidden");
         loadAdvancedEditor();
         renderAdminDebug();
-        // seed UI controls with persisted values
         const ui = loadUI();
-        const bs = $("#bootSeconds");
-        const bsv = $("#bootSecondsVal");
+        const bs = $("#bootSeconds"); const bsv = $("#bootSecondsVal");
         if (bs){ bs.value = ui.bootSeconds ?? 3.6; if (bsv) bsv.textContent = (ui.bootSeconds ?? 3.6) + "s"; }
       } else alert("Incorrect code.");
     });
@@ -1861,8 +1660,7 @@
               <img src="${imageOf(a.id)||''}" class="w-5 h-5 rounded-md border border-slate-200"/>
               <div class="text-sm font-medium">${a.symbol} • ${a.name}</div>
             </div>
-            <input data-hold="${a.id}" type="number" step="0.000001" class="input"
-              value="${s.holdings[a.id] ?? 0}">
+            <input data-hold="${a.id}" type="number" step="0.000001" class="input" value="${s.holdings[a.id] ?? 0}">
           </div>`;
         grid.appendChild(wrap);
       });
@@ -1892,7 +1690,6 @@
       updateUI(true);
     });
 
-    // Save Security (password & key) + boot time
     $("#saveSecurity")?.addEventListener("click", ()=>{
       const sec = loadSec();
       const np = ($("#secNewPass")?.value || "").trim();
@@ -1910,7 +1707,6 @@
       alert("Login time updated.");
     });
 
-    // FULL DEBUG (admin)
     function renderAdminDebug(){
       const actBox = $("#adminActivity");
       const trBox = $("#adminTrades");
@@ -1927,11 +1723,11 @@
       }).join("") || '<div class="text-slate-500">No trades.</div>';
     }
 
-    /***** FAVORITES & ASSET SEARCH *****/
+    /***** FAVORITES & SEARCH *****/
     function addFavorite(asset){
       const favs = loadFavs();
       if (!favs.some(f=>f.id===asset.id)){
-        favs.unshift({ id: asset.id, symbol: asset.symbol.toUpperCase(), name: asset.name });
+        favs.unshift({ id: asset.id, symbol: (asset.symbol||"").toUpperCase(), name: asset.name });
         saveFavs(favs.slice(0,500));
         const s = loadState();
         if (s.holdings[asset.id] == null) { s.holdings[asset.id] = 0; saveState(s); }
@@ -1977,8 +1773,157 @@
         renderSearchResults(list);
       }
     });
+
     function renderSearchResults(list){
       const wrap = $("#assetResults");
       if (!list.length){ wrap.innerHTML = `<div class="text-slate-500 text-sm">No results.</div>`; return; }
-      wrap.innerHTML = list.slice(0,
-::contentReference[oaicite:0]{index=0}
+      wrap.innerHTML = list.slice(0,100).map(item=>`
+        <div class="py-2 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <img src="${item.thumb}" class="w-5 h-5 rounded"/>
+            <div><div class="font-medium text-sm">${item.symbol}</div>
+            <div class="text-xs text-slate-500">${item.name}</div></div>
+          </div>
+          <button class="btn" data-add="${item.id}" data-sym="${item.symbol}" data-name="${item.name}">Add</button>
+        </div>`).join("");
+      wrap.querySelectorAll("[data-add]").forEach(b=>{
+        b.addEventListener("click", ()=>{
+          addFavorite({ id:b.dataset.add, symbol:b.dataset.sym, name:b.dataset.name });
+          renderFavoritesPanel();
+        });
+      });
+    }
+
+    function renderFavoritesPanel(){
+      const favs = loadFavs();
+      const wrap = $("#favoriteList");
+      if (!wrap) return;
+      if (!favs.length){ wrap.innerHTML = `<div class="text-slate-500 text-sm">No favorites yet.</div>`; return; }
+      wrap.innerHTML = favs.map(f=>`
+        <div class="flex items-center justify-between p-2 rounded-lg border" style="background: var(--surface); border-color: var(--border);">
+          <div class="font-medium text-sm">${f.symbol} • <span class="text-slate-500">${f.name}</span></div>
+          <div class="flex items-center gap-2">
+            <button class="btn" data-toggle-fav="${f.id}"><i class="ph ph-star"></i></button>
+            <button class="btn" data-remove-fav="${f.id}"><i class="ph ph-trash"></i></button>
+          </div>
+        </div>`).join("");
+      wrap.querySelectorAll("[data-remove-fav]").forEach(b=>b.addEventListener("click", ()=>{ removeFavorite(b.dataset.removeFav); renderFavoritesPanel(); }));
+      wrap.querySelectorAll("[data-toggle-fav]").forEach(b=>b.addEventListener("click", ()=>{ toggleFavoriteById(b.dataset.toggleFav); renderFavoritesPanel(); }));
+    }
+
+    function refreshAfterUniverseChange(){
+      populateSelects();
+      updateUI(true);
+      renderOpenOrders();
+      renderFavoritesPanel();
+      updateQuickQuote();
+      loadAdvancedEditor();
+    }
+
+    /***** THEME / BRAND / UI *****/
+    function applyTheme(theme){
+      document.documentElement.setAttribute("data-theme", theme);
+    }
+    function applyBrand(hex){
+      const root = document.documentElement;
+      const {r,g,b} = hexToRgb(hex);
+      root.style.setProperty("--brand", hex);
+      root.style.setProperty("--brand-dark", darken(hex, 18));
+      root.style.setProperty("--brand-rgb", `${r},${g},${b}`);
+      if (chart){
+        chart.data.datasets[0].borderColor = hex;
+        chart.data.datasets[0].backgroundColor = makeBrandGradient(chart.ctx);
+        chart.update("none");
+      }
+    }
+    function applyPadding(px){
+      document.documentElement.style.setProperty("--app-x", px+"px");
+      $("#uiPaddingVal").textContent = px+"px";
+    }
+
+    /***** UI UPDATE & BOOT *****/
+    function updateUI(pricesChanged=false){
+      const s = loadState();
+      if (pricesChanged){
+        const nlv = calcNLV(s);
+        renderSummary(s);
+        if (isFinite(nlv)) { pushChartPoint(nlv); }
+        renderPositions(s);
+      } else {
+        renderSummary(s);
+        renderPositions(s);
+      }
+    }
+
+    function boot(){
+      // Show app
+      $("#app").classList.remove("opacity-0");
+
+      // Apply UI prefs
+      const ui = loadUI();
+      applyTheme(ui.theme || "light");
+      applyBrand(ui.brandHex || "#0ea5e9");
+      applyPadding(ui.paddingPx || 16);
+      if ($("#brandColor")) $("#brandColor").value = ui.brandHex || "#0ea5e9";
+      if ($("#loginBgCss")) $("#loginBgCss").value = ui.loginBg || "";
+
+      // Wire settings buttons
+      $("#saveUI")?.addEventListener("click", ()=>{
+        const px = +($("#uiPadding")?.value || 16);
+        saveUI({ paddingPx: clamp(px,8,56) });
+        applyPadding(clamp(px,8,56));
+      });
+      $("#themeBtnLight")?.addEventListener("click", ()=>{ document.querySelectorAll('[data-theme]').forEach(b=>b.classList.remove("active")); $("#themeBtnLight").classList.add("active"); });
+      $("#themeBtnDark")?.addEventListener("click", ()=>{ document.querySelectorAll('[data-theme]').forEach(b=>b.classList.remove("active")); $("#themeBtnDark").classList.add("active"); });
+      $("#saveTheme")?.addEventListener("click", ()=>{
+        const chosen = document.querySelector('.seg [data-theme].active')?.dataset.theme || "light";
+        saveUI({ theme: chosen }); applyTheme(chosen);
+      });
+      $("#saveBrand")?.addEventListener("click", ()=>{
+        const hex = $("#brandColor")?.value || "#0ea5e9";
+        saveUI({ brandHex: hex }); applyBrand(hex);
+      });
+      $("#loginBgColor")?.addEventListener("input", (e)=>{ const v=e.target.value; if ($("#loginBgCss")) $("#loginBgCss").value = v; });
+      $("#saveLoginBg")?.addEventListener("click", ()=>{
+        const v = ($("#loginBgCss")?.value || "").trim();
+        saveUI({ loginBg: v || null }); applyLoginBg(v || DEFAULT_LOGIN_BG); alert("Login background saved.");
+      });
+      $("#resetLoginBg")?.addEventListener("click", ()=>{ saveUI({ loginBg: null }); if ($("#loginBgCss")) $("#loginBgCss").value=""; applyLoginBg(DEFAULT_LOGIN_BG); });
+
+      // Export
+      $("#exportBtn")?.addEventListener("click", ()=>{
+        const blob = new Blob([JSON.stringify({
+          state: loadState(),
+          trades: loadTrades(),
+          history: loadHistory(),
+          equity: loadEquity(),
+          favs: loadFavs(),
+          ui: loadUI(),
+          orders: loadOrders()
+        }, null, 2)], {type:"application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "dex-export.json";
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      populateSelects();
+      renderOpenOrders();
+      renderFavoritesPanel();
+      initChart();
+      updateUI(true);
+
+      // Start polling
+      const loadAndPoll = async ()=>{
+        try{ await fetchMarket(); }catch(e){ /* ignore fetch errors */ }
+      };
+      loadAndPoll();
+      setInterval(loadAndPoll, PRICE_POLL_MS);
+    }
+
+    /***** SEARCH UI (complete) *****/
+    function renderSearchResultsSafe(list){ renderSearchResults(list); } // alias used above if needed
+  </script>
+</body>
+</html>
