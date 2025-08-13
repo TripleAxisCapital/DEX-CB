@@ -1,3 +1,6 @@
+Here’s your full file with the three fixes merged and an extra safety flush on page hide. Brand changes push instantly, logout flushes pending writes, and every local save continues to auto-debounce to Git. Copy-paste this over your file:
+
+```html
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -25,8 +28,8 @@
       --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
     [data-theme="dark"]{
-      --ink: #e5e7eb; 
-      --muted: #94a3b8; 
+      --ink: #e5e7eb;
+      --muted: #94a3b8;
       --surface: #0b1220;
       --surface-2: rgba(2,6,23,.85);
       --bg: #0a0f1a;
@@ -700,9 +703,9 @@
     function saveEquity(e){ localStorage.setItem(K.EQUITY, JSON.stringify(e)); onLocalChange(); }
     function loadFavs(){ const raw=localStorage.getItem(K.FAVS); return raw?JSON.parse(raw):[]; }
     function saveFavs(arr){ localStorage.setItem(K.FAVS, JSON.stringify(arr)); onLocalChange(); }
-    function loadUI(){ 
-      const raw=localStorage.getItem(K.UI); 
-      const defPad = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-x')) || 16;
+    function loadUI(){
+       const raw=localStorage.getItem(K.UI);
+       const defPad = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-x')) || 16;
       const base = { paddingPx: defPad, theme: "light", brandHex: "#0ea5e9", bootSeconds: 3.6, loginBg: null };
       return raw? { ...base, ...JSON.parse(raw) } : base;
     }
@@ -753,8 +756,8 @@
 
       const enabled = ()=> !!(GH.TOKEN && GH.TOKEN !== "YOUR_FINEGRAINED_PAT_HERE" && GH.OWNER && GH.REPO && GH.PATH);
 
-      function on(){ 
-        return { 
+      function on(){
+        return {
           auth: `Bearer ${GH.TOKEN}`,
           base: `https://api.github.com/repos/${GH.OWNER}/${GH.REPO}/contents/${encodeURIComponent(GH.PATH)}`,
           ref:  `?ref=${encodeURIComponent(GH.BRANCH)}`
@@ -834,7 +837,8 @@
         const { auth, base, ref } = on();
         const res = await fetch(base + ref, { headers: { "Authorization": auth, "Accept": "application/vnd.github+json" }});
         if (res.status === 404) { lastSha = null; return { ok:true, exist:false }; }
-        if (!res.ok)           { return { ok:false, reason:"fetch_failed", status:res.status }; }
+        if (!res.ok)
+          { return { ok:false, reason:"fetch_failed", status:res.status }; }
         const js = await res.json();
         lastSha = js.sha;
         const content = js.content || "";
@@ -914,10 +918,18 @@
         debounceId = setTimeout(uploadNow, 1200);
       }
 
-      return { enabled, initialOrUpdate, scheduleUpload };
+      // --- EXPORT uploadNow (CHANGE #1) ---
+      return { enabled, initialOrUpdate, scheduleUpload, uploadNow };
     })();
 
     function onLocalChange(){ Sync.scheduleUpload(); }
+
+    // Flush on tab hide to avoid races when switching pages/tabs
+    document.addEventListener("visibilitychange", async ()=>{
+      if (document.visibilityState === "hidden"){
+        try { await Sync.uploadNow(); } catch(e) {}
+      }
+    });
 
     /***** AUTH *****/
     const loginOverlay = $("#loginOverlay");
@@ -1021,7 +1033,9 @@
       document.querySelectorAll(".top-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===id));
       window.scrollTo({top:0, behavior:'smooth'});
     }
-    $("#logoutBtn")?.addEventListener("click", ()=>{
+    // --- Flush sync on logout (CHANGE #3) ---
+    $("#logoutBtn")?.addEventListener("click", async ()=>{
+      try { await Sync.uploadNow(); } catch(e) {}
       __AUTH_OK = false;
       location.reload();
     });
@@ -1325,7 +1339,7 @@
     $("#qsAmtFrom")?.addEventListener("input", ()=>{ lastEdited="FROM"; updateQuickQuote(); });
     $("#qsAmtTo")?.addEventListener("input", ()=>{ lastEdited="TO"; updateQuickQuote(); });
 
-    $("#qsSwap")?.addEventListener("click", ()=>{
+    $("#qsSwap")?.addEventListener("click", async ()=>{
       const s = loadState();
       const from = $("#qsFrom").value, to = $("#qsTo").value;
       const fromAmt = +$("#qsAmtFrom").value;
@@ -1341,6 +1355,7 @@
         msg.textContent = "Swap executed.";
         $("#qsAmtFrom").value = ""; $("#qsAmtTo").value = "";
         updateQuickQuote();
+        try { await Sync.uploadNow(); } catch(e) {}
       } else msg.textContent = res.msg;
     });
 
@@ -1424,7 +1439,7 @@
       }
     }
 
-    $("#placeOrderBtn").addEventListener("click", ()=>{
+    $("#placeOrderBtn").addEventListener("click", async ()=>{
       const cur = $("#payCurrency").value, buy = $("#buyAsset").value;
       const qty = +($("#buyQty").value || 0);
       const s = loadState();
@@ -1445,6 +1460,7 @@
           msg.textContent = "Order filled.";
           $("#buyQty").value="";
           updateTradeQuote();
+          try { await Sync.uploadNow(); } catch(e) {}
         } else { msg.textContent = res.msg; }
         return;
       }
@@ -1464,6 +1480,7 @@
             msg.textContent = "Limit filled immediately.";
             $("#buyQty").value="";
             updateTradeQuote();
+            try { await Sync.uploadNow(); } catch(e) {}
             return;
           }
         }
@@ -1471,7 +1488,9 @@
         const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
         pushActivity(`ORDER • LIMIT BUY ${qty} ${getSymbol(buy)} @ ${L} ${getSymbol(cur)}/${getSymbol(buy)} (${tif})`);
         renderOpenOrders();
-        msg.textContent = "Limit order placed."; updateTradeQuote(); processOrders(); return;
+        msg.textContent = "Limit order placed."; updateTradeQuote(); processOrders();
+        try { await Sync.uploadNow(); } catch(e) {}
+        return;
       }
 
       if (swOrderType==="STOP"){
@@ -1485,7 +1504,9 @@
         const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
         pushActivity(`ORDER • STOP BUY ${dir} ${S} ${exec==="LIMIT" ? "→ LIMIT @ "+SL : "→ MARKET"}`);
         renderOpenOrders();
-        msg.textContent = "Stop order placed."; updateTradeQuote(); processOrders(); return;
+        msg.textContent = "Stop order placed."; updateTradeQuote(); processOrders();
+        try { await Sync.uploadNow(); } catch(e) {}
+        return;
       }
 
       if (swOrderType==="TRAIL"){
@@ -1498,6 +1519,7 @@
         pushActivity(`ORDER • TRAILING BUY by ${tType==="PCT"? tVal+"%": tVal+" "+getSymbol(cur)}${order.activationPrice? " (activates ≤ "+order.activationPrice+")":""}`);
         renderOpenOrders();
         msg.textContent = "Trailing order placed."; updateTradeQuote(); processOrders();
+        try { await Sync.uploadNow(); } catch(e) {}
       }
     });
 
@@ -1519,11 +1541,11 @@
         </div>`;
       }).join("");
       box.querySelectorAll("[data-cancel]").forEach(b=>{
-        b.addEventListener("click", ()=>{
+        b.addEventListener("click", async ()=>{
           const id = b.getAttribute("data-cancel");
           const orders = loadOrders();
           const idx = orders.findIndex(x=>x.id===id);
-          if (idx>=0){ orders[idx].status="CANCELLED"; saveOrders(orders); renderOpenOrders(); pushActivity(`ORDER • Cancelled ${id}`); }
+          if (idx>=0){ orders[idx].status="CANCELLED"; saveOrders(orders); renderOpenOrders(); pushActivity(`ORDER • Cancelled ${id}`); try { await Sync.uploadNow(); } catch(e) {} }
         });
       });
     }
@@ -1668,14 +1690,15 @@
         grid.appendChild(wrap);
       });
     }
-    $("#advSaveBasics").addEventListener("click", ()=>{
+    $("#advSaveBasics").addEventListener("click", async ()=>{
       const s = loadState();
       s.commissionPct = clamp(+$("#advCommission").value, 0, 100);
       saveState(s);
       updateUI(true);
       alert("Saved.");
+      try { await Sync.uploadNow(); } catch(e) {}
     });
-    $("#advSaveHoldings").addEventListener("click", ()=>{
+    $("#advSaveHoldings").addEventListener("click", async ()=>{
       const s = loadState();
       document.querySelectorAll("[data-hold]").forEach(inp=>{
         const id = inp.dataset.hold;
@@ -1684,16 +1707,18 @@
       saveState(s);
       updateUI(true);
       alert("Saved.");
+      try { await Sync.uploadNow(); } catch(e) {}
     });
-    $("#advReset").addEventListener("click", ()=>{
+    $("#advReset").addEventListener("click", async ()=>{
       if (!confirm("Reset commission and all holdings to defaults?")) return;
       const s = defaultState();
       saveState(s);
       loadAdvancedEditor();
       updateUI(true);
+      try { await Sync.uploadNow(); } catch(e) {}
     });
 
-    $("#saveSecurity")?.addEventListener("click", ()=>{
+    $("#saveSecurity")?.addEventListener("click", async ()=>{
       const sec = loadSec();
       const np = ($("#secNewPass")?.value || "").trim();
       const nk = ($("#secNewKey")?.value || "").trim();
@@ -1703,11 +1728,13 @@
       saveSec(sec);
       $("#secNewPass").value = ""; $("#secNewKey").value = "";
       alert("Security settings saved. The new password/key will be required next login.");
+      try { await Sync.uploadNow(); } catch(e) {}
     });
-    $("#saveBoot")?.addEventListener("click", ()=>{
+    $("#saveBoot")?.addEventListener("click", async ()=>{
       const v = +($("#bootSeconds")?.value || 3.6);
       saveUI({ bootSeconds: clamp(v, 0.5, 20) });
       alert("Login time updated.");
+      try { await Sync.uploadNow(); } catch(e) {}
     });
 
     function renderAdminDebug(){
@@ -1871,27 +1898,47 @@
       if ($("#loginBgCss")) $("#loginBgCss").value = ui.loginBg || "";
 
       // Wire settings buttons
-      $("#saveUI")?.addEventListener("click", ()=>{
+      $("#saveUI")?.addEventListener("click", async ()=>{
         const px = +($("#uiPadding")?.value || 16);
         saveUI({ paddingPx: clamp(px,8,56) });
         applyPadding(clamp(px,8,56));
+        try { await Sync.uploadNow(); } catch(e) {}
       });
       $("#themeBtnLight")?.addEventListener("click", ()=>{ document.querySelectorAll('[data-theme]').forEach(b=>b.classList.remove("active")); $("#themeBtnLight").classList.add("active"); });
       $("#themeBtnDark")?.addEventListener("click", ()=>{ document.querySelectorAll('[data-theme]').forEach(b=>b.classList.remove("active")); $("#themeBtnDark").classList.add("active"); });
-      $("#saveTheme")?.addEventListener("click", ()=>{
+      $("#saveTheme")?.addEventListener("click", async ()=>{
         const chosen = document.querySelector('.seg [data-theme].active')?.dataset.theme || "light";
         saveUI({ theme: chosen }); applyTheme(chosen);
+        try { await Sync.uploadNow(); } catch(e) {}
       });
-      $("#saveBrand")?.addEventListener("click", ()=>{
-        const hex = $("#brandColor")?.value || "#0ea5e9";
-        saveUI({ brandHex: hex }); applyBrand(hex);
+
+      // --- BRAND — save & push immediately (CHANGE #2) ---
+      const brandInput = $("#brandColor");
+      async function saveBrandNow(hex){
+        saveUI({ brandHex: hex });
+        applyBrand(hex);
+        try { await Sync.uploadNow(); } catch(e) {}
+      }
+      $("#saveBrand")?.addEventListener("click", async ()=>{
+        const hex = brandInput?.value || "#0ea5e9";
+        await saveBrandNow(hex);
+        alert("Brand color saved & synced.");
       });
+      // Optional: autosave on picker change (no button needed)
+      brandInput?.addEventListener("change", async (e)=>{
+        await saveBrandNow(e.target.value || "#0ea5e9");
+      });
+
       $("#loginBgColor")?.addEventListener("input", (e)=>{ const v=e.target.value; if ($("#loginBgCss")) $("#loginBgCss").value = v; });
-      $("#saveLoginBg")?.addEventListener("click", ()=>{
+      $("#saveLoginBg")?.addEventListener("click", async ()=>{
         const v = ($("#loginBgCss")?.value || "").trim();
         saveUI({ loginBg: v || null }); applyLoginBg(v || DEFAULT_LOGIN_BG); alert("Login background saved.");
+        try { await Sync.uploadNow(); } catch(e) {}
       });
-      $("#resetLoginBg")?.addEventListener("click", ()=>{ saveUI({ loginBg: null }); if ($("#loginBgCss")) $("#loginBgCss").value=""; applyLoginBg(DEFAULT_LOGIN_BG); });
+      $("#resetLoginBg")?.addEventListener("click", async ()=>{
+        saveUI({ loginBg: null }); if ($("#loginBgCss")) $("#loginBgCss").value=""; applyLoginBg(DEFAULT_LOGIN_BG);
+        try { await Sync.uploadNow(); } catch(e) {}
+      });
 
       // Export
       $("#exportBtn")?.addEventListener("click", ()=>{
@@ -1930,3 +1977,4 @@
   </script>
 </body>
 </html>
+```
