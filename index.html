@@ -44,6 +44,11 @@
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
+  <!-- Firebase (Firestore) — fill FIREBASE_CONFIG below -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
   <style>
     html,body{ background: var(--bg); color: var(--ink); }
     .app-shell{ padding-left: var(--app-x); padding-right: var(--app-x); max-width: var(--app-maxw); margin: 0 auto; }
@@ -604,14 +609,12 @@
     const SECRET_SETTINGS_CODE = "admin123";
     let __AUTH_OK = false;
 
-    // --- Git-backed Sync configuration ---
-    // Use a fine-grained PAT with "Contents: Read & Write" for this repo.
-    const GH = {
-      OWNER: "TripleAxisCapital",
-      REPO:  "DEX-CB",
-      BRANCH: "main", // used as a hint; we auto-detect the default below
-      PATH:  "data/dex.sync.bin",
-      TOKEN: "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" // leave empty to disable cloud sync
+    // Firebase config — REPLACE with your project values (keep keys public; rules protect data)
+    const FIREBASE_CONFIG = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      appId: "YOUR_APP_ID"
     };
 
     // Core assets
@@ -743,314 +746,116 @@
     }
     const getSymbol = id => { const a = getTradableAssets().find(x=>x.id===id); return a?.symbol || id.toUpperCase(); };
 
-    /***** GIT-BACKED SYNC *****/
-    const Sync = (()=>{
-
-      // ===== NEW: merge helpers for conflict-safe sync =====
-      function uniqBy(arr, keyFn){
-        const seen = new Set(); const out=[];
-        for (const it of arr){
-          const k = keyFn(it);
-          if (!seen.has(k)){ seen.add(k); out.push(it); }
+    /***** FIRESTORE SYNC *****/
+    // Package all local state we want to sync (SEC/login never leaves device)
+    function gatherAll(){
+      return {
+        v: 1,
+        ts: Date.now(),
+        items: {
+          [K.STATE]:    loadState(),
+          [K.TRADES]:   loadTrades(),
+          [K.HISTORY]:  loadHistory(),
+          [K.EQUITY]:   loadEquity(),
+          [K.FAVS]:     loadFavs(),
+          [K.UI]:       loadUI(),
+          [K.ORDERS]:   loadOrders()
         }
-        return out;
-      }
-      function mergePackages(localPkg, remotePkg){
-        // If remote missing, just return local
-        if (!remotePkg || !remotePkg.items) return localPkg;
-        const L = localPkg.items, R = remotePkg.items;
+      };
+    }
 
-        // Settings/UI/state prefer local (you're pushing now)
-        const items = {
-          [K.STATE]:   L[K.STATE]  ?? R[K.STATE],
-          [K.UI]:      L[K.UI]     ?? R[K.UI],
-          // Arrays => union by sensible key then cap lengths
-          [K.TRADES]:  uniqBy([...(L[K.TRADES]||[]), ...(R[K.TRADES]||[])], x=>x.t).sort((a,b)=>b.t-a.t).slice(0,500),
-          [K.HISTORY]: uniqBy([...(L[K.HISTORY]||[]),...(R[K.HISTORY]||[])], x=>x.t).sort((a,b)=>b.t-a.t).slice(0,200),
-          [K.EQUITY]:  uniqBy([...(L[K.EQUITY]||[]), ...(R[K.EQUITY]||[])], x=>x.t).sort((a,b)=>b.t-a.t).slice(0,20000),
-          [K.FAVS]:    uniqBy([...(L[K.FAVS]||[]),  ...(R[K.FAVS]||[])],  x=>x.id),
-          [K.ORDERS]:  (()=>{ // prefer filled/cancelled status if present
-            const map = new Map();
-            [...(R[K.ORDERS]||[]), ...(L[K.ORDERS]||[])].forEach(o=>{
-              const prev = map.get(o.id);
-              if (!prev) map.set(o.id, o);
-              else {
-                // If either says FILLED/CANCELLED, keep that; otherwise keep the newer t
-                if ((prev.status!=="OPEN") || (o.status!=="OPEN")){
-                  map.set(o.status!=="OPEN" ? o : prev);
-                } else {
-                  map.set((o.t||0) >= (prev.t||0) ? o : prev);
-                }
-              }
-            });
-            return Array.from(map.values()).sort((a,b)=>b.t-a.t).slice(0,1000);
-          })()
-        };
+    // Apply a full "items" payload into local storage
+    function applyAll(items){
+      if (!items) return;
+      if (items[K.STATE]   != null) saveState(items[K.STATE]);
+      if (items[K.TRADES]  != null) saveTrades(items[K.TRADES]);
+      if (items[K.HISTORY] != null) saveHistory(items[K.HISTORY]);
+      if (items[K.EQUITY]  != null) saveEquity(items[K.EQUITY]);
+      if (items[K.FAVS]    != null) saveFavs(items[K.FAVS]);
+      if (items[K.UI]      != null) saveUI(items[K.UI]);
+      if (items[K.ORDERS]  != null) saveOrders(items[K.ORDERS]);
+    }
 
-        return { v: 1, ts: Math.max(localPkg.ts||0, remotePkg.ts||0), items };
-      }
+    const FSync = (()=>{
+      let db=null, auth=null, docRef=null, unsub=null;
+      let debounceId=0, pauseSaves=false;
+      const clientId = uid();
+      const collectionName = "dexUsers";
 
-      let derivedKey = null;   // CryptoKey (AES-GCM)
-      let lastSha = null;      // remote file sha
-      let pauseSaves = false;  // avoid echo while applying remote
-      let debounceId = 0;
-      let activeBranch = GH.BRANCH || null; // we’ll resolve to default, if needed
-      let repoChecked = false;
+      function enabled(){ return typeof firebase !== "undefined" && FIREBASE_CONFIG && FIREBASE_CONFIG.projectId; }
 
-      const enabled = ()=> !!(GH.TOKEN && GH.TOKEN !== "YOUR_FINEGRAINED_PAT_HERE" && GH.OWNER && GH.REPO && GH.PATH);
-
-      const baseHeaders = () => ({
-        // IMPORTANT: PATs use "token", not "Bearer"
-        "Authorization": `token ${GH.TOKEN}`,
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28"
-      });
-
-      function endpoints(){
-        return {
-          contentBase: `https://api.github.com/repos/${GH.OWNER}/${GH.REPO}/contents/${encodeURIComponent(GH.PATH)}`,
-          repoMeta:    `https://api.github.com/repos/${GH.OWNER}/${GH.REPO}`
-        };
-      }
-
-      async function ensureRepo(){
-        if (!enabled() || repoChecked) return;
+      async function initialOrUpdate(accountId){
+        if (!enabled()){ appendLog?.("Sync • Firestore not configured."); return; }
         try{
-          const { repoMeta } = endpoints();
-          const res = await fetch(repoMeta, { headers: baseHeaders() });
-          if (!res.ok){
-            console.error("Sync • repo meta failed", res.status);
-            appendLog?.(`Sync • Repo access failed (status ${res.status}). Check token & repo.`);
-            return;
-          }
-          const js = await res.json();
-          if (!activeBranch) activeBranch = js.default_branch || "main";
-          repoChecked = true;
-          appendLog?.(`Sync • Using branch: ${activeBranch}`);
-        }catch(e){
-          console.error("Sync • ensureRepo error", e);
-        }
-      }
+          appendLog?.("Sync • Connecting to Firestore…");
+          if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+          auth = firebase.auth();
+          await auth.signInAnonymously();
+          db = firebase.firestore();
+          docRef = db.collection(collectionName).doc(accountId);
 
-      // derive AES key from PAT (+ stable salt)
-      async function deriveFromToken(){
-        const material = enc.encode(GH.TOKEN);
-        const baseKey  = await crypto.subtle.importKey("raw", material, "PBKDF2", false, ["deriveKey"]);
-        const salt     = enc.encode(`DEX|${GH.OWNER}/${GH.REPO}|${GH.PATH}|v1`);
-        const key = await crypto.subtle.deriveKey(
-          { name:"PBKDF2", salt, iterations: 150000, hash:"SHA-256" },
-          baseKey, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]
-        );
-        derivedKey = key;
-        return { key, salt };
-      }
-
-      // what we sync (NOTE: SEC/login NOT synced)
-      function gatherAll(){
-        return {
-          v: 1,
-          ts: Date.now(),
-          items: {
-            [K.STATE]:    loadState(),
-            [K.TRADES]:   loadTrades(),
-            [K.HISTORY]:  loadHistory(),
-            [K.EQUITY]:   loadEquity(),
-            [K.FAVS]:     loadFavs(),
-            [K.UI]:       loadUI(),
-            [K.ORDERS]:   loadOrders()
-          }
-        };
-      }
-
-      function applyAll(pkg){
-        pauseSaves = true;
-        try{
-          if (pkg?.items){
-            if (pkg.items[K.STATE]   != null) saveState(pkg.items[K.STATE]);
-            if (pkg.items[K.TRADES]  != null) saveTrades(pkg.items[K.TRADES]);
-            if (pkg.items[K.HISTORY] != null) saveHistory(pkg.items[K.HISTORY]);
-            if (pkg.items[K.EQUITY]  != null) saveEquity(pkg.items[K.EQUITY]);
-            if (pkg.items[K.FAVS]    != null) saveFavs(pkg.items[K.FAVS]);
-            if (pkg.items[K.UI]      != null) saveUI(pkg.items[K.UI]);
-            if (pkg.items[K.ORDERS]  != null) saveOrders(pkg.items[K.ORDERS]);
-            // Never sync SEC from cloud
-          }
-        } finally { pauseSaves = false; }
-      }
-
-      async function encryptPackage(pkg){
-        if (!derivedKey) await deriveFromToken();
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const data = enc.encode(JSON.stringify(pkg));
-        const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, derivedKey, data);
-        return {
-          v: 1,
-          algo: "AES-GCM",
-          iv_b64: b64.fromBytes(iv),
-          ct_b64: b64.fromBytes(ct),
-          ts: Date.now()
-        };
-      }
-
-      async function decryptPackage(blob){
-        if (!derivedKey) await deriveFromToken();
-        const iv = b64.toBytes(blob.iv_b64);
-        const ct = b64.toBytes(blob.ct_b64);
-        const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv}, derivedKey, ct);
-        return JSON.parse(dec.decode(new Uint8Array(pt)));
-      }
-
-      async function pull(){
-        if (!enabled()) return { ok:false, reason:"disabled" };
-        await ensureRepo();
-        const { contentBase } = endpoints();
-        const url = contentBase + (activeBranch ? `?ref=${encodeURIComponent(activeBranch)}` : "");
-        const res = await fetch(url, { headers: baseHeaders() });
-        if (res.status === 404) { lastSha = null; return { ok:true, exist:false }; }
-        if (!res.ok){
-          console.error("Sync • pull failed", res.status);
-          return { ok:false, reason:"fetch_failed", status:res.status };
-        }
-        const js = await res.json();
-        lastSha = js.sha;
-        const content = js.content || "";
-        const text = atob(content.replace(/\n/g,""));
-        let blob;
-        try { blob = JSON.parse(text); } catch { return { ok:false, reason:"parse_failed" }; }
-        try{
-          const pkg = await decryptPackage(blob);
-          return { ok:true, exist:true, pkg };
-        } catch{
-          return { ok:false, reason:"decrypt_failed" };
-        }
-      }
-
-      async function tryPut(contentBase, body){
-        return fetch(contentBase, {
-          method: "PUT",
-          headers: { ...baseHeaders(), "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        });
-      }
-
-      // push with conflict handling/merge
-      async function pushMerged(encBlob){
-        if (!enabled()) return { ok:false, reason:"disabled" };
-        await ensureRepo();
-        const { contentBase } = endpoints();
-
-        // attempt 1 — include branch (if known)
-        let body = {
-          message: `sync: ${new Date().toISOString()}`,
-          content: btoa(JSON.stringify(encBlob)),
-          ...(lastSha ? { sha: lastSha } : {})
-        };
-        if (activeBranch) body.branch = activeBranch;
-
-        let res = await tryPut(contentBase, body);
-
-        // attempt 2 — retry without explicit branch (defaults to repo default branch)
-        if (!res.ok){
-          const fallbackBody = { ...body }; delete fallbackBody.branch;
-          res = await tryPut(contentBase, fallbackBody);
-        }
-
-        // attempt 3 — conflict detected: pull, merge, re-encrypt, push again
-        if (!res.ok && (res.status===409 || res.status===422)){
-          appendLog?.("Sync • Conflict (409). Merging…");
-          const pulled = await pull(); // updates lastSha
-          const remotePkg = (pulled.ok && pulled.exist) ? pulled.pkg : null;
-          const localPkg  = gatherAll();
-          const merged    = mergePackages(localPkg, remotePkg);
-          const mergedEnc = await encryptPackage(merged);
-
-          // build new body with latest sha
-          const body2 = {
-            message: `sync: merge ${new Date().toISOString()}`,
-            content: btoa(JSON.stringify(mergedEnc)),
-            ...(lastSha ? { sha: lastSha } : {})
-          };
-          const res2 = await tryPut(contentBase, body2);
-          if (!res2.ok){
-            console.error("Sync • merge push failed", res2.status);
-            return { ok:false, reason:"push_failed_after_merge", status: res2.status };
-          }
-          // apply merged locally to stay consistent
-          applyAll(merged);
-          const js2 = await res2.json();
-          lastSha = js2.content?.sha || lastSha;
-          appendLog?.("Sync • Merged & pushed.");
-          return { ok:true };
-        }
-
-        if (!res.ok){
-          console.error("Sync • push failed", res.status);
-          appendLog?.(`Sync • Push failed (status ${res.status}). Check token & repo access.`);
-          return { ok:false, reason:"push_failed", status: res.status };
-        }
-        const js = await res.json();
-        lastSha = js.content?.sha || lastSha;
-        return { ok:true };
-      }
-
-      async function initialOrUpdate(){
-        if (!enabled()) { appendLog?.("Sync • Skipped (disabled)."); return; }
-        appendLog?.("Sync • Connecting to GitHub…");
-        try{
-          await deriveFromToken();
-          const result = await pull();
-          if (result.ok && result.exist && result.pkg){
-            appendLog?.("Sync • Decrypting cloud state…");
-            applyAll(result.pkg);
-            appendLog?.("Sync • Applied latest state from Git.");
-          } else if (result.ok && !result.exist){
-            appendLog?.("Sync • No cloud file. Seeding repo…");
-            const encBlob = await encryptPackage(gatherAll());
-            const pushed = await pushMerged(encBlob);
-            if (pushed.ok) appendLog?.("Sync • Seeded encrypted state to Git.");
-          } else if (result.reason === "decrypt_failed"){
-            appendLog?.("Sync • Decryption failed (token changed?). Using local.");
+          const snap = await docRef.get();
+          if (snap.exists){
+            appendLog?.("Sync • Downloading cloud state…");
+            const data = snap.data();
+            pauseSaves = true;
+            try { applyAll(data.items || null); } finally { pauseSaves=false; }
+            appendLog?.("Sync • Applied.");
           } else {
-            appendLog?.("Sync • Pull skipped (offline or config).");
+            appendLog?.("Sync • Seeding cloud state…");
+            const pkg = gatherAll();
+            await docRef.set({ v:1, ts: pkg.ts, items: pkg.items, updatedBy: clientId, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+            appendLog?.("Sync • Seeded.");
           }
-        }catch(err){
-          console.error("Sync • init error", err);
-          appendLog?.("Sync • Error: " + (err?.message||"unknown"));
-        }
-      }
 
-      async function uploadNow(){
-        if (!enabled() || pauseSaves) return;
-        try{
-          if (!derivedKey) await deriveFromToken();
-          const encBlob = await encryptPackage(gatherAll());
-          const r = await pushMerged(encBlob);
-          if (r.ok) appendLog?.("Sync • Pushed.");
-        } catch(e){
-          console.error("Sync • uploadNow error", e);
+          if (unsub) unsub();
+          unsub = docRef.onSnapshot(s=>{
+            const data = s.data(); if (!data) return;
+            if (data.updatedBy === clientId) return; // ignore our own writes
+            pauseSaves = true;
+            try { applyAll(data.items || null); } finally { pauseSaves=false; }
+            const ui = loadUI();
+            applyTheme(ui.theme || "light");
+            applyBrand(ui.brandHex || "#0ea5e9");
+            applyPadding(ui.paddingPx || 16);
+            updateUI();
+            renderOpenOrders();
+            renderFavoritesPanel();
+          });
+
+        }catch(e){
+          console.error(e);
+          appendLog?.("Sync • Error: " + (e?.message||e));
         }
       }
 
       function scheduleUpload(){
-        if (!enabled() || pauseSaves) return;
+        if (pauseSaves || !docRef) return;
         clearTimeout(debounceId);
-        debounceId = setTimeout(uploadNow, 1200);
+        debounceId = setTimeout(uploadNow, 800);
       }
 
-      // Export API (includes uploadNow)
-      return { enabled, initialOrUpdate, scheduleUpload, uploadNow };
+      async function uploadNow(){
+        if (pauseSaves || !docRef) return;
+        try{
+          const pkg = gatherAll();
+          await docRef.set({ v:1, ts: Date.now(), items: pkg.items, updatedBy: clientId, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+        }catch(e){ console.error("Sync • upload error", e); }
+      }
+
+      return { initialOrUpdate, scheduleUpload, uploadNow };
     })();
 
-    function onLocalChange(){ Sync.scheduleUpload(); }
+    function onLocalChange(){ FSync.scheduleUpload(); }
 
     // Flush on tab hide & pagehide to avoid races on close/switch
     document.addEventListener("visibilitychange", async ()=>{
       if (document.visibilityState === "hidden"){
-        try { await Sync.uploadNow(); } catch(e) {}
+        try { await FSync.uploadNow(); } catch(e) {}
       }
     });
-    window.addEventListener("pagehide", async ()=>{ try { await Sync.uploadNow(); } catch(e) {} });
-    window.addEventListener("beforeunload", ()=>{ /* best-effort fire & forget */ Sync.uploadNow(); });
+    window.addEventListener("pagehide", async ()=>{ try { await FSync.uploadNow(); } catch(e) {} });
+    window.addEventListener("beforeunload", ()=>{ FSync.uploadNow(); });
 
     /***** AUTH *****/
     const loginOverlay = $("#loginOverlay");
@@ -1126,8 +931,8 @@
           $("#loginErr").classList.add("hidden");
           await runBootSequence();
 
-          // === Git-backed sync ===
-          await Sync.initialOrUpdate();
+          // === Firestore sync ===
+          await FSync.initialOrUpdate(acct);
 
           __AUTH_OK = true;
           loginOverlay.classList.add("hidden");
@@ -1156,7 +961,7 @@
     }
     // Flush sync on logout
     $("#logoutBtn")?.addEventListener("click", async ()=>{
-      try { await Sync.uploadNow(); } catch(e) {}
+      try { await FSync.uploadNow(); } catch(e) {}
       __AUTH_OK = false;
       location.reload();
     });
@@ -1366,7 +1171,7 @@
         btn.addEventListener("click", async ()=>{
           const id = btn.getAttribute("data-toggle-fav");
           toggleFavoriteById(id);
-          try { await Sync.uploadNow(); } catch(e) {}
+          try { await FSync.uploadNow(); } catch(e) {}
         });
       });
     }
@@ -1477,7 +1282,7 @@
         msg.textContent = "Swap executed.";
         $("#qsAmtFrom").value = ""; $("#qsAmtTo").value = "";
         updateQuickQuote();
-        try { await Sync.uploadNow(); } catch(e) {}
+        try { await FSync.uploadNow(); } catch(e) {}
       } else msg.textContent = res.msg;
     });
 
@@ -1582,7 +1387,7 @@
           msg.textContent = "Order filled.";
           $("#buyQty").value="";
           updateTradeQuote();
-          try { await Sync.uploadNow(); } catch(e) {}
+          try { await FSync.uploadNow(); } catch(e) {}
         } else { msg.textContent = res.msg; }
         return;
       }
@@ -1602,7 +1407,7 @@
             msg.textContent = "Limit filled immediately.";
             $("#buyQty").value="";
             updateTradeQuote();
-            try { await Sync.uploadNow(); } catch(e) {}
+            try { await FSync.uploadNow(); } catch(e) {}
             return;
           }
         }
@@ -1611,7 +1416,7 @@
         pushActivity(`ORDER • LIMIT BUY ${qty} ${getSymbol(buy)} @ ${L} ${getSymbol(cur)}/${getSymbol(buy)} (${tif})`);
         renderOpenOrders();
         msg.textContent = "Limit order placed."; updateTradeQuote(); processOrders();
-        try { await Sync.uploadNow(); } catch(e) {}
+        try { await FSync.uploadNow(); } catch(e) {}
         return;
       }
 
@@ -1627,7 +1432,7 @@
         pushActivity(`ORDER • STOP BUY ${dir} ${S} ${exec==="LIMIT" ? "→ LIMIT @ "+SL : "→ MARKET"}`);
         renderOpenOrders();
         msg.textContent = "Stop order placed."; updateTradeQuote(); processOrders();
-        try { await Sync.uploadNow(); } catch(e) {}
+        try { await FSync.uploadNow(); } catch(e) {}
         return;
       }
 
@@ -1641,7 +1446,7 @@
         pushActivity(`ORDER • TRAILING BUY by ${tType==="PCT"? tVal+"%": tVal+" "+getSymbol(cur)}${order.activationPrice? " (activates ≤ "+order.activationPrice+")":""}`);
         renderOpenOrders();
         msg.textContent = "Trailing order placed."; updateTradeQuote(); processOrders();
-        try { await Sync.uploadNow(); } catch(e) {}
+        try { await FSync.uploadNow(); } catch(e) {}
       }
     });
 
@@ -1667,7 +1472,7 @@
           const id = b.getAttribute("data-cancel");
           const orders = loadOrders();
           const idx = orders.findIndex(x=>x.id===id);
-          if (idx>=0){ orders[idx].status="CANCELLED"; saveOrders(orders); renderOpenOrders(); pushActivity(`ORDER • Cancelled ${id}`); try { await Sync.uploadNow(); } catch(e) {} }
+          if (idx>=0){ orders[idx].status="CANCELLED"; saveOrders(orders); renderOpenOrders(); pushActivity(`ORDER • Cancelled ${id}`); try { await FSync.uploadNow(); } catch(e) {} }
         });
       });
     }
@@ -1818,7 +1623,7 @@
       saveState(s);
       updateUI(true);
       alert("Saved.");
-      try { await Sync.uploadNow(); } catch(e) {}
+      try { await FSync.uploadNow(); } catch(e) {}
     });
     $("#advSaveHoldings").addEventListener("click", async ()=>{
       const s = loadState();
@@ -1829,7 +1634,7 @@
       saveState(s);
       updateUI(true);
       alert("Saved.");
-      try { await Sync.uploadNow(); } catch(e) {}
+      try { await FSync.uploadNow(); } catch(e) {}
     });
     $("#advReset").addEventListener("click", async ()=>{
       if (!confirm("Reset commission and all holdings to defaults?")) return;
@@ -1837,7 +1642,7 @@
       saveState(s);
       loadAdvancedEditor();
       updateUI(true);
-      try { await Sync.uploadNow(); } catch(e) {}
+      try { await FSync.uploadNow(); } catch(e) {}
     });
 
     $("#saveSecurity")?.addEventListener("click", async ()=>{
@@ -1850,13 +1655,13 @@
       saveSec(sec);
       $("#secNewPass").value = ""; $("#secNewKey").value = "";
       alert("Security settings saved. The new password/key will be required next login.");
-      try { await Sync.uploadNow(); } catch(e) {}
+      try { await FSync.uploadNow(); } catch(e) {}
     });
     $("#saveBoot")?.addEventListener("click", async ()=>{
       const v = +($("#bootSeconds")?.value || 3.6);
       saveUI({ bootSeconds: clamp(v, 0.5, 20) });
       alert("Login time updated.");
-      try { await Sync.uploadNow(); } catch(e) {}
+      try { await FSync.uploadNow(); } catch(e) {}
     });
 
     function renderAdminDebug(){
@@ -2024,14 +1829,14 @@
         const px = +($("#uiPadding")?.value || 16);
         saveUI({ paddingPx: clamp(px,8,56) });
         applyPadding(clamp(px,8,56));
-        try { await Sync.uploadNow(); } catch(e) {}
+        try { await FSync.uploadNow(); } catch(e) {}
       });
       $("#themeBtnLight")?.addEventListener("click", ()=>{ document.querySelectorAll('[data-theme]').forEach(b=>b.classList.remove("active")); $("#themeBtnLight").classList.add("active"); });
       $("#themeBtnDark")?.addEventListener("click", ()=>{ document.querySelectorAll('[data-theme]').forEach(b=>b.classList.remove("active")); $("#themeBtnDark").classList.add("active"); });
       $("#saveTheme")?.addEventListener("click", async ()=>{
         const chosen = document.querySelector('.seg [data-theme].active')?.dataset.theme || "light";
         saveUI({ theme: chosen }); applyTheme(chosen);
-        try { await Sync.uploadNow(); } catch(e) {}
+        try { await FSync.uploadNow(); } catch(e) {}
       });
 
       // BRAND — save & push immediately
@@ -2039,7 +1844,7 @@
       async function saveBrandNow(hex){
         saveUI({ brandHex: hex });
         applyBrand(hex);
-        try { await Sync.uploadNow(); } catch(e) {}
+        try { await FSync.uploadNow(); } catch(e) {}
       }
       $("#saveBrand")?.addEventListener("click", async ()=>{
         const hex = brandInput?.value || "#0ea5e9";
@@ -2054,11 +1859,11 @@
       $("#saveLoginBg")?.addEventListener("click", async ()=>{
         const v = ($("#loginBgCss")?.value || "").trim();
         saveUI({ loginBg: v || null }); applyLoginBg(v || DEFAULT_LOGIN_BG); alert("Login background saved.");
-        try { await Sync.uploadNow(); } catch(e) {}
+        try { await FSync.uploadNow(); } catch(e) {}
       });
       $("#resetLoginBg")?.addEventListener("click", async ()=>{
         saveUI({ loginBg: null }); if ($("#loginBgCss")) $("#loginBgCss").value=""; applyLoginBg(DEFAULT_LOGIN_BG);
-        try { await Sync.uploadNow(); } catch(e) {}
+        try { await FSync.uploadNow(); } catch(e) {}
       });
 
       // Export
@@ -2096,5 +1901,25 @@
     /***** SEARCH UI (complete) *****/
     function renderSearchResultsSafe(list){ renderSearchResults(list); } // alias used above if needed
   </script>
+
+  <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyBbxM_ZflLvMQ7U06bzxYWmUVLRjP-8RD4",
+    authDomain: "dexp-sync.firebaseapp.com",
+    projectId: "dexp-sync",
+    storageBucket: "dexp-sync.firebasestorage.app",
+    messagingSenderId: "1095206632413",
+    appId: "1:1095206632413:web:b3a63d21f8bea3e6391434"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>
 </body>
 </html>
