@@ -44,10 +44,50 @@
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <!-- Firebase (Firestore) — fill FIREBASE_CONFIG below -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <!-- FIREBASE: put your project config here ONCE (keys are safe to expose; rules protect data) -->
+<script>
+  window.FIREBASE_CONFIG = {
+    apiKey: "AIzaSyBbxM_ZflLvMQ7U06bzxYWmUVLRjP-8RD4",
+    authDomain: "dexp-sync.firebaseapp.com",
+    projectId: "dexp-sync",
+    appId: "1:1095206632413:web:b3a63d21f8bea3e6391434",
+    storageBucket: "dexp-sync.firebasestorage.app",
+    messagingSenderId: "1095206632413"
+  };
+</script>
+
+
+  <!-- FIREBASE: modern modular SDK (no compat) + make it available to the rest of the page -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, onSnapshot,
+      enableIndexedDbPersistence, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getAuth, setPersistence, browserLocalPersistence,
+      signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    if (!window.FIREBASE_CONFIG?.projectId) {
+      console.warn("FIREBASE_CONFIG missing. Add your project keys in the script just above.");
+    }
+
+    const app  = initializeApp(window.FIREBASE_CONFIG);
+    const db   = getFirestore(app);
+    const auth = getAuth(app);
+    await setPersistence(auth, browserLocalPersistence).catch(()=>{});
+
+    // Offline support for Firestore
+    enableIndexedDbPersistence(db).catch(()=>{});
+
+    // Expose to non-module script below
+    window.__FIREBASE__ = { app, db, auth };
+    window.__FIREBASE_FNS__ = {
+      doc, getDoc, setDoc, onSnapshot, serverTimestamp,
+      signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut
+    };
+  </script>
 
   <style>
     html,body{ background: var(--bg); color: var(--ink); }
@@ -80,20 +120,8 @@
     .section-gap{ gap: 16px; }
     .kpi{ border-radius: 14px; background: #f8fafc; border:1px solid var(--border); padding: 14px; }
 
-    #nlvValue{
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-variant-numeric: tabular-nums;
-    }
-    #headerNLV{
-      max-width: 190px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-variant-numeric: tabular-nums;
-    }
+    #nlvValue{ font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+    #headerNLV{ max-width: 190px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 
     .progress-wrap{ margin-top:.75rem; width:100%; height:8px; border-radius:999px; background:#e2e8f0; overflow:hidden; }
     .progress-bar{ height:100%; width:0%; background: linear-gradient(90deg,var(--brand),var(--brand-2)); transition: width .2s ease; }
@@ -609,13 +637,7 @@
     const SECRET_SETTINGS_CODE = "admin123";
     let __AUTH_OK = false;
 
-    // Firebase config — REPLACE with your project values (keep keys public; rules protect data)
-    const FIREBASE_CONFIG = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      appId: "YOUR_APP_ID"
-    };
+    // NOTE: FIREBASE_CONFIG moved to <head> and exposed as window.FIREBASE_CONFIG
 
     // Core assets
     const CORE_ASSETS = [
@@ -667,30 +689,10 @@
     const clamp = (x,a,b) => Math.max(a, Math.min(b,x));
     const now = () => Date.now();
     const uid = () => (Date.now().toString(36)+Math.random().toString(36).slice(2,7)).toUpperCase();
-    const enc = new TextEncoder(); const dec = new TextDecoder();
 
-    const hexToRgb = (hex) => {
-      const m = hex.replace('#','').match(/^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-      if(!m) return {r:14,g:165,b:233};
-      return { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) };
-    };
+    const hexToRgb = (hex) => { const m = hex.replace('#','').match(/^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i); if(!m) return {r:14,g:165,b:233}; return { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) }; };
     const rgbToHex = (r,g,b)=>"#"+[r,g,b].map(x=>x.toString(16).padStart(2,"0")).join("");
     const darken = (hex, pct=20)=>{ const {r,g,b}=hexToRgb(hex); const f=(v)=>Math.max(0,Math.min(255,Math.round(v*(1-pct/100)))); return rgbToHex(f(r),f(g),f(b)); };
-
-    const b64 = {
-      fromBytes: (buf) => {
-        let binary = ""; const bytes = new Uint8Array(buf);
-        const len = bytes.byteLength;
-        for (let i=0;i<len;i++) binary += String.fromCharCode(bytes[i]);
-        return btoa(binary);
-      },
-      toBytes: (b64str) => {
-        const binary = atob(b64str); const len = binary.length;
-        const bytes = new Uint8Array(len);
-        for (let i=0;i<len;i++) bytes[i] = binary.charCodeAt(i);
-        return bytes;
-      }
-    };
 
     function loadState(){ const raw=localStorage.getItem(K.STATE); return raw?JSON.parse(raw):defaultState(); }
     function saveState(s){ localStorage.setItem(K.STATE, JSON.stringify(s)); onLocalChange(); }
@@ -705,8 +707,8 @@
     function loadUI(){
        const raw=localStorage.getItem(K.UI);
        const defPad = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-x')) || 16;
-      const base = { paddingPx: defPad, theme: "light", brandHex: "#0ea5e9", bootSeconds: 3.6, loginBg: null };
-      return raw? { ...base, ...JSON.parse(raw) } : base;
+       const base = { paddingPx: defPad, theme: "light", brandHex: "#0ea5e9", bootSeconds: 3.6, loginBg: null };
+       return raw? { ...base, ...JSON.parse(raw) } : base;
     }
     function saveUI(u){ const cur = loadUI(); localStorage.setItem(K.UI, JSON.stringify({ ...cur, ...u })); onLocalChange(); }
     function loadOrders(){ const raw=localStorage.getItem(K.ORDERS); return raw?JSON.parse(raw):[]; }
@@ -719,13 +721,8 @@
     }
     function saveSec(s){ localStorage.setItem(K.SEC, JSON.stringify(s)); onLocalChange(); }
 
-    function pushActivity(msg){
-      const h=loadHistory(); h.unshift({t:now(),msg}); saveHistory(h.slice(0,200)); renderActivity();
-    }
-    function recordTrade(trade){
-      const list = loadTrades(); list.unshift(trade); saveTrades(list.slice(0,500));
-    }
-
+    function pushActivity(msg){ const h=loadHistory(); h.unshift({t:now(),msg}); saveHistory(h.slice(0,200)); renderActivity(); }
+    function recordTrade(trade){ const list = loadTrades(); list.unshift(trade); saveTrades(list.slice(0,500)); }
     function recordEquityPoint(nlv, minGapMs=60_000){
       if (!isFinite(nlv)) return;
       const series = loadEquity();
@@ -740,14 +737,14 @@
     function getTradableAssets(){
       const favs = loadFavs();
       const map = new Map();
-      CORE_ASSETS.forEach(a=>map.set(a.id,a));
+      [ ...CORE_ASSETS ].forEach(a=>map.set(a.id,a));
       favs.forEach(a=>map.set(a.id,a));
       return Array.from(map.values());
     }
     const getSymbol = id => { const a = getTradableAssets().find(x=>x.id===id); return a?.symbol || id.toUpperCase(); };
 
-    /***** FIRESTORE SYNC *****/
-    // Package all local state we want to sync (SEC/login never leaves device)
+    /***** FIRESTORE SYNC (modular SDK) *****/
+    // We sync a single per-user document at: users/{uid}/dex/settings
     function gatherAll(){
       return {
         v: 1,
@@ -763,8 +760,6 @@
         }
       };
     }
-
-    // Apply a full "items" payload into local storage
     function applyAll(items){
       if (!items) return;
       if (items[K.STATE]   != null) saveState(items[K.STATE]);
@@ -777,69 +772,75 @@
     }
 
     const FSync = (()=>{
-      let db=null, auth=null, docRef=null, unsub=null;
+      let settingsRef=null, unsub=null;
       let debounceId=0, pauseSaves=false;
       const clientId = uid();
-      const collectionName = "dexUsers";
 
-      function enabled(){ return typeof firebase !== "undefined" && FIREBASE_CONFIG && FIREBASE_CONFIG.projectId; }
+      function enabled(){ return !!(window.__FIREBASE__?.db && window.__FIREBASE__?.auth); }
 
-      async function initialOrUpdate(accountId){
-        if (!enabled()){ appendLog?.("Sync • Firestore not configured."); return; }
-        try{
-          appendLog?.("Sync • Connecting to Firestore…");
-          if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-          auth = firebase.auth();
-          await auth.signInAnonymously();
-          db = firebase.firestore();
-          docRef = db.collection(collectionName).doc(accountId);
+      async function initialOrUpdate(){
+        if (!enabled()){ appendLog?.("Sync • Firebase not initialized."); return; }
+        const F = window.__FIREBASE_FNS__;
+        const db = window.__FIREBASE__.db;
+        const auth = window.__FIREBASE__.auth;
+        const user = auth.currentUser;
+        if (!user) { appendLog?.("Sync • No Firebase user."); return; }
 
-          const snap = await docRef.get();
-          if (snap.exists){
-            appendLog?.("Sync • Downloading cloud state…");
-            const data = snap.data();
-            pauseSaves = true;
-            try { applyAll(data.items || null); } finally { pauseSaves=false; }
-            appendLog?.("Sync • Applied.");
-          } else {
-            appendLog?.("Sync • Seeding cloud state…");
-            const pkg = gatherAll();
-            await docRef.set({ v:1, ts: pkg.ts, items: pkg.items, updatedBy: clientId, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
-            appendLog?.("Sync • Seeded.");
-          }
+        settingsRef = F.doc(db, "users", user.uid, "dex", "settings");
+        appendLog?.("Sync • Connecting to Firestore…");
 
-          if (unsub) unsub();
-          unsub = docRef.onSnapshot(s=>{
-            const data = s.data(); if (!data) return;
-            if (data.updatedBy === clientId) return; // ignore our own writes
-            pauseSaves = true;
-            try { applyAll(data.items || null); } finally { pauseSaves=false; }
-            const ui = loadUI();
-            applyTheme(ui.theme || "light");
-            applyBrand(ui.brandHex || "#0ea5e9");
-            applyPadding(ui.paddingPx || 16);
-            updateUI();
-            renderOpenOrders();
-            renderFavoritesPanel();
-          });
-
-        }catch(e){
-          console.error(e);
-          appendLog?.("Sync • Error: " + (e?.message||e));
+        const snap = await F.getDoc(settingsRef);
+        if (snap.exists()){
+          appendLog?.("Sync • Downloading cloud state…");
+          const data = snap.data();
+          pauseSaves = true;
+          try { applyAll(data.items || null); } finally { pauseSaves=false; }
+          appendLog?.("Sync • Applied.");
+        } else {
+          appendLog?.("Sync • Seeding cloud state…");
+          const pkg = gatherAll();
+          await F.setDoc(
+            settingsRef,
+            { v:1, ts: pkg.ts, items: pkg.items, updatedBy: clientId, updatedAt: F.serverTimestamp() },
+            { merge:true }
+          );
+          appendLog?.("Sync • Seeded.");
         }
+
+        // Live updates
+        if (unsub) unsub();
+        unsub = F.onSnapshot(settingsRef, (s)=>{
+          const data = s.data(); if (!data) return;
+          if (data.updatedBy === clientId) return; // ignore our own writes
+          pauseSaves = true;
+          try { applyAll(data.items || null); } finally { pauseSaves=false; }
+          // Re-apply UI immediately
+          const ui = loadUI();
+          applyTheme(ui.theme || "light");
+          applyBrand(ui.brandHex || "#0ea5e9");
+          applyPadding(ui.paddingPx || 16);
+          updateUI();
+          renderOpenOrders();
+          renderFavoritesPanel();
+        });
       }
 
       function scheduleUpload(){
-        if (pauseSaves || !docRef) return;
+        if (pauseSaves || !settingsRef) return;
         clearTimeout(debounceId);
-        debounceId = setTimeout(uploadNow, 800);
+        debounceId = setTimeout(uploadNow, 600);
       }
 
       async function uploadNow(){
-        if (pauseSaves || !docRef) return;
+        if (pauseSaves || !settingsRef) return;
         try{
+          const F = window.__FIREBASE_FNS__;
           const pkg = gatherAll();
-          await docRef.set({ v:1, ts: Date.now(), items: pkg.items, updatedBy: clientId, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+          await F.setDoc(
+            settingsRef,
+            { v:1, ts: Date.now(), items: pkg.items, updatedBy: clientId, updatedAt: F.serverTimestamp() },
+            { merge:true }
+          );
         }catch(e){ console.error("Sync • upload error", e); }
       }
 
@@ -848,16 +849,14 @@
 
     function onLocalChange(){ FSync.scheduleUpload(); }
 
-    // Flush on tab hide & pagehide to avoid races on close/switch
+    // Flush on hide/close
     document.addEventListener("visibilitychange", async ()=>{
-      if (document.visibilityState === "hidden"){
-        try { await FSync.uploadNow(); } catch(e) {}
-      }
+      if (document.visibilityState === "hidden"){ try { await FSync.uploadNow(); } catch(e) {} }
     });
     window.addEventListener("pagehide", async ()=>{ try { await FSync.uploadNow(); } catch(e) {} });
     window.addEventListener("beforeunload", ()=>{ FSync.uploadNow(); });
 
-    /***** AUTH *****/
+    /***** AUTH (UI + Firebase Email/Password) *****/
     const loginOverlay = $("#loginOverlay");
     const loginForm = $("#loginForm");
     const loginLoading = $("#loginLoading");
@@ -927,20 +926,37 @@
         const sec = loadSec();
 
         const ok = (acct === sec.account && pass === sec.password && key === sec.key);
-        if (ok) {
-          $("#loginErr").classList.add("hidden");
-          await runBootSequence();
-
-          // === Firestore sync ===
-          await FSync.initialOrUpdate(acct);
-
-          __AUTH_OK = true;
-          loginOverlay.classList.add("hidden");
-          ["loginAccount","loginPass","loginKey"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
-          boot();
-        } else {
+        if (!ok){
           $("#loginErr").classList.remove("hidden");
+          return;
         }
+
+        $("#loginErr").classList.add("hidden");
+        await runBootSequence();
+
+        // FIREBASE: sign the user in (or create) using a synthetic email from Account
+        const email = `${acct}@dex.local`; // not real email; just a stable identifier for Auth
+        const { signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.__FIREBASE_FNS__;
+        const auth = window.__FIREBASE__.auth;
+
+        try {
+          await signInWithEmailAndPassword(auth, email, pass);
+        } catch (err) {
+          if (err?.code === "auth/user-not-found") {
+            await createUserWithEmailAndPassword(auth, email, pass);
+          } else {
+            throw err;
+          }
+        }
+
+        // === Firestore sync ===
+        await FSync.initialOrUpdate();
+
+        __AUTH_OK = true;
+        loginOverlay.classList.add("hidden");
+        ["loginAccount","loginPass","loginKey"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
+        boot();
+
       }catch(err){
         $("#loginErr").textContent = "Login error: " + (err?.message || err || "unknown");
         $("#loginErr").classList.remove("hidden");
@@ -959,9 +975,10 @@
       document.querySelectorAll(".top-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===id));
       window.scrollTo({top:0, behavior:'smooth'});
     }
-    // Flush sync on logout
+    // Flush sync + sign out on logout
     $("#logoutBtn")?.addEventListener("click", async ()=>{
       try { await FSync.uploadNow(); } catch(e) {}
+      try { await window.__FIREBASE_FNS__.signOut(window.__FIREBASE__.auth); } catch(e) {}
       __AUTH_OK = false;
       location.reload();
     });
@@ -1205,13 +1222,12 @@
       `;
     }
 
-    /***** QUICK SWAP *****/
+    /***** QUICK SWAP (unchanged logic) *****/
     function marketRate(fromId, toId){
       const fp = priceOf(fromId), tp = priceOf(toId);
       if (fp==null || tp==null) return null;
       return fp / tp;
     }
-
     function quoteSwap(state, fromId, toId, fromAmt){
       const fromPx = priceOf(fromId), toPx = priceOf(toId);
       if (fromId===toId) return { ok:false, msg:"Select different assets." };
@@ -1286,7 +1302,7 @@
       } else msg.textContent = res.msg;
     });
 
-    /***** TRADING TICKET *****/
+    /***** TRADING TICKET (unchanged engine, with sync taps) *****/
     let swOrderType = "MARKET";
     function setOrderType(t){
       swOrderType = t;
@@ -1393,7 +1409,7 @@
       }
 
       if (swOrderType==="LIMIT"){
-        const L = +$("#limitPriceBuy").value || 0;
+        const L = +($("#limitPriceBuy").value || 0);
         const tif = $("#tif").value || "GTC";
         if (!(L>0)){ msg.textContent = "Enter a limit price."; return; }
         if (mkt <= L){
@@ -1681,6 +1697,14 @@
     }
 
     /***** FAVORITES & SEARCH *****/
+    async function searchCoinGecko(q){
+      if (!q) return [];
+      const url = `https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`;
+      const res = await fetch(url, { headers: { "accept": "application/json" }});
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.coins||[]).map(c=>({ id:c.id, symbol:c.symbol.toUpperCase(), name:c.name, thumb:c.thumb }));
+    }
     function addFavorite(asset){
       const favs = loadFavs();
       if (!favs.some(f=>f.id===asset.id)){
@@ -1701,14 +1725,6 @@
       const found = all.find(a=>a.id===id) || {};
       if (isFav(id)) removeFavorite(id);
       else addFavorite({ id, symbol: found.symbol||id, name: found.name||id });
-    }
-    async function searchCoinGecko(q){
-      if (!q) return [];
-      const url = `https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`;
-      const res = await fetch(url, { headers: { "accept": "application/json" }});
-      if (!res.ok) return [];
-      const data = await res.json();
-      return (data.coins||[]).map(c=>({ id:c.id, symbol:c.symbol.toUpperCase(), name:c.name, thumb:c.thumb }));
     }
     function openAssetModal(){
       $("#assetModal").classList.remove("hidden");
@@ -1778,9 +1794,7 @@
     }
 
     /***** THEME / BRAND / UI *****/
-    function applyTheme(theme){
-      document.documentElement.setAttribute("data-theme", theme);
-    }
+    function applyTheme(theme){ document.documentElement.setAttribute("data-theme", theme); }
     function applyBrand(hex){
       const root = document.documentElement;
       const {r,g,b} = hexToRgb(hex);
@@ -1793,10 +1807,7 @@
         chart.update("none");
       }
     }
-    function applyPadding(px){
-      document.documentElement.style.setProperty("--app-x", px+"px");
-      $("#uiPaddingVal").textContent = px+"px";
-    }
+    function applyPadding(px){ document.documentElement.style.setProperty("--app-x", px+"px"); $("#uiPaddingVal").textContent = px+"px"; }
 
     /***** UI UPDATE & BOOT *****/
     function updateUI(pricesChanged=false){
@@ -1901,25 +1912,5 @@
     /***** SEARCH UI (complete) *****/
     function renderSearchResultsSafe(list){ renderSearchResults(list); } // alias used above if needed
   </script>
-
-  <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyBbxM_ZflLvMQ7U06bzxYWmUVLRjP-8RD4",
-    authDomain: "dexp-sync.firebaseapp.com",
-    projectId: "dexp-sync",
-    storageBucket: "dexp-sync.firebasestorage.app",
-    messagingSenderId: "1095206632413",
-    appId: "1:1095206632413:web:b3a63d21f8bea3e6391434"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-</script>
 </body>
 </html>
