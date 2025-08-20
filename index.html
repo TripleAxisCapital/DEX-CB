@@ -44,20 +44,19 @@
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <!-- FIREBASE: put your project config here ONCE (keys are safe to expose; rules protect data) -->
-<script>
-  window.FIREBASE_CONFIG = {
-    apiKey: "AIzaSyBbxM_ZflLvMQ7U06bzxYWmUVLRjP-8RD4",
-    authDomain: "dexp-sync.firebaseapp.com",
-    projectId: "dexp-sync",
-    appId: "1:1095206632413:web:b3a63d21f8bea3e6391434",
-    storageBucket: "dexp-sync.firebasestorage.app",
-    messagingSenderId: "1095206632413"
-  };
-</script>
+  <!-- FIREBASE: your project config (safe to expose; rules protect data) -->
+  <script>
+    window.FIREBASE_CONFIG = {
+      apiKey: "AIzaSyBbxM_ZflLvMQ7U06bzxYWmUVLRjP-8RD4",
+      authDomain: "dexp-sync.firebaseapp.com",
+      projectId: "dexp-sync",
+      appId: "1:1095206632413:web:b3a63d21f8bea3e6391434",
+      storageBucket: "dexp-sync.firebasestorage.app",
+      messagingSenderId: "1095206632413"
+    };
+  </script>
 
-
-  <!-- FIREBASE: modern modular SDK (no compat) + make it available to the rest of the page -->
+  <!-- FIREBASE: modular SDK, exported to window for the rest of the page -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
@@ -66,7 +65,7 @@
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import {
       getAuth, setPersistence, browserLocalPersistence,
-      signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut
+      signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updatePassword
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     if (!window.FIREBASE_CONFIG?.projectId) {
@@ -76,16 +75,18 @@
     const app  = initializeApp(window.FIREBASE_CONFIG);
     const db   = getFirestore(app);
     const auth = getAuth(app);
+
+    // Persist auth session across reloads
     await setPersistence(auth, browserLocalPersistence).catch(()=>{});
 
-    // Offline support for Firestore
+    // Enable offline cache for Firestore
     enableIndexedDbPersistence(db).catch(()=>{});
 
     // Expose to non-module script below
     window.__FIREBASE__ = { app, db, auth };
     window.__FIREBASE_FNS__ = {
       doc, getDoc, setDoc, onSnapshot, serverTimestamp,
-      signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut
+      signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updatePassword
     };
   </script>
 
@@ -637,8 +638,6 @@
     const SECRET_SETTINGS_CODE = "admin123";
     let __AUTH_OK = false;
 
-    // NOTE: FIREBASE_CONFIG moved to <head> and exposed as window.FIREBASE_CONFIG
-
     // Core assets
     const CORE_ASSETS = [
       { id: "bitcoin",       symbol: "BTC", name: "Bitcoin" },
@@ -743,8 +742,7 @@
     }
     const getSymbol = id => { const a = getTradableAssets().find(x=>x.id===id); return a?.symbol || id.toUpperCase(); };
 
-    /***** FIRESTORE SYNC (modular SDK) *****/
-    // We sync a single per-user document at: users/{uid}/dex/settings
+    /***** FIRESTORE SYNC (per-user document) *****/
     function gatherAll(){
       return {
         v: 1,
@@ -935,7 +933,7 @@
         await runBootSequence();
 
         // FIREBASE: sign the user in (or create) using a synthetic email from Account
-        const email = `${acct}@dex.local`; // not real email; just a stable identifier for Auth
+        const email = `${acct}@dex.local`; // stable ID for Firebase Auth
         const { signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.__FIREBASE_FNS__;
         const auth = window.__FIREBASE__.auth;
 
@@ -943,13 +941,28 @@
           await signInWithEmailAndPassword(auth, email, pass);
         } catch (err) {
           if (err?.code === "auth/user-not-found") {
-            await createUserWithEmailAndPassword(auth, email, pass);
+            // create on first login for that Account
+            try {
+              await createUserWithEmailAndPassword(auth, email, pass);
+            } catch (ce) {
+              if (ce?.code === "auth/operation-not-allowed") {
+                throw new Error("Email/Password sign-in is disabled for this Firebase project. Enable it in Authentication → Sign-in method.");
+              }
+              if (ce?.code === "auth/weak-password") {
+                throw new Error("Password must be at least 6 characters.");
+              }
+              throw ce;
+            }
+          } else if (err?.code === "auth/operation-not-allowed") {
+            throw new Error("Email/Password sign-in is disabled for this Firebase project. Enable it in Authentication → Sign-in method.");
+          } else if (err?.code === "auth/wrong-password") {
+            throw new Error("Wrong password for this Account.");
           } else {
             throw err;
           }
         }
 
-        // === Firestore sync ===
+        // Start Firestore sync
         await FSync.initialOrUpdate();
 
         __AUTH_OK = true;
@@ -1222,7 +1235,7 @@
       `;
     }
 
-    /***** QUICK SWAP (unchanged logic) *****/
+    /***** QUICK SWAP *****/
     function marketRate(fromId, toId){
       const fp = priceOf(fromId), tp = priceOf(toId);
       if (fp==null || tp==null) return null;
@@ -1302,7 +1315,7 @@
       } else msg.textContent = res.msg;
     });
 
-    /***** TRADING TICKET (unchanged engine, with sync taps) *****/
+    /***** TRADING TICKET *****/
     let swOrderType = "MARKET";
     function setOrderType(t){
       swOrderType = t;
@@ -1661,6 +1674,7 @@
       try { await FSync.uploadNow(); } catch(e) {}
     });
 
+    // Keep Firebase Auth password in sync when the local "Password" is changed
     $("#saveSecurity")?.addEventListener("click", async ()=>{
       const sec = loadSec();
       const np = ($("#secNewPass")?.value || "").trim();
@@ -1670,9 +1684,23 @@
       if (nk) sec.key = nk;
       saveSec(sec);
       $("#secNewPass").value = ""; $("#secNewKey").value = "";
-      alert("Security settings saved. The new password/key will be required next login.");
+
+      // Also update Firebase user password so next login works across devices
+      try {
+        if (np && window.__FIREBASE__?.auth?.currentUser) {
+          await window.__FIREBASE_FNS__.updatePassword(window.__FIREBASE__.auth.currentUser, np);
+        }
+        alert("Security settings saved. New password/key will be required next login.");
+      } catch (e) {
+        if (e?.code === "auth/requires-recent-login") {
+          alert("Password saved locally. To update Firebase password, log out and log back in, then set it again.");
+        } else {
+          alert("Saved locally, but updating Firebase password failed: " + (e?.message || e));
+        }
+      }
       try { await FSync.uploadNow(); } catch(e) {}
     });
+
     $("#saveBoot")?.addEventListener("click", async ()=>{
       const v = +($("#bootSeconds")?.value || 3.6);
       saveUI({ bootSeconds: clamp(v, 0.5, 20) });
@@ -1909,8 +1937,8 @@
       setInterval(loadAndPoll, PRICE_POLL_MS);
     }
 
-    /***** SEARCH UI (complete) *****/
-    function renderSearchResultsSafe(list){ renderSearchResults(list); } // alias used above if needed
+    /***** SEARCH UI *****/
+    function renderSearchResultsSafe(list){ renderSearchResults(list); } // alias
   </script>
 </body>
 </html>
