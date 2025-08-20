@@ -45,50 +45,54 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <!-- FIREBASE: your project config (safe to expose; rules protect data) -->
-  <script>
-    window.FIREBASE_CONFIG = {
-      apiKey: "AIzaSyBbxM_ZflLvMQ7U06bzxYWmUVLRjP-8RD4",
-      authDomain: "dexp-sync.firebaseapp.com",
-      projectId: "dexp-sync",
-      appId: "1:1095206632413:web:b3a63d21f8bea3e6391434",
-      storageBucket: "dexp-sync.firebasestorage.app",
-      messagingSenderId: "1095206632413"
-    };
-  </script>
+<script>
+  // Paste your real config from Firebase Project settings:
+  window.FIREBASE_CONFIG = {
+    apiKey: "PASTE_YOURS",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT",
+    appId: "PASTE_YOURS",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "PASTE_YOURS"
+  };
+</script>
 
-  <!-- FIREBASE: modular SDK, exported to window for the rest of the page -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, doc, getDoc, setDoc, onSnapshot,
-      enableIndexedDbPersistence, serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import {
-      getAuth, setPersistence, browserLocalPersistence,
-      signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updatePassword
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+<!-- FIREBASE: modular SDK, exported to window for the rest of the page -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, onSnapshot,
+    enableIndexedDbPersistence, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import {
+    getAuth, setPersistence, browserLocalPersistence,
+    signInWithEmailAndPassword, createUserWithEmailAndPassword,
+    signOut, updatePassword, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    if (!window.FIREBASE_CONFIG?.projectId) {
-      console.warn("FIREBASE_CONFIG missing. Add your project keys in the script just above.");
-    }
+  if (!window.FIREBASE_CONFIG?.projectId) {
+    console.warn("FIREBASE_CONFIG missing. Add your project keys in the script just above.");
+  }
 
-    const app  = initializeApp(window.FIREBASE_CONFIG);
-    const db   = getFirestore(app);
-    const auth = getAuth(app);
+  const app  = initializeApp(window.FIREBASE_CONFIG);
+  const db   = getFirestore(app);
+  const auth = getAuth(app);
 
-    // Persist auth session across reloads
-    await setPersistence(auth, browserLocalPersistence).catch(()=>{});
+  // Persist auth session across reloads
+  try { await setPersistence(auth, browserLocalPersistence); } catch(e) {}
 
-    // Enable offline cache for Firestore
-    enableIndexedDbPersistence(db).catch(()=>{});
+  // Enable offline cache for Firestore (best-effort)
+  try { await enableIndexedDbPersistence(db); } catch(e) {}
 
-    // Expose to non-module script below
-    window.__FIREBASE__ = { app, db, auth };
-    window.__FIREBASE_FNS__ = {
-      doc, getDoc, setDoc, onSnapshot, serverTimestamp,
-      signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updatePassword
-    };
-  </script>
+  // Expose Firebase and fns to the rest of the page (non-module script)
+  window.__FIREBASE__ = { app, db, auth };
+  window.__FIREBASE_FNS__ = {
+    doc, getDoc, setDoc, onSnapshot, serverTimestamp,
+    signInWithEmailAndPassword, createUserWithEmailAndPassword,
+    signOut, updatePassword, onAuthStateChanged
+  };
+</script>
+
 
   <style>
     html,body{ background: var(--bg); color: var(--ink); }
@@ -769,81 +773,122 @@
       if (items[K.ORDERS]  != null) saveOrders(items[K.ORDERS]);
     }
 
-    const FSync = (()=>{
-      let settingsRef=null, unsub=null;
-      let debounceId=0, pauseSaves=false;
-      const clientId = uid();
+    
+  // ... keep everything you already have ABOVE this line (styles, utils, etc.)
 
-      function enabled(){ return !!(window.__FIREBASE__?.db && window.__FIREBASE__?.auth); }
+  /***** FIRESTORE SYNC (per-user document) *****/
+  function gatherAll(){
+    return {
+      v: 1,
+      ts: Date.now(),
+      items: {
+        [K.STATE]:    loadState(),
+        [K.TRADES]:   loadTrades(),
+        [K.HISTORY]:  loadHistory(),
+        [K.EQUITY]:   loadEquity(),
+        [K.FAVS]:     loadFavs(),
+        [K.UI]:       loadUI(),
+        [K.ORDERS]:   loadOrders()
+      }
+    };
+  }
+  function applyAll(items){
+    if (!items) return;
+    if (items[K.STATE]   != null) saveState(items[K.STATE]);
+    if (items[K.TRADES]  != null) saveTrades(items[K.TRADES]);
+    if (items[K.HISTORY] != null) saveHistory(items[K.HISTORY]);
+    if (items[K.EQUITY]  != null) saveEquity(items[K.EQUITY]);
+    if (items[K.FAVS]    != null) saveFavs(items[K.FAVS]);
+    if (items[K.UI]      != null) saveUI(items[K.UI]);
+    if (items[K.ORDERS]  != null) saveOrders(items[K.ORDERS]);
+  }
 
-      async function initialOrUpdate(){
-        if (!enabled()){ appendLog?.("Sync • Firebase not initialized."); return; }
+  const FSync = (()=>{
+    let settingsRef=null, unsub=null;
+    let debounceId=0, pauseSaves=false;
+    const clientId = (Date.now().toString(36)+Math.random().toString(36).slice(2,7)).toUpperCase();
+
+    function enabled(){ return !!(window.__FIREBASE__?.db && window.__FIREBASE__?.auth); }
+
+    async function initialOrUpdate(){
+      if (!enabled()){ appendLog?.("Sync • Firebase not initialized."); return; }
+      const F = window.__FIREBASE_FNS__;
+      const db = window.__FIREBASE__.db;
+      const auth = window.__FIREBASE__.auth;
+      const user = auth.currentUser;
+      if (!user) { appendLog?.("Sync • No Firebase user."); return; }
+
+      settingsRef = F.doc(db, "users", user.uid, "dex", "settings");
+      appendLog?.("Sync • Connecting to Firestore…");
+
+      const snap = await F.getDoc(settingsRef);
+      if (snap.exists()){
+        appendLog?.("Sync • Downloading cloud state…");
+        const data = snap.data();
+        pauseSaves = true;
+        try { applyAll(data.items || null); } finally { pauseSaves=false; }
+        appendLog?.("Sync • Applied.");
+      } else {
+        appendLog?.("Sync • Seeding cloud state…");
+        const pkg = gatherAll();
+        await F.setDoc(
+          settingsRef,
+          { v:1, ts: pkg.ts, items: pkg.items, updatedBy: clientId, updatedAt: F.serverTimestamp() },
+          { merge:true }
+        );
+        appendLog?.("Sync • Seeded.");
+      }
+
+      // Live updates
+      if (unsub) unsub();
+      unsub = F.onSnapshot(settingsRef, (s)=>{
+        const data = s.data(); if (!data) return;
+        if (data.updatedBy === clientId) return; // ignore our own writes
+        pauseSaves = true;
+        try { applyAll(data.items || null); } finally { pauseSaves=false; }
+        // Re-apply UI immediately
+        const ui = loadUI();
+        applyTheme(ui.theme || "light");
+        applyBrand(ui.brandHex || "#0ea5e9");
+        applyPadding(ui.paddingPx || 16);
+        updateUI();
+        renderOpenOrders();
+        renderFavoritesPanel();
+      });
+    }
+
+    function scheduleUpload(){
+      if (pauseSaves || !settingsRef) return;
+      clearTimeout(debounceId);
+      debounceId = setTimeout(uploadNow, 600);
+    }
+
+    async function uploadNow(){
+      if (pauseSaves || !settingsRef) return;
+      try{
         const F = window.__FIREBASE_FNS__;
-        const db = window.__FIREBASE__.db;
-        const auth = window.__FIREBASE__.auth;
-        const user = auth.currentUser;
-        if (!user) { appendLog?.("Sync • No Firebase user."); return; }
+        const pkg = gatherAll();
+        await F.setDoc(
+          settingsRef,
+          { v:1, ts: Date.now(), items: pkg.items, updatedBy: clientId, updatedAt: F.serverTimestamp() },
+          { merge:true }
+        );
+      }catch(e){ console.error("Sync • upload error", e); }
+    }
 
-        settingsRef = F.doc(db, "users", user.uid, "dex", "settings");
-        appendLog?.("Sync • Connecting to Firestore…");
+    return { initialOrUpdate, scheduleUpload, uploadNow };
+  })();
 
-        const snap = await F.getDoc(settingsRef);
-        if (snap.exists()){
-          appendLog?.("Sync • Downloading cloud state…");
-          const data = snap.data();
-          pauseSaves = true;
-          try { applyAll(data.items || null); } finally { pauseSaves=false; }
-          appendLog?.("Sync • Applied.");
-        } else {
-          appendLog?.("Sync • Seeding cloud state…");
-          const pkg = gatherAll();
-          await F.setDoc(
-            settingsRef,
-            { v:1, ts: pkg.ts, items: pkg.items, updatedBy: clientId, updatedAt: F.serverTimestamp() },
-            { merge:true }
-          );
-          appendLog?.("Sync • Seeded.");
-        }
+  function onLocalChange(){ FSync.scheduleUpload(); }
 
-        // Live updates
-        if (unsub) unsub();
-        unsub = F.onSnapshot(settingsRef, (s)=>{
-          const data = s.data(); if (!data) return;
-          if (data.updatedBy === clientId) return; // ignore our own writes
-          pauseSaves = true;
-          try { applyAll(data.items || null); } finally { pauseSaves=false; }
-          // Re-apply UI immediately
-          const ui = loadUI();
-          applyTheme(ui.theme || "light");
-          applyBrand(ui.brandHex || "#0ea5e9");
-          applyPadding(ui.paddingPx || 16);
-          updateUI();
-          renderOpenOrders();
-          renderFavoritesPanel();
-        });
-      }
+  // Flush on hide/close
+  document.addEventListener("visibilitychange", async ()=>{
+    if (document.visibilityState === "hidden"){ try { await FSync.uploadNow(); } catch(e) {} }
+  });
+  window.addEventListener("pagehide", async ()=>{ try { await FSync.uploadNow(); } catch(e) {} });
+  window.addEventListener("beforeunload", ()=>{ FSync.uploadNow(); });
 
-      function scheduleUpload(){
-        if (pauseSaves || !settingsRef) return;
-        clearTimeout(debounceId);
-        debounceId = setTimeout(uploadNow, 600);
-      }
 
-      async function uploadNow(){
-        if (pauseSaves || !settingsRef) return;
-        try{
-          const F = window.__FIREBASE_FNS__;
-          const pkg = gatherAll();
-          await F.setDoc(
-            settingsRef,
-            { v:1, ts: Date.now(), items: pkg.items, updatedBy: clientId, updatedAt: F.serverTimestamp() },
-            { merge:true }
-          );
-        }catch(e){ console.error("Sync • upload error", e); }
-      }
-
-      return { initialOrUpdate, scheduleUpload, uploadNow };
-    })();
 
     function onLocalChange(){ FSync.scheduleUpload(); }
 
@@ -1939,6 +1984,33 @@
 
     /***** SEARCH UI *****/
     function renderSearchResultsSafe(list){ renderSearchResults(list); } // alias
+
+
+  // ... your existing login UI vars (loginOverlay, loginForm, appendLog, etc.) are already defined above
+
+  // Auto-boot if Firebase already has a valid session (skip login overlay)
+  function setupAuthListener(){
+    const { onAuthStateChanged } = window.__FIREBASE_FNS__ || {};
+    const auth = window.__FIREBASE__?.auth;
+    if (!onAuthStateChanged || !auth) return;
+    onAuthStateChanged(auth, async (user)=>{
+      if (user && !window.__AUTH_OK) {
+        try {
+          appendLog?.("Auth • Existing Firebase session detected.");
+          await FSync.initialOrUpdate();
+          window.__AUTH_OK = true;
+          if (loginOverlay) loginOverlay.classList.add("hidden");
+          boot();
+        } catch (e) { /* ignore */ }
+      }
+    });
+  }
+  // Ensure this runs once DOM + Firebase are ready
+  document.addEventListener("DOMContentLoaded", setupAuthListener);
+
+
+
+
   </script>
 </body>
 </html>
