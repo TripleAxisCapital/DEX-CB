@@ -52,7 +52,7 @@
       authDomain: "dexp-sync.firebaseapp.com",
       projectId: "dexp-sync",
       appId: "1:1095206632413:web:b3a63d21f8bea3e6391434",
-      storageBucket: "dexp-sync.appspot.com",   // <- fixed bucket
+      storageBucket: "dexp-sync.appspot.com",
       messagingSenderId: "1095206632413"
     };
   </script>
@@ -158,6 +158,11 @@
       .pos-row{ grid-template-columns: 4fr 2fr 2fr 2fr 2fr; align-items:center; gap: 12px; }
     }
     .pos-row + .pos-row{ border-top: 1px solid var(--border); }
+
+    /* Simple positions below main chart */
+    .pos-simple-header{ display:grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap:12px; font-size:.75rem; text-transform:uppercase; color:#64748b; letter-spacing:.03em; }
+    .pos-simple-row{ display:grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap:12px; padding:10px 0; }
+    .pos-simple-row + .pos-simple-row{ border-top:1px solid var(--border); }
 
     [data-theme="dark"] .card{ background: rgba(2,6,23,.85); border-color:#334155; }
     [data-theme="dark"] .kpi{ background:#0b1220; border-color:#334155; }
@@ -268,12 +273,29 @@
                 <div class="chart-box">
                   <canvas id="nlvChart"></canvas>
                 </div>
+
+                <!-- Simple Positions directly below the chart -->
+                <div class="mt-4">
+                  <div class="pos-simple-header">
+                    <div>Asset</div><div>Amount</div><div>Price</div><div>Total</div>
+                  </div>
+                  <div id="simplePositionsList" class="mt-1"></div>
+                </div>
               </div>
+
               <div class="w-full lg:w-64 space-y-3">
                 <div class="kpi">
                   <div class="text-xs text-slate-500">Net Liquidation Value</div>
                   <div id="nlvValue" class="mt-1">$—</div>
                   <div id="nlvDelta" class="text-sm mt-1">—</div>
+                </div>
+                <div class="kpi">
+                  <div class="text-xs text-slate-500">Changes</div>
+                  <div class="mt-1 text-sm space-y-1">
+                    <div><span class="text-slate-500">1D:</span> <span id="delta1d">—</span></div>
+                    <div><span class="text-slate-500">48H:</span> <span id="delta48h">—</span></div>
+                    <div><span class="text-slate-500">Since Start:</span> <span id="deltaSinceStart">—</span></div>
+                  </div>
                 </div>
                 <div class="kpi">
                   <div class="text-xs text-slate-500">Top Weight</div>
@@ -534,6 +556,25 @@
           </div>
         </div>
 
+        <!-- PORTFOLIO BASELINE -->
+        <div class="card card-pad space-y-3">
+          <h3 class="font-semibold">Portfolio Baseline</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="text-xs text-slate-500">Start Date</label>
+              <input id="pfStartDate" type="date" class="input mt-1" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-500">Starting Account Amount</label>
+              <input id="pfStartAmount" type="number" step="0.01" class="input mt-1" placeholder="e.g., 100000" />
+            </div>
+            <div class="flex items-end">
+              <button id="savePortfolioBaseline" class="btn btn-primary w-full">Save Baseline</button>
+            </div>
+          </div>
+          <div class="text-xs text-slate-500">Used for “Since Start” growth and to filter the chart when range = All.</div>
+        </div>
+
         <!-- APPEARANCE -->
         <div class="card card-pad space-y-4">
           <h3 class="font-semibold">Appearance</h3>
@@ -562,6 +603,22 @@
               <button id="saveTheme" class="btn btn-primary w-full">Apply Theme</button>
             </div>
             <div class="text-xs text-slate-500">Switch between light and dark modes.</div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="text-xs text-slate-500">Currency</label>
+              <select id="globalCurrency" class="input mt-1">
+                <option value="USD">USD</option>
+                <option value="CAD">CAD</option>
+                <option value="EUR">EUR</option>
+              </select>
+              <div class="text-xs text-slate-500 mt-1">Affects prices, NLV, and chart.</div>
+            </div>
+            <div class="flex items-end">
+              <button id="saveCurrency" class="btn btn-primary w-full">Save Currency</button>
+            </div>
+            <div></div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
@@ -663,7 +720,7 @@
       TRADES: "dex_trades_v1",
       EQUITY: "dex_equity_v1",
       FAVS: "dex_favorites_v1",
-      UI: "dex_ui_v5",
+      UI: "dex_ui_v6",                 // bumped
       ORDERS: "dex_orders_v1",
       SEC: "dex_security_v1"
     };
@@ -686,8 +743,6 @@
 
     /***** UTIL *****/
     const $ = sel => document.querySelector(sel);
-    const fmtUsd = n => n == null ? "—" : n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
-    const fmtPct = n => `${(n>=0?"+":"")}${n.toFixed(2)}%`;
     const clamp = (x,a,b) => Math.max(a, Math.min(b,x));
     const now = () => Date.now();
     const uid = () => (Date.now().toString(36)+Math.random().toString(36).slice(2,7)).toUpperCase();
@@ -709,10 +764,20 @@
     function loadUI(){
        const raw=localStorage.getItem(K.UI);
        const defPad = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--app-x')) || 16;
-       const base = { paddingPx: defPad, theme: "light", brandHex: "#0ea5e9", bootSeconds: 3.6, loginBg: null };
+       const base = {
+         paddingPx: defPad,
+         theme: "light",
+         brandHex: "#0ea5e9",
+         bootSeconds: 3.6,
+         loginBg: null,
+         currency: "USD",
+         startDateISO: null,
+         startAmount: null
+       };
        return raw? { ...base, ...JSON.parse(raw) } : base;
     }
     function saveUI(u){ const cur = loadUI(); localStorage.setItem(K.UI, JSON.stringify({ ...cur, ...u })); onLocalChange(); }
+
     function loadOrders(){ const raw=localStorage.getItem(K.ORDERS); return raw?JSON.parse(raw):[]; }
     function saveOrders(o){ localStorage.setItem(K.ORDERS, JSON.stringify(o)); onLocalChange(); }
 
@@ -744,6 +809,14 @@
       return Array.from(map.values());
     }
     const getSymbol = id => { const a = getTradableAssets().find(x=>x.id===id); return a?.symbol || id.toUpperCase(); };
+
+    // Currency formatting (global)
+    const fmtCur = (n) => {
+      const cur = (loadUI().currency || "USD").toUpperCase();
+      return n == null ? "—" : n.toLocaleString(undefined, { style: "currency", currency: cur, maximumFractionDigits: 2 });
+    };
+    const fmtUsd = fmtCur; // alias existing calls
+    const fmtPct = n => `${(n>=0?"+":"")}${n.toFixed(2)}%`;
 
     /***** FIRESTORE SYNC (per-user document) *****/
     function gatherAll(){
@@ -812,15 +885,14 @@
         if (unsub) unsub();
         unsub = F.onSnapshot(settingsRef, (s)=>{
           const data = s.data(); if (!data) return;
-          if (data.updatedBy === clientId) return; // ignore our own writes
+          if (data.updatedBy === clientId) return;
           pauseSaves = true;
           try { applyAll(data.items || null); } finally { pauseSaves=false; }
-          // Re-apply UI immediately
           const ui = loadUI();
           applyTheme(ui.theme || "light");
           applyBrand(ui.brandHex || "#0ea5e9");
           applyPadding(ui.paddingPx || 16);
-          updateUI();
+          updateUI(true);
           renderOpenOrders();
           renderFavoritesPanel();
         });
@@ -935,14 +1007,13 @@
         $("#loginErr").classList.add("hidden");
         await runBootSequence();
 
-        // FIREBASE AUTH: "create-first, then sign-in-if-exists" pattern
+        // FIREBASE AUTH
         const email = `${acct}@dex.local`; // stable ID for Firebase Auth
         const { signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.__FIREBASE_FNS__;
         const auth = window.__FIREBASE__.auth;
 
         try {
           await createUserWithEmailAndPassword(auth, email, pass);
-          // If created successfully, user is signed in automatically.
         } catch (ce) {
           if (ce?.code === "auth/email-already-in-use") {
             try {
@@ -994,7 +1065,6 @@
       document.querySelectorAll(".top-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===id));
       window.scrollTo({top:0, behavior:'smooth'});
     }
-    // Flush sync + sign out on logout
     $("#logoutBtn")?.addEventListener("click", async ()=>{
       try { await FSync.uploadNow(); } catch(e) {}
       try { await window.__FIREBASE_FNS__.signOut(window.__FIREBASE__.auth); } catch(e) {}
@@ -1012,7 +1082,8 @@
       const tradables = getTradableAssets();
       if (tradables.length === 0) return;
       const ids = tradables.map(a=>a.id).join(",");
-      const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`;
+      const vs = (loadUI().currency || "USD").toLowerCase();
+      const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs}&ids=${ids}&price_change_percentage=24h`;
       const res = await fetch(url, { headers: { "accept": "application/json" }});
       if (!res.ok) throw new Error("Market API error");
       const data = await res.json();
@@ -1055,6 +1126,42 @@
       return total;
     }
 
+    /***** CHANGE COMPUTATION (1D/48H/SINCE START) *****/
+    function equityAtOrBefore(ts){
+      const series = loadEquity(); // newest first
+      for (const p of series){ if (p.t <= ts) return p.nlv; }
+      return null;
+    }
+    function computeDeltaLabel(cur, base){
+      if (base==null || !isFinite(cur) || !isFinite(base) || base<=0) return "—";
+      const abs = cur - base;
+      const pct = (abs / base) * 100;
+      const cls = abs>=0 ? "green" : "red";
+      return { text: `${fmtCur(abs)} • ${fmtPct(pct)}`, cls };
+    }
+    function updateChangeWidgets(currentNLV){
+      const d1El = $("#delta1d"), d2El = $("#delta48h"), dsEl = $("#deltaSinceStart");
+      const t = now();
+      const d1 = equityAtOrBefore(t - 24*3600e3);
+      const d2 = equityAtOrBefore(t - 48*3600e3);
+
+      const one = computeDeltaLabel(currentNLV, d1);
+      const two = computeDeltaLabel(currentNLV, d2);
+
+      if (typeof one === "string"){ d1El.textContent = one; d1El.classList.remove("green","red"); }
+      else { d1El.textContent = one.text; d1El.classList.toggle("green", one.cls==="green"); d1El.classList.toggle("red", one.cls==="red"); }
+
+      if (typeof two === "string"){ d2El.textContent = two; d2El.classList.remove("green","red"); }
+      else { d2El.textContent = two.text; d2El.classList.toggle("green", two.cls==="green"); d2El.classList.toggle("red", two.cls==="red"); }
+
+      const ui = loadUI();
+      if (ui.startAmount && isFinite(+ui.startAmount)){
+        const ss = computeDeltaLabel(currentNLV, +ui.startAmount);
+        if (typeof ss === "string"){ dsEl.textContent = ss; dsEl.classList.remove("green","red"); }
+        else { dsEl.textContent = ss.text; dsEl.classList.toggle("green", ss.cls==="green"); dsEl.classList.toggle("red", ss.cls==="red"); }
+      } else { dsEl.textContent = "—"; dsEl.classList.remove("green","red"); }
+    }
+
     /***** CHART *****/
     let chart; let currentRange = "7D";
     function makeBrandGradient(ctx){
@@ -1074,8 +1181,8 @@
         data: { labels: [], datasets: [{ label: "Portfolio", data: [], tension: 0.3, borderWidth: 2, pointRadius: 0, borderColor: getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#0ea5e9", fill: true, backgroundColor: makeBrandGradient(ctx) }] },
         options: {
           responsive:true, maintainAspectRatio:false, animation:false,
-          plugins:{ legend:{display:false}, tooltip:{mode:'index',intersect:false, callbacks:{ label: ctx => fmtUsd(ctx.parsed.y) }}},
-          scales:{ x:{ display:true, ticks:{ maxTicksLimit:6 }}, y:{ ticks:{ callback:v=>"$"+(v/1000).toFixed(0)+"k" } } }
+          plugins:{ legend:{display:false}, tooltip:{mode:'index',intersect:false, callbacks:{ label: ctx => fmtCur(ctx.parsed.y) }}},
+          scales:{ x:{ display:true, ticks:{ maxTicksLimit:6 }}, y:{ ticks:{ callback:v=>fmtCur(v) } } }
         }
       });
       refreshChart();
@@ -1083,8 +1190,13 @@
     function refreshChart(){
       if (!chart) return;
       const series = loadEquity();
+      const ui = loadUI();
       const ranges = { "7D":7*24*3600e3, "1M":30*24*3600e3, "3M":90*24*3600e3, "1Y":365*24*3600e3, "ALL":Infinity };
-      const cutoff = isFinite(ranges[currentRange]) ? (now() - ranges[currentRange]) : -Infinity;
+      let cutoff = isFinite(ranges[currentRange]) ? (now() - ranges[currentRange]) : -Infinity;
+      if (currentRange === "ALL" && ui.startDateISO){
+        const startCut = new Date(ui.startDateISO + "T00:00:00").getTime();
+        if (isFinite(startCut)) cutoff = Math.max(cutoff, startCut);
+      }
       const filtered = series.filter(p => p.t >= cutoff).slice().reverse();
       const data = filtered.length<=300 ? filtered : filtered.filter((_,i)=>i%Math.ceil(filtered.length/300)===0);
 
@@ -1136,14 +1248,14 @@
       if ($("#buyAsset") && !$("#buyAsset").value){ $("#buyAsset").value="ethereum"; }
     }
     function renderHeader(nlv){
-      $("#headerNLV").textContent = fmtUsd(nlv);
+      $("#headerNLV").textContent = fmtCur(nlv);
       $("#headerNLV").classList.remove("hidden");
       $("#lastUpdated").textContent = lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : "—";
     }
     function renderSummary(state){
       const nlv = calcNLV(state);
       const el = $("#nlvValue");
-      if (el) { el.textContent = fmtUsd(nlv); requestAnimationFrame(autoFitNLV); }
+      if (el) { el.textContent = fmtCur(nlv); requestAnimationFrame(autoFitNLV); }
       const series = loadEquity();
       const prev = series[1]?.nlv;
       const delta = prev!=null ? ((nlv - prev)/prev)*100 : 0;
@@ -1152,6 +1264,7 @@
       dEl.classList.toggle("green", delta>=0);
       dEl.classList.toggle("red", delta<0);
       renderHeader(nlv);
+      updateChangeWidgets(nlv);
 
       const rows = getTradableAssets().map(a => {
         const px = priceOf(a.id)??0, qty = loadState().holdings[a.id]??0, v=px*qty;
@@ -1193,12 +1306,12 @@
           </div>
 
           <div class="flex items-baseline justify-between md:block">
-            <div class="font-medium">${px!=null?fmtUsd(px):"—"}</div>
+            <div class="font-medium">${px!=null?fmtCur(px):"—"}</div>
             <div class="text-xs ${chg>=0?"green":"red"} md:mt-1">${fmtPct(chg)}</div>
           </div>
 
           <div><div class="font-medium">${qty.toFixed(6)}</div><div class="text-xs text-slate-500 md:mt-1">Holding</div></div>
-          <div><div class="font-medium">${fmtUsd(v)}</div><div class="text-xs text-slate-500 md:mt-1">Value</div></div>
+          <div><div class="font-medium">${fmtCur(v)}</div><div class="text-xs text-slate-500 md:mt-1">Value</div></div>
           <div class="md:text-right"><div class="font-medium">${weight.toFixed(2)}%</div><div class="text-xs text-slate-500 md:mt-1">Weight</div></div>
         `;
         list.appendChild(row);
@@ -1210,6 +1323,35 @@
           try { await FSync.uploadNow(); } catch(e) {}
         });
       });
+    }
+
+    // Simple positions under chart
+    function renderSimplePositions(){
+      const s = loadState();
+      const wrap = $("#simplePositionsList");
+      if (!wrap) return;
+      wrap.innerHTML = "";
+      for (const a of getTradableAssets()){
+        const qty = s.holdings[a.id] || 0;
+        if (!qty) continue;
+        const px = priceOf(a.id);
+        const total = (px!=null) ? qty * px : 0;
+        const row = document.createElement("div");
+        row.className = "pos-simple-row";
+        row.innerHTML = `
+          <div class="flex items-center gap-2">
+            <img src="${imageOf(a.id)||''}" class="w-5 h-5 rounded border border-slate-200"/>
+            <div class="font-medium">${a.symbol}</div>
+          </div>
+          <div>${qty.toFixed(6)}</div>
+          <div>${px!=null?fmtCur(px):"—"}</div>
+          <div class="font-medium">${fmtCur(total)}</div>
+        `;
+        wrap.appendChild(row);
+      }
+      if (!wrap.children.length){
+        wrap.innerHTML = `<div class="text-slate-500 text-sm">No positions yet.</div>`;
+      }
     }
 
     function renderActivity(){
@@ -1310,7 +1452,7 @@
       const msg = $("#qsMsg");
       if (res.ok){
         saveState(s);
-        const trade = { t: now(), fromId: from, toId: to, fromAmt: +fromAmt, toAmt: +res.toAmt.toFixed(6), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
+        const trade = { t: now(), fromId: from, toId: to, fromAmt: +fromAmt, toAmt: +(+res.toAmt.toFixed(6)), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
         recordTrade(trade);
         pushActivity(`SWAP • ${fromAmt} ${getSymbol(from)} → ${res.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${res.feePct.toFixed(2)}%)`);
         updateUI(true);
@@ -1380,12 +1522,12 @@
         el.textContent = `Limit • ${needText(L)} • ${cond}`; return;
       }
       if (swOrderType==="STOP"){
-        const S = +$("#stopPriceBuy").value || 0;
+        const S = +($("#stopPriceBuy").value || 0);
         const dir = $("#stopSide").value || "ABOVE";
         if (!(S>0)){ el.textContent = "Enter a stop trigger."; return; }
         const trig = dir==="ABOVE" ? `triggers when ≥ ${S}` : `triggers when ≤ ${S}`;
         if ($("#stopExec").value==="LIMIT"){
-          const SL = +$("#stopLimitPriceBuy").value || 0;
+          const SL = +($("#stopLimitPriceBuy").value || 0);
           if (!(SL>0)) { el.textContent = "Enter stop & limit price."; return; }
           el.textContent = `Stop-Limit • ${trig}, then place Limit @ ${SL} • ${needText(SL)}`;
         } else { el.textContent = `Stop-Market • ${trig} • est ${needText(S)}`; }
@@ -1691,7 +1833,6 @@
       saveSec(sec);
       $("#secNewPass").value = ""; $("#secNewKey").value = "";
 
-      // Also update Firebase user password so next login works across devices
       try {
         if (np && window.__FIREBASE__?.auth?.currentUser) {
           await window.__FIREBASE_FNS__.updatePassword(window.__FIREBASE__.auth.currentUser, np);
@@ -1851,9 +1992,11 @@
         renderSummary(s);
         if (isFinite(nlv)) { pushChartPoint(nlv); }
         renderPositions(s);
+        renderSimplePositions();
       } else {
         renderSummary(s);
         renderPositions(s);
+        renderSimplePositions();
       }
     }
 
@@ -1881,6 +2024,30 @@
       $("#saveTheme")?.addEventListener("click", async ()=>{
         const chosen = document.querySelector('.seg [data-theme].active')?.dataset.theme || "light";
         saveUI({ theme: chosen }); applyTheme(chosen);
+        try { await FSync.uploadNow(); } catch(e) {}
+      });
+
+      // Currency
+      const curSel = $("#globalCurrency");
+      if (curSel) curSel.value = (ui.currency || "USD").toUpperCase();
+      $("#saveCurrency")?.addEventListener("click", async ()=>{
+        const v = ($("#globalCurrency")?.value || "USD").toUpperCase();
+        saveUI({ currency: v });
+        try { await fetchMarket(); } catch(e) {}
+        alert("Currency saved.");
+        try { await FSync.uploadNow(); } catch(e) {}
+      });
+
+      // Portfolio Baseline
+      if (ui.startDateISO && $("#pfStartDate")) $("#pfStartDate").value = ui.startDateISO;
+      if (ui.startAmount!=null && $("#pfStartAmount")) $("#pfStartAmount").value = ui.startAmount;
+      $("#savePortfolioBaseline")?.addEventListener("click", async ()=>{
+        const dateVal = ($("#pfStartDate")?.value || "").trim() || null;
+        const amtVal = $("#pfStartAmount")?.value ? +$("#pfStartAmount").value : null;
+        saveUI({ startDateISO: dateVal, startAmount: amtVal });
+        refreshChart();
+        updateUI(false);
+        alert("Baseline saved.");
         try { await FSync.uploadNow(); } catch(e) {}
       });
 
