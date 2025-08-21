@@ -301,26 +301,38 @@
             <div id="nlvDelta" class="text-sm mt-1 tabular-nums">—</div>
           </div>
 
-          <!-- Changes group (mobile-safe sizing) -->
+          <!-- Changes group (mobile-safe: wraps value + percent, no truncation) -->
           <div>
             <div class="text-xs text-slate-500 mb-1">Changes</div>
+
+            <!-- On phones: 2 columns; adds height + wrapping so both value and % are visible -->
             <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
               <!-- 1D -->
-              <div class="rounded-xl border border-slate-200 px-3 py-2 md:px-3 md:py-2 min-w-0">
-                <div class="text-[10px] md:text-[11px] uppercase tracking-wide text-slate-500 truncate">1D</div>
-                <div id="delta1d" class="mt-0.5 font-medium text-sm md:text-base tabular-nums truncate">—</div>
+              <div class="rounded-xl border border-slate-200 px-3 py-2 md:px-3 md:py-2 min-w-0 min-h-[64px] flex flex-col justify-center">
+                <div class="text-[10px] md:text-[11px] uppercase tracking-wide text-slate-500">1D</div>
+                <div id="delta1d" class="mt-0.5 font-medium text-[13px] md:text-sm tabular-nums leading-snug whitespace-normal break-words">
+                  —
+                </div>
               </div>
+
               <!-- 48H -->
-              <div class="rounded-xl border border-slate-200 px-3 py-2 md:px-3 md:py-2 min-w-0">
-                <div class="text-[10px] md:text-[11px] uppercase tracking-wide text-slate-500 truncate">48H</div>
-                <div id="delta48h" class="mt-0.5 font-medium text-sm md:text-base tabular-nums truncate">—</div>
+              <div class="rounded-xl border border-slate-200 px-3 py-2 md:px-3 md:py-2 min-w-0 min-h-[64px] flex flex-col justify-center">
+                <div class="text-[10px] md:text-[11px] uppercase tracking-wide text-slate-500">48H</div>
+                <div id="delta48h" class="mt-0.5 font-medium text-[13px] md:text-sm tabular-nums leading-snug whitespace-normal break-words">
+                  —
+                </div>
               </div>
+
               <!-- Since Start -->
-              <div class="rounded-xl border border-slate-200 px-3 py-2 md:px-3 md:py-2 min-w-0">
-                <div class="text-[10px] md:text-[11px] uppercase tracking-wide text-slate-500 truncate">Since Start</div>
-                <div id="deltaSinceStart" class="mt-0.5 font-medium text-sm md:text-base tabular-nums truncate">—</div>
+              <div class="rounded-xl border border-slate-200 px-3 py-2 md:px-3 md:py-2 min-w-0 min-h-[64px] flex flex-col justify-center">
+                <div class="text-[10px] md:text-[11px] uppercase tracking-wide text-slate-500">Since Start</div>
+                <div id="deltaSinceStart" class="mt-0.5 font-medium text-[13px] md:text-sm tabular-nums leading-snug whitespace-normal break-words">
+                  —
+                </div>
               </div>
             </div>
+
+            <!-- Optional hint: if your values include "$1,234 (+2.4%)" they will wrap onto two lines on mobile. -->
           </div>
 
           <!-- Top Weight -->
@@ -340,7 +352,7 @@
 
         <div class="rounded-2xl border border-slate-200/80 overflow-hidden">
           <!-- Desktop headers -->
-          <div class="hidden md:grid grid-cols-12 items-center px-5 py-2 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
+          <div class="hidden md:grid grid-cols-12 items-center px-6 py-2 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
             <div class="col-span-4">Asset</div>
             <div class="col-span-2">Position Size</div>
             <div class="col-span-2">Quantity (Qty)</div>
@@ -353,9 +365,9 @@
             <!--
               Render rows with JS using this structure.
               Notes:
-              - Increased row padding (px-5) so logos don’t touch the edge.
-              - Use a logo+name stack with gap for clean Apple-like spacing.
-            <div class="grid grid-cols-1 md:grid-cols-12 items-center px-5 py-3 hover:bg-slate-50/60 transition-colors">
+              - Extra left padding (px-6) so logos aren’t tight to the edge.
+              - Logo + name stack with subtle ring for Apple-like polish.
+            <div class="grid grid-cols-1 md:grid-cols-12 items-center px-6 py-3 hover:bg-slate-50/60 transition-colors">
               <div class="md:col-span-4 min-w-0">
                 <div class="flex items-center gap-3">
                   <img src="/logos/btc.svg" alt="BTC" class="w-6 h-6 md:w-7 md:h-7 rounded-full ring-1 ring-slate-200 shrink-0" />
