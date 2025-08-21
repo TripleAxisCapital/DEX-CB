@@ -297,25 +297,28 @@
           <!-- NLV headline -->
           <div class="kpi">
             <div class="text-xs text-slate-500">Net Liquidation Value</div>
-            <div id="nlvValue" class="mt-1 text-2xl font-semibold leading-none" title="Tap to change currency">$—</div>
-            <div id="nlvDelta" class="text-sm mt-1">—</div>
+            <div id="nlvValue" class="mt-1 text-xl md:text-2xl font-semibold leading-none" title="Tap to change currency">$—</div>
+            <div id="nlvDelta" class="text-sm mt-1 tabular-nums">—</div>
           </div>
 
-          <!-- Changes group -->
+          <!-- Changes group (mobile-safe sizing) -->
           <div>
             <div class="text-xs text-slate-500 mb-1">Changes</div>
-            <div class="grid grid-cols-3 gap-2 text-sm">
-              <div class="rounded-lg border border-slate-200 px-3 py-2">
-                <div class="text-[11px] uppercase tracking-wide text-slate-500">1D</div>
-                <div id="delta1d" class="mt-0.5 font-medium">—</div>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <!-- 1D -->
+              <div class="rounded-xl border border-slate-200 px-3 py-2 md:px-3 md:py-2 min-w-0">
+                <div class="text-[10px] md:text-[11px] uppercase tracking-wide text-slate-500 truncate">1D</div>
+                <div id="delta1d" class="mt-0.5 font-medium text-sm md:text-base tabular-nums truncate">—</div>
               </div>
-              <div class="rounded-lg border border-slate-200 px-3 py-2">
-                <div class="text-[11px] uppercase tracking-wide text-slate-500">48H</div>
-                <div id="delta48h" class="mt-0.5 font-medium">—</div>
+              <!-- 48H -->
+              <div class="rounded-xl border border-slate-200 px-3 py-2 md:px-3 md:py-2 min-w-0">
+                <div class="text-[10px] md:text-[11px] uppercase tracking-wide text-slate-500 truncate">48H</div>
+                <div id="delta48h" class="mt-0.5 font-medium text-sm md:text-base tabular-nums truncate">—</div>
               </div>
-              <div class="rounded-lg border border-slate-200 px-3 py-2">
-                <div class="text-[11px] uppercase tracking-wide text-slate-500">Since Start</div>
-                <div id="deltaSinceStart" class="mt-0.5 font-medium">—</div>
+              <!-- Since Start -->
+              <div class="rounded-xl border border-slate-200 px-3 py-2 md:px-3 md:py-2 min-w-0">
+                <div class="text-[10px] md:text-[11px] uppercase tracking-wide text-slate-500 truncate">Since Start</div>
+                <div id="deltaSinceStart" class="mt-0.5 font-medium text-sm md:text-base tabular-nums truncate">—</div>
               </div>
             </div>
           </div>
@@ -323,7 +326,7 @@
           <!-- Top Weight -->
           <div class="kpi">
             <div class="text-xs text-slate-500">Top Weight</div>
-            <div id="topWeight" class="text-sm mt-1">—</div>
+            <div id="topWeight" class="text-sm md:text-base mt-1 tabular-nums">—</div>
           </div>
         </div>
       </div>
@@ -361,7 +364,7 @@
       </div>
     </div>
 
-    <!-- Positions (Apple-like minimal table w/ explicit Qty & Amount labels) -->
+    <!-- Positions (polished, Apple-like) -->
     <div class="card card-pad">
       <div class="flex items-center justify-between mb-3 md:mb-4">
         <h2 class="text-lg md:text-xl font-semibold">Positions</h2>
@@ -370,7 +373,7 @@
 
       <div class="rounded-2xl border border-slate-200/80 overflow-hidden">
         <!-- Desktop headers -->
-        <div class="hidden md:grid grid-cols-12 items-center px-3 py-2 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
+        <div class="hidden md:grid grid-cols-12 items-center px-4 py-2 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
           <div class="col-span-4">Asset</div>
           <div class="col-span-2">Position Size</div>
           <div class="col-span-2">Quantity (Qty)</div>
@@ -381,27 +384,31 @@
         <!-- Dynamic rows render here -->
         <div id="simplePositionsList" class="divide-y divide-slate-100">
           <!--
-            Example row structure for your JS renderer (keeps labels visible on mobile):
-            <div class="grid grid-cols-1 md:grid-cols-12 items-center px-3 py-3">
-              <div class="md:col-span-4">
-                <div class="font-medium">BTC</div>
+            Render rows like this with JS (keeps labels visible on mobile, polished spacing):
+            <div class="grid grid-cols-1 md:grid-cols-12 items-center px-4 py-3 hover:bg-slate-50/60 transition-colors">
+              <div class="md:col-span-4 min-w-0">
+                <div class="font-medium leading-tight truncate">BTC</div>
                 <div class="text-xs text-slate-500 md:hidden mt-0.5">Asset</div>
               </div>
+
               <div class="flex items-center justify-between md:block md:col-span-2 mt-2 md:mt-0">
                 <div class="text-xs text-slate-500 md:hidden">Position Size</div>
-                <div class="font-medium md:font-normal">12.4%</div>
+                <div class="font-medium md:font-normal tabular-nums">12.4%</div>
               </div>
+
               <div class="flex items-center justify-between md:block md:col-span-2 mt-2 md:mt-0">
                 <div class="text-xs text-slate-500 md:hidden">Quantity (Qty)</div>
-                <div>0.845 BTC</div>
+                <div class="tabular-nums">0.845 BTC</div>
               </div>
+
               <div class="flex items-center justify-between md:block md:col-span-2 mt-2 md:mt-0">
                 <div class="text-xs text-slate-500 md:hidden">Unit Price</div>
-                <div>$64,120</div>
+                <div class="tabular-nums">$64,120</div>
               </div>
+
               <div class="flex items-center justify-between md:block md:col-span-2 mt-2 md:mt-0 text-right">
                 <div class="text-xs text-slate-500 md:hidden">Amount (Total)</div>
-                <div class="font-semibold">$54,395</div>
+                <div class="font-semibold tabular-nums">$54,395</div>
               </div>
             </div>
           -->
