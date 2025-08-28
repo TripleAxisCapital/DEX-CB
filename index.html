@@ -1,3 +1,26 @@
+you are the best coder <ultra think hard, your verbosity is extremely high>
+
+edit and provide the fully edited code for copy here in the chat.
+always provide the full edited code for copy.
+
+edit this code to fix a few things.
+
+Right now i am having some glitches with the persistance storage in firestore 
+my positions showed 100 million last night but now they show 0 
+make sure my sofware allways pulls from the data pase for psotion information not locally.
+
+then fix my historical graph.  it should have much better features and work much better.  analyze it and fix it.  
+
+also this whole app does not work well on desktop.  edit the app so it works perfectly on both mobile and destop.
+
+edit and provide with with the fully edited production grade apple product quality code for copy 
+
+Summary what you are going to do first.
+ask any needed clarification questions.  
+
+
+CODES:
+
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -99,7 +122,7 @@
     .header-blur{ backdrop-filter: saturate(140%) blur(10px); -webkit-backdrop-filter: saturate(140%) blur(10px); background: var(--surface-2) !important; }
     .card{ border-radius: var(--radius-2xl); border: 1px solid var(--border); background: var(--surface-2); box-shadow: var(--shadow-sm); }
 
-    .btn{ border-radius: 12px; padding: 12px 14px; font-weight: 600; border: 1px solid var(--border); background: #f1f5f9; transition: .2s transform, .2s background, .2s box-shadow; min-height: 40px; }
+    .btn{ border-radius: 12px; padding: 10px 14px; font-weight: 600; border: 1px solid var(--border); background: #f1f5f9; transition: .2s transform, .2s background, .2s box-shadow; }
     .btn:active{ transform: translateY(1px); }
     .btn-primary{
       background: linear-gradient(180deg, var(--brand), var(--brand-dark));
@@ -109,26 +132,23 @@
     .btn-primary:hover{ filter: brightness(1.02); }
     .btn-ghost{ background: transparent; }
 
-    .chip{ display:inline-flex; align-items:center; gap:.5rem; padding:.4rem .65rem; border-radius:999px; border:1px solid var(--border); font-size:.8rem; }
+    .chip{ display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .5rem; border-radius:999px; border:1px solid var(--border); font-size:.75rem; }
     .green{ color:#059669 } .red{ color:#dc2626 }
 
     .pill-tab{ padding: .5rem .75rem; border-radius: 12px; border: 1px solid var(--border); font-size:.75rem; }
     .pill-tab.active{ background: var(--brand); color:#fff; border-color: var(--brand-dark); }
 
     .seg{ display:inline-flex; background:#e2e8f0; border-radius:10px; padding:4px; }
-    .seg button{ padding:8px 12px; border-radius:8px; font-size:.85rem; }
-    .seg button.active{ background: var(--brand); color: #fff; border: 1px solid var(--brand-dark); }
+    .seg button{ padding:6px 10px; border-radius:8px; font-size:.8rem; }
+    .seg button.active{ background: var(--brand); color:#fff; border: 1px solid var(--brand-dark); }
     [data-theme="dark"] .seg{ background:#1f2937; }
 
     .card-pad{ padding: 20px; }
-    @media (max-width: 767px){ .card-pad{ padding: 16px; } }
-
     .section-gap{ gap: 16px; }
     .kpi{ border-radius: 14px; background: #f8fafc; border:1px solid var(--border); padding: 14px; }
 
-    #nlvValue{ font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; cursor: pointer; }
-    #nlvValue:hover{ text-decoration: underline; }
-    #headerNLV{ max-width: 190px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; cursor: pointer; }
+    #nlvValue{ font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+    #headerNLV{ max-width: 190px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 
     .progress-wrap{ margin-top:.75rem; width:100%; height:8px; border-radius:999px; background:#e2e8f0; overflow:hidden; }
     .progress-bar{ height:100%; width:0%; background: linear-gradient(90deg,var(--brand),var(--brand-2)); transition: width .2s ease; }
@@ -136,24 +156,21 @@
     .modal{ position:fixed; inset:0; z-index:60; display:flex; align-items:flex-end; justify-content:center; }
     @media (min-width:768px){ .modal{ align-items:center; } }
     .modal-bg{ position:absolute; inset:0; background:rgba(0,0,0,.45); backdrop-filter: blur(4px); }
-    .modal-card{ position:relative; width:100%; max-width:760px; border-radius:20px; border:1px solid var(--border); background: var(--surface); padding:20px; max-height: 90vh; overflow:auto; }
-    @media (max-width:767px){ .modal-card{ border-bottom-left-radius: 0; border-bottom-right-radius: 0; } }
+    .modal-card{ position:relative; width:100%; max-width:760px; border-radius:20px; border:1px solid var(--border); background: var(--surface); padding:20px; }
 
-    .bottom-nav{ position:fixed; left:0; right:0; bottom:0; z-index:50; padding: 8px calc(var(--app-x)); background: var(--surface-2); border-top:1px solid var(--border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding-bottom: calc(8px + var(--safe-bottom)); }
-    .bottom-btn{ flex:1; display:flex; gap:8px; align-items:center; justify-content:center; padding:12px 12px; border-radius:12px; border:1px solid var(--border); background:#f1f5f9; font-size:.9rem; }
+    .bottom-nav{ position:sticky; bottom:0; z-index:50; padding: 8px calc(var(--app-x)); background: var(--surface-2); border-top:1px solid var(--border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding-bottom: calc(8px + var(--safe-bottom)); }
+    .bottom-btn{ flex:1; display:flex; gap:6px; align-items:center; justify-content:center; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:#f1f5f9; font-size:.8rem; }
     .bottom-btn.active{ background: var(--brand); color:#fff; border-color: var(--brand-dark); }
     [data-theme="dark"] .bottom-btn{ background:#0b1220; color:#e5e7eb; border-color:#334155; }
 
-    .input{ width:100%; border:1px solid var(--border); border-radius:14px; padding:12px 12px; outline:none; background:#fff; min-height: 44px; }
+    .input{ width:100%; border:1px solid var(--border); border-radius:14px; padding:10px 12px; outline:none; background:#fff; }
     .input:focus{ box-shadow:0 0 0 4px rgba(var(--brand-rgb), .15); }
     [data-theme="dark"] .input{ background:#0b1220; color:#e5e7eb; border-color:#334155; }
 
     .chart-box{ height: 240px; }
     @media (min-width:1024px){ .chart-box{ height: 280px; } }
-    @media (max-width: 767px){ .chart-box{ height: 200px; } }
 
     .pt-safe{ padding-top: calc(8px + var(--safe-top)); }
-    @media (max-width: 767px){ main.app-shell{ padding-bottom: calc(88px + var(--safe-bottom)); } }
 
     .pos-header{ display:none; }
     @media (min-width:768px){
@@ -169,10 +186,6 @@
     .pos-simple-header{ display:grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap:12px; font-size:.75rem; text-transform:uppercase; color:#64748b; letter-spacing:.03em; }
     .pos-simple-row{ display:grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap:12px; padding:10px 0; }
     .pos-simple-row + .pos-simple-row{ border-top:1px solid var(--border); }
-    @media (max-width: 767px){
-      .pos-simple-header{ display:none; }
-      .pos-simple-row{ grid-template-columns: 1fr 1fr; gap:10px; }
-    }
 
     [data-theme="dark"] .card{ background: rgba(2,6,23,.85); border-color:#334155; }
     [data-theme="dark"] .kpi{ background:#0b1220; border-color:#334155; }
@@ -243,7 +256,7 @@
             <button id="openAssetSearch" class="btn btn-ghost" title="Search & add assets">
               <i class="ph ph-magnifying-glass"></i><span class="ml-2">Assets</span>
             </button>
-            <span id="headerNLV" class="hidden md:inline text-sm font-medium px-2.5 py-1 rounded-lg" style="background:#e2e8f0;" title="Tap to change currency"></span>
+            <span id="headerNLV" class="hidden md:inline text-sm font-medium px-2.5 py-1 rounded-lg" style="background:#e2e8f0;"></span>
             <button id="logoutBtn" class="btn">Log out</button>
           </div>
           <div class="md:hidden flex items-center gap-3">
@@ -253,214 +266,116 @@
       </div>
     </header>
 
-    <main class="app-shell py-4 md:py-6 space-y-6 app-shell">
+    <main class="app-shell py-4 md:py-6 space-y-6">
 
-  <!-- DASHBOARD -->
-  <section id="page-dashboard" class="space-y-4 md:space-y-6">
+      <!-- DASHBOARD -->
+      <section id="page-dashboard" class="space-y-4 md:space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 section-gap">
+          <div class="card card-pad col-span-2">
+            <div class="flex items-center justify-between mb-3 md:mb-4">
+              <h2 class="text-lg md:text-xl font-semibold">Portfolio</h2>
+              <div class="text-xs md:text-sm text-slate-500">Updated <span id="lastUpdated">—</span></div>
+            </div>
 
-    <!-- Top row: Portfolio (2 cols) + NLV card; positions sits directly under NLV on desktop -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 section-gap">
-
-      <!-- Portfolio -->
-      <div class="card card-pad col-span-1 lg:col-span-2">
-        <div class="flex items-center justify-between mb-3 md:mb-4">
-          <h2 class="text-lg md:text-xl font-semibold">Portfolio</h2>
-          <div class="text-xs md:text-sm text-slate-500">Updated <span id="lastUpdated">—</span></div>
-        </div>
-
-        <div class="mb-3 flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2 overflow-auto no-scrollbar">
-            <button class="pill-tab active" data-range="7D">7D</button>
-            <button class="pill-tab" data-range="1M">1M</button>
-            <button class="pill-tab" data-range="3M">3M</button>
-            <button class="pill-tab" data-range="1Y">1Y</button>
-            <button class="pill-tab" data-range="ALL">All</button>
-          </div>
-          <div class="text-sm">
-            <span class="text-slate-500">Change:</span>
-            <span id="rangeChange" class="font-medium">—</span>
-          </div>
-        </div>
-
-        <div class="chart-box">
-          <canvas id="nlvChart"></canvas>
-        </div>
-      </div>
-
-      <!-- Net Liquidation (its own card, grouped details) -->
-      <div class="card card-pad">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-lg font-semibold">Net Liquidation</h2>
-        </div>
-
-        <div class="space-y-4">
-          <!-- NLV headline -->
-          <div class="kpi">
-            <div class="text-xs text-slate-500">Net Liquidation Value</div>
-            <div id="nlvValue" class="mt-1 text-xl md:text-2xl font-semibold leading-none" title="Tap to change currency">$—</div>
-            <div id="nlvDelta" class="text-sm mt-1 tabular-nums">—</div>
-          </div>
-
-          <!-- Changes group (mobile-safe: wraps value + percent, no truncation) -->
-          <div>
-            <div class="text-xs text-slate-500 mb-1">Changes</div>
-
-            <!-- On phones: 2 columns; adds height + wrapping so both value and % are visible -->
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-              <!-- 1D -->
-              <div class="rounded-xl border border-slate-200 px-3 py-2 md:px-3 md:py-2 min-w-0 min-h-[64px] flex flex-col justify-center">
-                <div class="text-[10px] md:text-[11px] uppercase tracking-wide text-slate-500">1D</div>
-                <div id="delta1d" class="mt-0.5 font-medium text-[13px] md:text-sm tabular-nums leading-snug whitespace-normal break-words">
-                  —
-                </div>
+            <div class="mb-3 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <button class="pill-tab active" data-range="7D">7D</button>
+                <button class="pill-tab" data-range="1M">1M</button>
+                <button class="pill-tab" data-range="3M">3M</button>
+                <button class="pill-tab" data-range="1Y">1Y</button>
+                <button class="pill-tab" data-range="ALL">All</button>
               </div>
-
-              <!-- 48H -->
-              <div class="rounded-xl border border-slate-200 px-3 py-2 md:px-3 md:py-2 min-w-0 min-h-[64px] flex flex-col justify-center">
-                <div class="text-[10px] md:text-[11px] uppercase tracking-wide text-slate-500">48H</div>
-                <div id="delta48h" class="mt-0.5 font-medium text-[13px] md:text-sm tabular-nums leading-snug whitespace-normal break-words">
-                  —
-                </div>
-              </div>
-
-              <!-- Since Start -->
-              <div class="rounded-xl border border-slate-200 px-3 py-2 md:px-3 md:py-2 min-w-0 min-h-[64px] flex flex-col justify-center">
-                <div class="text-[10px] md:text-[11px] uppercase tracking-wide text-slate-500">Since Start</div>
-                <div id="deltaSinceStart" class="mt-0.5 font-medium text-[13px] md:text-sm tabular-nums leading-snug whitespace-normal break-words">
-                  —
-                </div>
+              <div class="text-sm">
+                <span class="text-slate-500">Change:</span>
+                <span id="rangeChange" class="font-medium">—</span>
               </div>
             </div>
 
-            <!-- Optional hint: if your values include "$1,234 (+2.4%)" they will wrap onto two lines on mobile. -->
-          </div>
+            <div class="flex flex-col lg:flex-row gap-4">
+              <div class="flex-1">
+                <div class="chart-box">
+                  <canvas id="nlvChart"></canvas>
+                </div>
 
-          <!-- Top Weight -->
-          <div class="kpi">
-            <div class="text-xs text-slate-500">Top Weight</div>
-            <div id="topWeight" class="text-sm md:text-base mt-1 tabular-nums">—</div>
-          </div>
-        </div>
-      </div>
+                <!-- Simple Positions directly below the chart -->
+                <div class="mt-4">
+                  <div class="pos-simple-header">
+                    <div>Asset</div><div>Amount</div><div>Price</div><div>Total</div>
+                  </div>
+                  <div id="simplePositionsList" class="mt-1"></div>
+                </div>
+              </div>
 
-      <!-- Positions (moved directly below NLV on desktop via col-start) -->
-      <div class="card card-pad lg:col-start-3">
-        <div class="flex items-center justify-between mb-3 md:mb-4">
-          <h2 class="text-lg md:text-xl font-semibold">Positions</h2>
-          <div class="text-xs md:text-sm text-slate-500">As of <span id="positionsAsOf">—</span></div>
-        </div>
-
-        <div class="rounded-2xl border border-slate-200/80 overflow-hidden">
-          <!-- Desktop headers -->
-          <div class="hidden md:grid grid-cols-12 items-center px-6 py-2 bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
-            <div class="col-span-4">Asset</div>
-            <div class="col-span-2">Position Size</div>
-            <div class="col-span-2">Quantity (Qty)</div>
-            <div class="col-span-2">Unit Price</div>
-            <div class="col-span-2 text-right">Amount (Total)</div>
-          </div>
-
-          <!-- Dynamic rows render here -->
-          <div id="simplePositionsList" class="divide-y divide-slate-100">
-            <!--
-              Render rows with JS using this structure.
-              Notes:
-              - Extra left padding (px-6) so logos aren’t tight to the edge.
-              - Logo + name stack with subtle ring for Apple-like polish.
-            <div class="grid grid-cols-1 md:grid-cols-12 items-center px-6 py-3 hover:bg-slate-50/60 transition-colors">
-              <div class="md:col-span-4 min-w-0">
-                <div class="flex items-center gap-3">
-                  <img src="/logos/btc.svg" alt="BTC" class="w-6 h-6 md:w-7 md:h-7 rounded-full ring-1 ring-slate-200 shrink-0" />
-                  <div class="min-w-0">
-                    <div class="font-medium leading-tight truncate">Bitcoin (BTC)</div>
-                    <div class="text-xs text-slate-500 md:hidden mt-0.5">Asset</div>
+              <div class="w-full lg:w-64 space-y-3">
+                <div class="kpi">
+                  <div class="text-xs text-slate-500">Net Liquidation Value</div>
+                  <div id="nlvValue" class="mt-1">$—</div>
+                  <div id="nlvDelta" class="text-sm mt-1">—</div>
+                </div>
+                <div class="kpi">
+                  <div class="text-xs text-slate-500">Changes</div>
+                  <div class="mt-1 text-sm space-y-1">
+                    <div><span class="text-slate-500">1D:</span> <span id="delta1d">—</span></div>
+                    <div><span class="text-slate-500">48H:</span> <span id="delta48h">—</span></div>
+                    <div><span class="text-slate-500">Since Start:</span> <span id="deltaSinceStart">—</span></div>
                   </div>
                 </div>
-              </div>
-
-              <div class="flex items-center justify-between md:block md:col-span-2 mt-3 md:mt-0">
-                <div class="text-xs text-slate-500 md:hidden">Position Size</div>
-                <div class="font-medium md:font-normal tabular-nums">12.4%</div>
-              </div>
-
-              <div class="flex items-center justify-between md:block md:col-span-2 mt-3 md:mt-0">
-                <div class="text-xs text-slate-500 md:hidden">Quantity (Qty)</div>
-                <div class="tabular-nums">0.845 BTC</div>
-              </div>
-
-              <div class="flex items-center justify-between md:block md:col-span-2 mt-3 md:mt-0">
-                <div class="text-xs text-slate-500 md:hidden">Unit Price</div>
-                <div class="tabular-nums">$64,120</div>
-              </div>
-
-              <div class="flex items-center justify-between md:block md:col-span-2 mt-3 md:mt-0 text-right">
-                <div class="text-xs text-slate-500 md:hidden">Amount (Total)</div>
-                <div class="font-semibold tabular-nums">$54,395</div>
+                <div class="kpi">
+                  <div class="text-xs text-slate-500">Top Weight</div>
+                  <div id="topWeight" class="text-sm mt-1">—</div>
+                </div>
               </div>
             </div>
-            -->
+          </div>
+
+          <!-- Quick Swap -->
+          <div class="card card-pad">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-lg font-semibold">Quick Swap</h2>
+            </div>
+            <div class="space-y-3">
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-xs text-slate-500">From</label>
+                  <select id="qsFrom" class="input mt-1"></select>
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">To</label>
+                  <select id="qsTo" class="input mt-1"></select>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-xs text-slate-500">Amount (From)</label>
+                  <input id="qsAmtFrom" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 0.5" />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">Amount (To)</label>
+                  <input id="qsAmtTo" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 2.0" />
+                </div>
+              </div>
+              <div class="text-xs text-slate-600" id="qsQuote">—</div>
+              <button id="qsSwap" class="btn btn-primary w-full">Swap</button>
+              <div id="qsMsg" class="text-xs text-slate-500"></div>
+            </div>
           </div>
         </div>
 
-        <div class="mt-3 text-xs text-slate-500">
-          Labels: <span class="font-medium">Qty</span> = units held; <span class="font-medium">Amount</span> = current market value.
-        </div>
-      </div>
-
-      <!-- Quick Swap (will flow underneath Portfolio on desktop) -->
-      <div class="card card-pad">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-lg font-semibold">Quick Swap</h2>
-        </div>
-        <div class="space-y-3">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs text-slate-500">From</label>
-              <select id="qsFrom" class="input mt-1"></select>
-            </div>
-            <div>
-              <label class="text-xs text-slate-500">To</label>
-              <select id="qsTo" class="input mt-1"></select>
-            </div>
+        <div class="card card-pad">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold">Recent Activity & Trades</h2>
+            <button id="exportBtn" class="btn">Export Data</button>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs text-slate-500">Amount (From)</label>
-              <input id="qsAmtFrom" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 0.5" />
-            </div>
-            <div>
-              <label class="text-xs text-slate-500">Amount (To)</label>
-              <input id="qsAmtTo" type="number" min="0" step="0.000001" class="input mt-1" placeholder="e.g., 2.0" />
-            </div>
-          </div>
-          <div class="text-xs text-slate-600" id="qsQuote">—</div>
-          <button id="qsSwap" class="btn btn-primary w-full">Swap</button>
-          <div id="qsMsg" class="text-xs text-slate-500"></div>
+          <div id="activityList" class="space-y-2 text-sm mt-3"></div>
         </div>
-      </div>
-
-    </div>
-
-    <!-- Recent Activity & Trades -->
-    <div class="card card-pad">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold">Recent Activity & Trades</h2>
-        <button id="exportBtn" class="btn">Export Data</button>
-      </div>
-      <div id="activityList" class="space-y-2 text-sm mt-3"></div>
-    </div>
-
-  </section>
-</main>
-
-
+      </section>
 
       <!-- POSITIONS -->
       <section id="page-positions" class="hidden space-y-4">
         <div class="card card-pad">
           <div class="flex items-center justify-between mb-3">
             <h2 class="text-lg font-semibold">Positions</h2>
-            <div class="text-xs text-slate-500">Only assets with &gt; 0 holdings</div>
+            <div class="text-xs text-slate-500">Market data via public API</div>
           </div>
 
           <div class="pos-header mb-2">
@@ -472,14 +387,6 @@
           </div>
 
           <div id="positionsList"></div>
-        </div>
-
-        <div class="card card-pad">
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-lg font-semibold">Watchlist</h2>
-            <div class="text-xs text-slate-500">No position</div>
-          </div>
-          <div id="watchList"></div>
         </div>
       </section>
 
@@ -904,17 +811,8 @@
     }
     function saveSec(s){ localStorage.setItem(K.SEC, JSON.stringify(s)); onLocalChange(); }
 
-    // Make activity + trades sync immediately across browser tabs/devices
-    async function pushActivity(msg){
-      const h=loadHistory(); h.unshift({t:now(),msg}); saveHistory(h.slice(0,200));
-      renderActivity();
-      try { await FSync.uploadNow(); } catch(e) {}
-    }
-    async function recordTrade(trade){
-      const list = loadTrades(); list.unshift(trade); saveTrades(list.slice(0,500));
-      renderActivity();
-      try { await FSync.uploadNow(); } catch(e) {}
-    }
+    function pushActivity(msg){ const h=loadHistory(); h.unshift({t:now(),msg}); saveHistory(h.slice(0,200)); renderActivity(); }
+    function recordTrade(trade){ const list = loadTrades(); list.unshift(trade); saveTrades(list.slice(0,500)); }
     function recordEquityPoint(nlv, minGapMs=60_000){
       if (!isFinite(nlv)) return;
       const series = loadEquity();
@@ -1020,7 +918,6 @@
           updateUI(true);
           renderOpenOrders();
           renderFavoritesPanel();
-          renderActivity(); // ensure activity/trades live-update across browsers
         });
       }
 
@@ -1364,20 +1261,6 @@
     }
     window.addEventListener("resize", ()=>{ autoFitNLV(); });
 
-    // Currency cycle on tapping NLV (and header NLV)
-    function cycleCurrency(){
-      const seq = ["USD","CAD","EUR"];
-      const cur = (loadUI().currency || "USD").toUpperCase();
-      const idx = Math.max(0, seq.indexOf(cur));
-      const next = seq[(idx+1)%seq.length];
-      saveUI({ currency: next });
-      const sel = $("#globalCurrency"); if (sel) sel.value = next;
-      fetchMarket().catch(()=>{});
-      refreshChart();
-      updateUI(true);
-      FSync.uploadNow?.();
-    }
-
     /***** RENDER *****/
     function populateSelects(){
       const opts = getTradableAssets().map(a => `<option value="${a.id}">${a.symbol} • ${a.name}</option>`).join("");
@@ -1411,25 +1294,18 @@
         return { id:a.id, symbol:a.symbol, v };
       }).sort((x,y)=>y.v-x.v);
       const total = nlv || 1;
-      const top = rows.find(r=> (loadState().holdings[r.id]||0) > 0);
+      const top = rows[0];
       $("#topWeight").textContent = top ? `${top.symbol} • ${(top.v/total*100).toFixed(2)}%` : "—";
     }
     function isFav(id){ return loadFavs().some(f=>f.id===id); }
 
-    // POSITIONS: only >0
     function renderPositions(state){
       const list = $("#positionsList");
       if (!list) return;
       list.innerHTML = "";
       const nlv = calcNLV(state) || 1;
 
-      const rows = getTradableAssets().filter(a => (state.holdings[a.id]||0) > 0);
-      if (!rows.length){
-        list.innerHTML = `<div class="text-slate-500 text-sm">No open positions yet.</div>`;
-        return;
-      }
-
-      for (const a of rows){
+      for (const a of getTradableAssets()){
         const qty = state.holdings[a.id]||0;
         const px = priceOf(a.id);
         const v = (px!=null) ? qty*px : 0;
@@ -1472,53 +1348,7 @@
       });
     }
 
-    // WATCHLIST: holdings <= 0
-    function renderWatchlist(state){
-      const wrap = $("#watchList");
-      if (!wrap) return;
-      wrap.innerHTML = "";
-      const rows = getTradableAssets().filter(a => (state.holdings[a.id]||0) <= 0);
-      if (!rows.length){
-        wrap.innerHTML = `<div class="text-slate-500 text-sm">Nothing here yet. Add assets from search or set a position to move out.</div>`;
-        return;
-      }
-      rows.forEach(a=>{
-        const px = priceOf(a.id);
-        const chg = market[a.id]?.chg24 ?? 0;
-        const row = document.createElement("div");
-        row.className = "pos-row";
-        row.innerHTML = `
-          <div class="flex items-center gap-3">
-            <img src="${imageOf(a.id) || ''}" alt="${a.symbol}" class="w-8 h-8 rounded-lg border border-slate-200"/>
-            <div class="flex-1">
-              <div class="font-medium">${a.symbol}</div>
-              <div class="text-xs text-slate-500">${a.name}</div>
-            </div>
-            <button class="chip whitespace-nowrap" data-toggle-fav="${a.id}">
-              <i class="ph ${isFav(a.id)?'ph-star':'ph-star-four'}"></i>
-              <span>${isFav(a.id)?'Favorited':'Favorite'}</span>
-            </button>
-          </div>
-          <div class="flex items-baseline justify-between md:block">
-            <div class="font-medium">${px!=null?fmtCur(px):"—"}</div>
-            <div class="text-xs ${chg>=0?"green":"red"} md:mt-1">${fmtPct(chg)}</div>
-          </div>
-          <div class="text-sm text-slate-500">No position</div>
-          <div class="text-sm"></div>
-          <div class="text-sm md:text-right"></div>
-        `;
-        wrap.appendChild(row);
-      });
-      wrap.querySelectorAll("[data-toggle-fav]").forEach(btn=>{
-        btn.addEventListener("click", async ()=>{
-          const id = btn.getAttribute("data-toggle-fav");
-          toggleFavoriteById(id);
-          try { await FSync.uploadNow(); } catch(e) {}
-        });
-      });
-    }
-
-    // Simple positions under chart (>0 already handled below)
+    // Simple positions under chart
     function renderSimplePositions(){
       const s = loadState();
       const wrap = $("#simplePositionsList");
@@ -1526,7 +1356,7 @@
       wrap.innerHTML = "";
       for (const a of getTradableAssets()){
         const qty = s.holdings[a.id] || 0;
-        if (!(qty>0)) continue; // only positions with >0
+        if (!qty) continue;
         const px = priceOf(a.id);
         const total = (px!=null) ? qty * px : 0;
         const row = document.createElement("div");
@@ -1646,12 +1476,13 @@
       if (res.ok){
         saveState(s);
         const trade = { t: now(), fromId: from, toId: to, fromAmt: +fromAmt, toAmt: +(+res.toAmt.toFixed(6)), feePct: +res.feePct, rate: +(res.fromPx/res.toPx).toFixed(6) };
-        await recordTrade(trade);
-        await pushActivity(`SWAP • ${fromAmt} ${getSymbol(from)} → ${res.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${res.feePct.toFixed(2)}%)`);
+        recordTrade(trade);
+        pushActivity(`SWAP • ${fromAmt} ${getSymbol(from)} → ${res.toAmt.toFixed(6)} ${getSymbol(to)} (fee ${res.feePct.toFixed(2)}%)`);
         updateUI(true);
         msg.textContent = "Swap executed.";
         $("#qsAmtFrom").value = ""; $("#qsAmtTo").value = "";
         updateQuickQuote();
+        try { await FSync.uploadNow(); } catch(e) {}
       } else msg.textContent = res.msg;
     });
 
@@ -1750,12 +1581,13 @@
         if (res.ok){
           saveState(s);
           const trade = { t: now(), fromId: cur, toId: buy, fromAmt: +res.fromAmt.toFixed(6), toAmt: +qty.toFixed(6), feePct: +commissionPct(), rate: +mkt.toFixed(6) };
-          await recordTrade(trade);
-          await pushActivity(`MARKET BUY • ${qty} ${getSymbol(buy)} using ${trade.fromAmt} ${getSymbol(cur)} @ ${mkt.toFixed(6)}`);
+          recordTrade(trade);
+          pushActivity(`MARKET BUY • ${qty} ${getSymbol(buy)} using ${trade.fromAmt} ${getSymbol(cur)} @ ${mkt.toFixed(6)}`);
           updateUI(true);
           msg.textContent = "Order filled.";
           $("#buyQty").value="";
           updateTradeQuote();
+          try { await FSync.uploadNow(); } catch(e) {}
         } else { msg.textContent = res.msg; }
         return;
       }
@@ -1769,20 +1601,22 @@
           if (res.ok){
             saveState(s);
             const trade = { t: now(), fromId: cur, toId: buy, fromAmt: +res.fromAmt.toFixed(6), toAmt: +qty.toFixed(6), feePct: +commissionPct(), rate: +L.toFixed(6) };
-            await recordTrade(trade);
-            await pushActivity(`FILL • LIMIT BUY @ ${L} (${qty} ${getSymbol(buy)})`);
+            recordTrade(trade);
+            pushActivity(`FILL • LIMIT BUY @ ${L} (${qty} ${getSymbol(buy)})`);
             updateUI(true);
             msg.textContent = "Limit filled immediately.";
             $("#buyQty").value="";
             updateTradeQuote();
+            try { await FSync.uploadNow(); } catch(e) {}
             return;
           }
         }
         const order = { id: uid(), t: now(), type: "LIMIT", tif, currencyId: cur, buyId: buy, buyQty: qty, limitPrice: L, status: "OPEN" };
         const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
-        await pushActivity(`ORDER • LIMIT BUY ${qty} ${getSymbol(buy)} @ ${L} ${getSymbol(cur)}/${getSymbol(buy)} (${tif})`);
+        pushActivity(`ORDER • LIMIT BUY ${qty} ${getSymbol(buy)} @ ${L} ${getSymbol(cur)}/${getSymbol(buy)} (${tif})`);
         renderOpenOrders();
         msg.textContent = "Limit order placed."; updateTradeQuote(); processOrders();
+        try { await FSync.uploadNow(); } catch(e) {}
         return;
       }
 
@@ -1795,9 +1629,10 @@
         if (exec==="LIMIT" && !(SL>0)){ msg.textContent = "Enter stop & limit price."; return; }
         const order = { id: uid(), t: now(), type: "STOP", status:"OPEN", currencyId: cur, buyId: buy, buyQty: qty, stopPrice: S, stopSide: dir, onTrigger: exec, limitPrice: exec==="LIMIT" ? SL : null, triggered: false };
         const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
-        await pushActivity(`ORDER • STOP BUY ${dir} ${S} ${exec==="LIMIT" ? "→ LIMIT @ "+SL : "→ MARKET"}`);
+        pushActivity(`ORDER • STOP BUY ${dir} ${S} ${exec==="LIMIT" ? "→ LIMIT @ "+SL : "→ MARKET"}`);
         renderOpenOrders();
         msg.textContent = "Stop order placed."; updateTradeQuote(); processOrders();
+        try { await FSync.uploadNow(); } catch(e) {}
         return;
       }
 
@@ -1808,9 +1643,10 @@
         if (!(tVal>0)){ msg.textContent = "Enter a trail value."; return; }
         const order = { id: uid(), t: now(), type: "TRAIL", status:"OPEN", currencyId: cur, buyId: buy, buyQty: qty, trailType: tType, trailValue: tVal, activationPrice: isFinite(act) ? act : null, activated: isFinite(act) ? false : true, peg: priceCPB(cur,buy) };
         const orders = loadOrders(); orders.unshift(order); saveOrders(orders);
-        await pushActivity(`ORDER • TRAILING BUY by ${tType==="PCT"? tVal+"%": tVal+" "+getSymbol(cur)}${order.activationPrice? " (activates ≤ "+order.activationPrice+")":""}`);
+        pushActivity(`ORDER • TRAILING BUY by ${tType==="PCT"? tVal+"%": tVal+" "+getSymbol(cur)}${order.activationPrice? " (activates ≤ "+order.activationPrice+")":""}`);
         renderOpenOrders();
         msg.textContent = "Trailing order placed."; updateTradeQuote(); processOrders();
+        try { await FSync.uploadNow(); } catch(e) {}
       }
     });
 
@@ -1836,7 +1672,7 @@
           const id = b.getAttribute("data-cancel");
           const orders = loadOrders();
           const idx = orders.findIndex(x=>x.id===id);
-          if (idx>=0){ orders[idx].status="CANCELLED"; saveOrders(orders); renderOpenOrders(); await pushActivity(`ORDER • Cancelled ${id}`); }
+          if (idx>=0){ orders[idx].status="CANCELLED"; saveOrders(orders); renderOpenOrders(); pushActivity(`ORDER • Cancelled ${id}`); try { await FSync.uploadNow(); } catch(e) {} }
         });
       });
     }
@@ -1936,7 +1772,7 @@
           continue;
         }
       }
-      if (changed){ saveOrders(orders); renderOpenOrders(); updateUI(true); FSync.uploadNow?.(); }
+      if (changed){ saveOrders(orders); renderOpenOrders(); updateUI(true); }
     }
 
     /***** ADVANCED *****/
@@ -2073,7 +1909,7 @@
         favs.unshift({ id: asset.id, symbol: (asset.symbol||"").toUpperCase(), name: asset.name });
         saveFavs(favs.slice(0,500));
         const s = loadState();
-        if (s.holdings[asset.id] == null) { s.holdings[asset.id] = 0; saveState(s); } // ensure added to watchlist only (0 position)
+        if (s.holdings[asset.id] == null) { s.holdings[asset.id] = 0; saveState(s); }
         refreshAfterUniverseChange();
       }
     }
@@ -2134,8 +1970,8 @@
       const wrap = $("#favoriteList");
       if (!wrap) return;
       if (!favs.length){ wrap.innerHTML = `<div class="text-slate-500 text-sm">No favorites yet.</div>`; return; }
-      wrap.innerHTML = favs.map(f=>
-        `<div class="flex items-center justify-between p-2 rounded-lg border" style="background: var(--surface); border-color: var(--border);">
+      wrap.innerHTML = favs.map(f=>`
+        <div class="flex items-center justify-between p-2 rounded-lg border" style="background: var(--surface); border-color: var(--border);">
           <div class="font-medium text-sm">${f.symbol} • <span class="text-slate-500">${f.name}</span></div>
           <div class="flex items-center gap-2">
             <button class="btn" data-toggle-fav="${f.id}"><i class="ph ph-star"></i></button>
@@ -2179,12 +2015,10 @@
         renderSummary(s);
         if (isFinite(nlv)) { pushChartPoint(nlv); }
         renderPositions(s);
-        renderWatchlist(s);
         renderSimplePositions();
       } else {
         renderSummary(s);
         renderPositions(s);
-        renderWatchlist(s);
         renderSimplePositions();
       }
     }
@@ -2226,9 +2060,6 @@
         alert("Currency saved.");
         try { await FSync.uploadNow(); } catch(e) {}
       });
-      // Tap to cycle currency
-      $("#nlvValue")?.addEventListener("click", cycleCurrency);
-      $("#headerNLV")?.addEventListener("click", cycleCurrency);
 
       // Portfolio Baseline
       if (ui.startDateISO && $("#pfStartDate")) $("#pfStartDate").value = ui.startDateISO;
